@@ -1,0 +1,75 @@
+[versions]
+kotlin = "2.3.10"
+kotlinx-kover = "0.9.7"
+kotlinx-datetime = "0.7.1"
+kotlinx-coroutines = "1.10.2"
+kotlinx-serialization-json = "1.10.0"
+exposed = "1.1.1"
+gel-query-dsl = "3.2.1"
+ktor = "3.4.1"
+koin = "4.1.1"
+koin-annotation = "2.3.1"
+ksp = "2.3.6"
+kotest = "6.1.7"
+mockk = "1.14.9"
+kotlin-logging = "8.0.01"
+logback = "1.5.32"
+slf4j = "2.0.17"
+
+[libraries]
+# KotlinX
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
+# Exposed
+exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
+exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "exposed" }
+exposed-crypt = { module = "org.jetbrains.exposed:exposed-crypt", version.ref = "exposed" }
+exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
+# GelQueryDSL
+gel-query-dsl-core = { module = "io.github.joaoseidel.geldsl:gel-query-dsl-core", version.ref = "gel-query-dsl" }
+# Ktor
+ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio-jvm", version.ref = "ktor" }
+ktor-server-config-yaml = { module = "io.ktor:ktor-server-config-yaml", version.ref = "ktor" }
+ktor-request-validation = { module = "io.ktor:ktor-server-request-validation", version.ref = "ktor" }
+ktor-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
+ktor-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+# Koin
+koin-ktor = { module = "io.insert-koin:koin-ktor", version.ref = "koin" }
+koin-slf4j = { module = "io.insert-koin:koin-logger-slf4j", version.ref = "koin" }
+# Koin KSP
+koin-annotation = { module = "io.insert-koin:koin-annotations", version.ref = "koin-annotation" }
+koin-ksp-compiler = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koin-annotation" }
+# Logging
+kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+# Testing
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
+ktor-server-testhost = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+koin-test = { module = "io.insert-koin:koin-test", version.ref = "koin" }
+koin-test-junit5 = { module = "io.insert-koin:koin-test-junit5", version.ref = "koin" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+
+[bundles]
+kotlinx = ["kotlinx-coroutines", "kotlinx-serialization", "kotlinx-datetime"]
+exposed = ["exposed-core", "exposed-jdbc", "exposed-json", "exposed-crypt", "exposed-kotlin-datetime"]
+ktor = [
+    "ktor-server-core", "ktor-server-cio", "ktor-server-config-yaml", "ktor-request-validation", "ktor-status-pages", "ktor-content-negotiation",
+    "kotlinx-serialization"
+]
+koin = ["koin-ksp-compiler", "koin-slf4j", "koin-annotation"]
+logging = ["kotlin-logging", "logback-classic", "slf4j-api"]
+testing = ["kotest-runner-junit5", "kotest-assertions-core", "kotest-property", "ktor-server-testhost", "koin-test", "koin-test-junit5", "mockk"]
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlinx-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kotlinx-kover" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
