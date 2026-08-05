@@ -52,19 +52,15 @@ class ValidationContextTest :
                 context.getErrors()[0].message shouldBe "should not be null"
             }
 
-            test("nested should use custom error messages when nested property is null") {
+            test("nested should use a custom error message when nested property is null") {
                 val user = User("John", null)
                 val context = ValidationContext(user)
 
-                context.nested(
-                    User::address,
-                    positiveMessage = "custom positive",
-                    negativeMessage = "custom negative",
-                ) {}
+                context.nested(User::address, nullMessage = "custom message") {}
 
                 context.getErrors().size shouldBe 1
                 context.getErrors()[0].propertyPath shouldBe "address"
-                context.getErrors()[0].message shouldBe "custom negative"
+                context.getErrors()[0].message shouldBe "custom message"
             }
 
             test("nested should not add errors when nested property exists and has no errors") {

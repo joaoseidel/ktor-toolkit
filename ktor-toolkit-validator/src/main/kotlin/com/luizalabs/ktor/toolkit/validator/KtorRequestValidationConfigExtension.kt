@@ -7,13 +7,13 @@ import io.ktor.server.plugins.requestvalidation.ValidationResult
  * Configures validation logic for requests of type [T] within the [RequestValidationConfig].
  *
  * This function allows defining custom validation rules for incoming requests by providing
- * a [com.luizalabs.ktor.toolkit.validator.ValidationContext] for the specified type [T]. Validation rules can be added using the
- * supplied [block], which operates on the [com.luizalabs.ktor.toolkit.validator.ValidationContext]. Errors encountered during the
+ * a [ValidationContext] for the specified type [T]. Validation rules can be added using the
+ * supplied [block], which operates on the [ValidationContext]. Errors encountered during the
  * validation process are collected and converted into a [ValidationResult.Invalid] object.
  * If no errors are found, a [ValidationResult.Valid] is returned.
  *
  * @param T The type of the request object to be validated.
- * @param block A lambda defining the validation rules for the request of type [T] using the [com.luizalabs.ktor.toolkit.validator.ValidationContext].
+ * @param block A lambda defining the validation rules for the request of type [T] using the [ValidationContext].
  */
 inline fun <reified T : Any> RequestValidationConfig.withValidationContext(noinline block: ValidationContext<T>.() -> Unit) =
     validate<T> { request ->

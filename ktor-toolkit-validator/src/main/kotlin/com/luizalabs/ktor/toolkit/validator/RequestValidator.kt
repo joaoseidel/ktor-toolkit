@@ -8,7 +8,7 @@ package com.luizalabs.ktor.toolkit.validator
  * can be defined inside the `validate` method, allowing specific constraints
  * to be applied to the properties of the target object.
  *
- * The validation process leverages the [com.luizalabs.ktor.toolkit.validator.ValidationContext] to collect errors
+ * The validation process leverages the [ValidationContext] to collect errors
  * and provide a structured mechanism for validating object properties and nested
  * objects. Implementations of this interface should specify the validation rules
  * inside the `validate` method.
@@ -17,26 +17,26 @@ package com.luizalabs.ktor.toolkit.validator
  */
 interface RequestValidator<T> {
     /**
-     * Defines the validation logic for the target object within the context of a [com.luizalabs.ktor.toolkit.validator.ValidationContext].
+     * Defines the validation logic for the target object within the context of a [ValidationContext].
      *
      * This extension function is designed to be implemented by classes conforming to the [RequestValidator]
      * interface. It allows the specification of validation rules applied to the properties of the target object.
      *
-     * The validation process leverages the [com.luizalabs.ktor.toolkit.validator.ValidationContext] for accessing the target object and accumulating
+     * The validation process leverages the [ValidationContext] for accessing the target object and accumulating
      * validation errors. Implementations can define property-level and nested object-level validations
      * within this function.
      *
-     * For property validations, [com.luizalabs.ktor.toolkit.validator.ValidationContext.property] can be used to specify constraints for individual
-     * properties of the target object. For nested object validations, [com.luizalabs.ktor.toolkit.validator.ValidationContext.nested] provides a way
+     * For property validations, [ValidationContext.property] can be used to specify constraints for individual
+     * properties of the target object. For nested object validations, [ValidationContext.nested] provides a way
      * to validate properties of nested objects recursively.
      *
-     * Any validation errors encountered during this process should be collected into the [com.luizalabs.ktor.toolkit.validator.ValidationContext],
+     * Any validation errors encountered during this process should be collected into the [ValidationContext],
      * which can later be retrieved and processed by the caller.
      *
      * This method should not return any value. Instead, all validation feedback should be handled via the
-     * [com.luizalabs.ktor.toolkit.validator.ValidationContext].
+     * [ValidationContext].
      *
-     * @receiver The [com.luizalabs.ktor.toolkit.validator.ValidationContext] associated with the target object of type [T].
+     * @receiver The [ValidationContext] associated with the target object of type [T].
      */
     fun ValidationContext<T>.validate()
 }

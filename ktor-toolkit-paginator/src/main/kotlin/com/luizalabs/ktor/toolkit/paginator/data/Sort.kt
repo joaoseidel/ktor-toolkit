@@ -34,16 +34,12 @@ data class Sort(
 
         companion object {
             /**
-             * Converts the given property string into a [Direction].
+             * Reads the direction off a sort token such as `createdAt` or `-createdAt`.
              *
-             * @param property A string representing the property name. If the string starts with a `-`,
-             * it indicates a descending order; otherwise, it indicates ascending order.
-             * @return A [Direction] instance, either [Direction.ASC] for ascending or [Direction.DESC] for descending.
+             * @param token A sort token. A leading `-` means descending; anything else is ascending.
+             * @return [DESC] if [token] starts with `-`, otherwise [ASC].
              */
-            fun fromString(property: String): Direction =
-                property.startsWith("-").let {
-                    if (it) DESC else ASC
-                }
+            fun fromString(token: String): Direction = if (token.startsWith("-")) DESC else ASC
         }
     }
 
@@ -55,13 +51,9 @@ data class Sort(
          * a prefix (`-`) to indicate sorting order. If the string starts with
          * `-`, the sorting direction is descending; otherwise, it is ascending.
          *
-         * @param sort The string representing the property and optional sorting direction.
+         * @param token The sort token, e.g. `createdAt` or `-createdAt`.
          * @return A [Sort] object with the specified property and sorting direction.
          */
-        fun fromString(sort: String): Sort {
-            val property = sort.removePrefix("-")
-            val direction = Direction.fromString(sort)
-            return Sort(property, direction)
-        }
+        fun fromString(token: String): Sort = Sort(token.removePrefix("-"), Direction.fromString(token))
     }
 }

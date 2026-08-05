@@ -33,15 +33,18 @@ public final class com/luizalabs/ktor/toolkit/paginator/data/Page$Companion {
 
 public final class com/luizalabs/ktor/toolkit/paginator/data/Paged {
 	public static final field Companion Lcom/luizalabs/ktor/toolkit/paginator/data/Paged$Companion;
-	public synthetic fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;J)V
+	public synthetic fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
 	public final fun component2 ()Ljava/util/List;
 	public final fun component3 ()Ljava/util/List;
 	public final fun component4 ()J
+	public final fun copy (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;J)Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;
+	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;JILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getContent ()Ljava/util/List;
 	public final fun getPage ()Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
-	public final fun getSortedBy ()Ljava/util/List;
+	public final fun getSortBy ()Ljava/util/List;
 	public final fun getTotalElements ()J
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
@@ -59,7 +62,6 @@ public final synthetic class com/luizalabs/ktor/toolkit/paginator/data/Paged$$se
 }
 
 public final class com/luizalabs/ktor/toolkit/paginator/data/Paged$Companion {
-	public final fun from (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;J)Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;
 	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
 }
 
@@ -72,7 +74,7 @@ public final class com/luizalabs/ktor/toolkit/paginator/data/Pagination {
 	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/paginator/data/Pagination;Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/data/Pagination;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getPage ()Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
-	public final fun getSortedBy ()Ljava/util/List;
+	public final fun getSortBy ()Ljava/util/List;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
