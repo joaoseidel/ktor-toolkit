@@ -206,6 +206,9 @@ public final class com/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metada
 
 public final class com/luizalabs/ktor/toolkit/paginator/web/PaginationRequest {
 	public static final field Companion Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest$Companion;
+	public static final field DEFAULT_MAX_PAGE_SIZE I
+	public static final field DEFAULT_PAGE I
+	public static final field DEFAULT_PAGE_SIZE I
 	public fun <init> ()V
 	public fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;)V
 	public synthetic fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -232,8 +235,10 @@ public final synthetic class com/luizalabs/ktor/toolkit/paginator/web/Pagination
 }
 
 public final class com/luizalabs/ktor/toolkit/paginator/web/PaginationRequest$Companion {
-	public final fun from (IILjava/util/List;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
-	public final fun from (Lio/ktor/http/Parameters;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
+	public final fun from (IILjava/util/List;I)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
+	public final fun from (Lio/ktor/http/Parameters;II)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
+	public static synthetic fun from$default (Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest$Companion;IILjava/util/List;IILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
+	public static synthetic fun from$default (Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest$Companion;Lio/ktor/http/Parameters;IIILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 

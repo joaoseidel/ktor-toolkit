@@ -2,18 +2,27 @@ package com.luizalabs.ktor.toolkit.hateoas
 
 import com.luizalabs.ktor.toolkit.hateoas.data.Link
 import com.luizalabs.ktor.toolkit.paginator.web.PagedResponse
+import io.ktor.http.ParametersBuilder
+import io.ktor.http.formUrlEncode
 import io.ktor.server.request.path
 import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingRequest
 
+/** Query parameters owned by the pagination links; any other parameter is carried over verbatim. */
+private val PAGINATION_PARAMETERS = setOf("page", "pageSize")
+
 /**
- * Creates pagination links using a [RoutingRequest] to maintain query parameters.
+ * Creates the pagination links for a [PagedResponse], preserving every other query parameter of
+ * the current [RoutingRequest].
  *
- * @param request The current routing request
- * @param pageNumber The current page number
- * @param pageSize The current page size
- * @param totalPages The total number of pages
- * @return A list of pagination-related [com.luizalabs.ktor.toolkit.hateoas.data.Link] objects
+ * `self` is always present. `next`, `prev`, `first` and `last` are emitted only when they point
+ * at a page that actually exists.
+ *
+ * @param request The current routing request.
+ * @param pageNumber The current page index, starting from 0.
+ * @param pageSize The current page size.
+ * @param totalPages The number of pages available, as reported by [PagedResponse.Metadata.totalPages].
+ * @return A list of pagination-related [Link] objects.
  */
 @PublishedApi
 internal fun createPaginationLinks(
@@ -22,53 +31,44 @@ internal fun createPaginationLinks(
     pageSize: Int,
     totalPages: Int,
 ): List<Link> {
-    val links = mutableListOf<Link>()
     val basePath = request.path()
+    val carriedOver =
+        ParametersBuilder()
+            .apply {
+                request.queryParameters
+                    .entries()
+                    .filter { (key, _) -> key !in PAGINATION_PARAMETERS }
+                    .forEach { (key, values) -> appendAll(key, values) }
+            }.build()
 
-    // Get current query parameters minus pagination ones to preserve them in links
-    val currentQueryParams =
-        request.queryParameters
-            .entries()
-            .filter { (key, _) -> key != "page" && key != "pageSize" }
-            .joinToString("&") { (key, values) ->
-                values.joinToString("&") { value -> "$key=$value" }
+    // Percent-encodes keys and values, so a filter such as `?q=a&b` survives the round trip.
+    fun href(page: Int): String {
+        val parameters =
+            ParametersBuilder().apply {
+                appendAll(carriedOver)
+                append("page", page.toString())
+                append("pageSize", pageSize.toString())
             }
-
-    val baseQueryString = if (currentQueryParams.isBlank()) "?" else "?$currentQueryParams&"
-
-    // Calculate navigation availability
-    val hasNext = pageNumber < totalPages
-    val hasPrevious = pageNumber > 0
-
-    // Build self-link with the current page and size
-    links.add(Link("self", "$basePath${baseQueryString}page=$pageNumber&pageSize=$pageSize"))
-
-    // Add next and previous links if they exist
-    if (hasNext) {
-        links.add(Link("next", "$basePath${baseQueryString}page=${pageNumber + 1}&pageSize=$pageSize"))
+        return "$basePath?${parameters.build().formUrlEncode()}"
     }
 
-    if (hasPrevious) {
-        links.add(Link("prev", "$basePath${baseQueryString}page=${pageNumber - 1}&pageSize=$pageSize"))
-    }
+    val lastPage = totalPages - 1
 
-    // Add first and last links if they exist
-    if (pageNumber > 0 && totalPages > 1) {
-        links.add(Link("first", "$basePath${baseQueryString}page=0&pageSize=$pageSize"))
-    }
+    return buildList {
+        add(Link("self", href(pageNumber)))
 
-    if (pageNumber < totalPages - 1) {
-        links.add(Link("last", "$basePath${baseQueryString}page=${totalPages - 1}&pageSize=$pageSize"))
+        if (pageNumber < lastPage) add(Link("next", href(pageNumber + 1)))
+        if (pageNumber > 0) add(Link("prev", href(pageNumber - 1)))
+        if (pageNumber > 0) add(Link("first", href(0)))
+        if (pageNumber < lastPage) add(Link("last", href(lastPage)))
     }
-
-    return links
 }
 
 /**
  * Extension function for [RoutingRequest] to create pagination links from a [PagedResponse] directly.
  *
- * @param response The paginated response containing pagination information
- * @return A list of pagination-related Link objects
+ * @param response The paginated response containing pagination information.
+ * @return A list of pagination-related [Link] objects.
  */
 fun RoutingRequest.createPaginationLinks(response: PagedResponse<*>): List<Link> =
     createPaginationLinks(
@@ -81,7 +81,7 @@ fun RoutingRequest.createPaginationLinks(response: PagedResponse<*>): List<Link>
 /**
  * Extension function for [RoutingCall] to create pagination links from a [PagedResponse] directly.
  *
- * @param response The paginated response containing pagination information
- * @return A list of pagination-related Link objects
+ * @param response The paginated response containing pagination information.
+ * @return A list of pagination-related [Link] objects.
  */
 fun RoutingCall.createPaginationLinks(response: PagedResponse<*>): List<Link> = request.createPaginationLinks(response)

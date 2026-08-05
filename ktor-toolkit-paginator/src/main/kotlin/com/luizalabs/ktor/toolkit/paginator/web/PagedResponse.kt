@@ -24,11 +24,13 @@ data class PagedResponse<T> private constructor(
      * retrieved in a paginated format. It provides information about the current page, page size,
      * total number of pages, total number of elements, sorting, and navigation availability.
      *
-     * @property page The current page number, starting from 0.
+     * @property page The current page index, starting from 0.
      * @property pageSize The number of elements per page.
-     * @property totalPages The total number of pages available.
+     * @property totalPages The number of pages available. Zero when there are no elements; the
+     * last valid page index is therefore `totalPages - 1`.
      * @property totalElements The total number of elements across all pages.
      * @property hasNext Indicates whether there is a next page available.
+     * @property hasPrevious Indicates whether there is a previous page available.
      * @property isSorted Indicates whether the data is sorted.
      * @property sortCriteria A list of sorting criteria applied to the data, where each criterion specifies
      * the property being sorted and the direction (ascending or descending).
@@ -56,6 +58,7 @@ data class PagedResponse<T> private constructor(
          *                          them in the response. If not provided, items are used as-is.
          * @return A [PagedResponse] containing the metadata and transformed content
          *         for the current paginated response.
+         * @throws IllegalArgumentException if the page size is not positive.
          */
         fun <T, R> from(
             paged: Paged<T>,
@@ -67,11 +70,13 @@ data class PagedResponse<T> private constructor(
             val sortCriteria = paged.sortedBy
             val totalElements = paged.totalElements
 
+            require(pageSize > 0) { "pageSize must be greater than 0, but was $pageSize" }
+
             val isSorted = sortCriteria.isNotEmpty()
 
-            var totalPages = (totalElements / pageSize).toInt()
-            if (totalElements % pageSize == 0L && totalElements != 0L) totalPages -= 1
-            val hasNext = pageNumber < totalPages
+            // Ceiling division: 25 elements over a page size of 10 spans 3 pages.
+            val totalPages = ((totalElements + pageSize - 1) / pageSize).toInt()
+            val hasNext = pageNumber < totalPages - 1
             val hasPrevious = pageNumber > 0
 
             val transformedContent =

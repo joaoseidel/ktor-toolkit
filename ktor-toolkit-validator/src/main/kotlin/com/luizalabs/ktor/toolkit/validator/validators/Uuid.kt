@@ -36,7 +36,7 @@ fun PropertyValidator<*, *>.uuid(
             try {
                 UUID.fromString(value.toString())
                 true
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 false
             }
     }

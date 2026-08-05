@@ -13,64 +13,45 @@ import kotlin.time.Instant
 /**
  * Adds a validation rule to ensure a property represents a future date or timestamp
  * relative to the current time. Optionally, a maximum future duration can be specified.
- * Applicable to LocalDate, LocalDateTime, and Instant.
+ * Applicable to `LocalDate`, `LocalDateTime` and `Instant`.
+ *
+ * A `LocalDate` is compared at day granularity, so today is never "in the future".
  *
  * @param duration Optional maximum duration in the future allowed for the value.
- * @param now Reference "current" time for comparison (default: Clock.System.now()).
+ * @param now Reference "current" time for comparison (default: `Clock.System.now()`).
+ * @param timeZone The zone used to resolve zone-less values. Defaults to the system zone.
  * @param positiveMessage Error message for failure in non-negated context.
  * @param negativeMessage Error message for failure in negated context.
  */
 fun PropertyValidator<*, *>.future(
     duration: Duration? = null,
     now: Instant = Clock.System.now(),
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
     positiveMessage: String = "should be ${duration?.let { "a future date of at most $it" } ?: "a future date"}",
     negativeMessage: String = "should not be ${duration?.let { "a future date of at most $it" } ?: "a future date"}",
 ): ValidationRule =
     object : ValidationRule(positiveMessage, negativeMessage) {
-        override fun supportedTypes(): List<Class<*>> =
-            listOf(
-                LocalDateTime::class.java,
-                LocalDate::class.java,
-                Instant::class.java,
-            )
+        override fun supportedTypes(): List<Class<*>> = TEMPORAL_TYPES
 
         override fun validate(value: Any?): Boolean {
-            val upper = duration?.let { now.plus(it) }
+            val upperBound = duration?.let { now.plus(it) }
 
             return when (value) {
                 is LocalDate -> {
-                    val todayUtc = now.toLocalDateTime(TimeZone.UTC).date
-                    val maxDate = upper?.toLocalDateTime(TimeZone.UTC)?.date
-
-                    if (upper != null) {
-                        value > todayUtc && value <= maxDate!!
-                    } else {
-                        value > todayUtc
-                    }
+                    val today = now.toLocalDateTime(timeZone).date
+                    val latest = upperBound?.toLocalDateTime(timeZone)?.date
+                    value > today && (latest == null || value <= latest)
                 }
 
                 is LocalDateTime -> {
-                    val minLdt = now.toLocalDateTime(TimeZone.UTC)
-                    val maxLdt = upper?.toLocalDateTime(TimeZone.UTC)
-
-                    if (upper != null) {
-                        value > minLdt && value <= maxLdt!!
-                    } else {
-                        value > minLdt
-                    }
+                    val current = now.toLocalDateTime(timeZone)
+                    val latest = upperBound?.toLocalDateTime(timeZone)
+                    value > current && (latest == null || value <= latest)
                 }
 
-                is Instant -> {
-                    if (upper != null) {
-                        value > now && value <= upper
-                    } else {
-                        value > now
-                    }
-                }
+                is Instant -> value > now && (upperBound == null || value <= upperBound)
 
-                else -> {
-                    false
-                }
+                else -> false
             }
         }
     }

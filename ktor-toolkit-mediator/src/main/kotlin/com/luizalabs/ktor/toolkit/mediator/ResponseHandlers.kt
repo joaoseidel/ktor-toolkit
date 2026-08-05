@@ -174,23 +174,32 @@ object ResponseHandlers {
      * Handles a generic exception that occurs during application execution by logging the error
      * and sending a structured HTTP error response.
      *
+     * The exception message is deliberately kept out of the response: it routinely carries driver
+     * internals, SQL fragments or filesystem paths. The full stack trace goes to the application log.
+     *
      * @param call The current [ApplicationCall] instance representing the HTTP request/response cycle.
      * @param cause The [Throwable] instance representing the exception that was thrown.
+     * @param includeExceptionMessage Echoes the exception message back to the client. Useful while
+     *        developing locally; leave it off anywhere the caller is not trusted.
      */
     suspend fun handleGenericException(
         call: ApplicationCall,
         cause: Throwable,
+        includeExceptionMessage: Boolean = false,
     ) {
         call.application.environment.log
             .error("Unhandled exception", cause)
 
+        val detail =
+            if (includeExceptionMessage) {
+                "An unexpected error occurred: ${cause.message}"
+            } else {
+                "An unexpected error occurred."
+            }
+
         call.respond(
             status = InternalServerError,
-            message =
-                ProblemDetail.fromStatus(
-                    status = InternalServerError,
-                    detail = "An unexpected error occurred: ${cause.message}",
-                ),
+            message = ProblemDetail.fromStatus(status = InternalServerError, detail = detail),
         )
     }
 }
