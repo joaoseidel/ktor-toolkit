@@ -16,6 +16,15 @@ abstract class ValidationRule(
     open val negativeMessage: String = "should not be valid",
 ) {
     /**
+     * Whether this rule has an opinion about a `null` property value.
+     *
+     * Defaults to `false`, so a rule such as `email()` stays silent on an absent optional field —
+     * combine it with `should notBe nil()` to also require the field to be present. Rules whose
+     * whole purpose is nullability (see `nil`) override this to `true`.
+     */
+    protected open val appliesToNull: Boolean get() = false
+
+    /**
      * Applies a validation rule to a property validator with optional negation.
      *
      * This function evaluates the specified validation logic encapsulated within
@@ -36,12 +45,19 @@ abstract class ValidationRule(
         val value = validator.propertyValue
         val supportedTypes = supportedTypes()
 
-        val isCompatibleType =
-            if (supportedTypes.isEmpty()) {
-                true
-            } else {
-                supportedTypes.any { it.isInstance(value) }
+        // A null value carries no type to check. Rules that care about absence (`nil`) opt in via
+        // `appliesToNull`; everything else treats an absent optional field as nothing to say.
+        if (value == null) {
+            if (!appliesToNull) return validator
+
+            val isNullValid = validate(null)
+            if (negate == isNullValid) {
+                validator.addError(if (negate) negativeMessage else positiveMessage)
             }
+            return validator
+        }
+
+        val isCompatibleType = supportedTypes.isEmpty() || supportedTypes.any { it.isInstance(value) }
 
         if (!isCompatibleType) {
             val typesMessage =

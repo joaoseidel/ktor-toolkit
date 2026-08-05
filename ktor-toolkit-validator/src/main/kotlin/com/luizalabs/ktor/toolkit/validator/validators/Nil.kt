@@ -19,6 +19,8 @@ fun PropertyValidator<*, *>.nil(
     negativeMessage: String = "should not be null",
 ): ValidationRule =
     object : ValidationRule(positiveMessage, negativeMessage) {
+        override val appliesToNull: Boolean get() = true
+
         override fun supportedTypes(): List<Class<*>> = emptyList()
 
         override fun validate(value: Any?) = value == null

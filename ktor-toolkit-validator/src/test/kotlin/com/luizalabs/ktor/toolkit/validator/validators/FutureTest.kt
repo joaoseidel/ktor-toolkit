@@ -10,6 +10,7 @@ import io.mockk.mockk
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlin.reflect.KProperty1
 import kotlin.time.Duration
@@ -63,7 +64,7 @@ class FutureTest :
                             every { property.get(target) } returns futureDate
 
                             val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.future(now = now))
+                            validator.should.be(validator.future(now = now, timeZone = TimeZone.UTC))
 
                             errors shouldBe emptyList()
                         }
@@ -73,7 +74,7 @@ class FutureTest :
                             every { property.get(target) } returns nowDate
 
                             val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.future(now = now))
+                            validator.should.be(validator.future(now = now, timeZone = TimeZone.UTC))
 
                             errors.size shouldBe 1
                             errors[0].message shouldBe "should be a future date"
@@ -85,7 +86,7 @@ class FutureTest :
                             every { property.get(target) } returns pastDate
 
                             val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.future(now = now))
+                            validator.should.be(validator.future(now = now, timeZone = TimeZone.UTC))
 
                             errors.size shouldBe 1
                             errors[0].message shouldBe "should be a future date"
@@ -107,7 +108,7 @@ class FutureTest :
                             every { property.get(target) } returns futureDateTime
 
                             val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.future(now = now))
+                            validator.should.be(validator.future(now = now, timeZone = TimeZone.UTC))
 
                             errors shouldBe emptyList()
                         }
@@ -117,7 +118,7 @@ class FutureTest :
                             every { property.get(target) } returns nowDateTime
 
                             val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.future(now = now))
+                            validator.should.be(validator.future(now = now, timeZone = TimeZone.UTC))
 
                             errors.size shouldBe 1
                             errors[0].message shouldBe "should be a future date"
@@ -135,7 +136,7 @@ class FutureTest :
                             every { property.get(target) } returns futureInstant
 
                             val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.future(now = now))
+                            validator.should.be(validator.future(now = now, timeZone = TimeZone.UTC))
 
                             errors shouldBe emptyList()
                         }
@@ -145,7 +146,7 @@ class FutureTest :
                             every { property.get(target) } returns now
 
                             val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.future(now = now))
+                            validator.should.be(validator.future(now = now, timeZone = TimeZone.UTC))
 
                             errors.size shouldBe 1
                             errors[0].message shouldBe "should be a future date"
@@ -164,7 +165,7 @@ class FutureTest :
                             every { property.get(target) } returns nearFutureDate
 
                             val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.future(duration, now = now))
+                            validator.should.be(validator.future(duration, now = now, timeZone = TimeZone.UTC))
 
                             errors shouldBe emptyList()
                         }
@@ -175,7 +176,7 @@ class FutureTest :
                             every { property.get(target) } returns distantFutureDate
 
                             val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.future(duration, now = now))
+                            validator.should.be(validator.future(duration, now = now, timeZone = TimeZone.UTC))
 
                             errors.size shouldBe 1
                             errors[0].message shouldBe "should be a future date of at most $duration"
@@ -194,7 +195,7 @@ class FutureTest :
                         every { property.get(target) } returns futureDate
 
                         val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.future(now = now))
+                        validator.should.notBe(validator.future(now = now, timeZone = TimeZone.UTC))
 
                         errors.size shouldBe 1
                         errors[0].message shouldBe "should not be a future date"
@@ -205,7 +206,7 @@ class FutureTest :
                         every { property.get(target) } returns nowDate
 
                         val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.future(now = now))
+                        validator.should.notBe(validator.future(now = now, timeZone = TimeZone.UTC))
 
                         errors shouldBe emptyList()
                     }
@@ -223,7 +224,7 @@ class FutureTest :
                     every { property.get(target) } returns pastDate
 
                     val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(validator.future(now = now))
+                    validator.should.be(validator.future(now = now, timeZone = TimeZone.UTC))
 
                     errors.size shouldBe 1
                     errors[0].message shouldBe "should be a future date"
@@ -236,7 +237,7 @@ class FutureTest :
                     every { property.get(target) } returns distantFutureDate
 
                     val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(validator.future(duration, now = now))
+                    validator.should.be(validator.future(duration, now = now, timeZone = TimeZone.UTC))
 
                     errors.size shouldBe 1
                     errors[0].message shouldBe "should be a future date of at most $duration"
@@ -248,7 +249,7 @@ class FutureTest :
                     every { property.get(target) } returns futureDate
 
                     val validator = PropertyValidator(target, property, errors)
-                    validator.should.notBe(validator.future(now = now))
+                    validator.should.notBe(validator.future(now = now, timeZone = TimeZone.UTC))
 
                     errors.size shouldBe 1
                     errors[0].message shouldBe "should not be a future date"
@@ -270,6 +271,7 @@ class FutureTest :
                     validator.should.be(
                         validator.future(
                             now = now,
+                            timeZone = TimeZone.UTC,
                             positiveMessage = customMessage,
                         ),
                     )
@@ -288,6 +290,7 @@ class FutureTest :
                     validator.should.notBe(
                         validator.future(
                             now = now,
+                            timeZone = TimeZone.UTC,
                             negativeMessage = customMessage,
                         ),
                     )
