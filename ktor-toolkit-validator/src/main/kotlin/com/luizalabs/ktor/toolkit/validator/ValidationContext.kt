@@ -1,4 +1,4 @@
-﻿package com.luizalabs.ktor.toolkit.validator
+package com.luizalabs.ktor.toolkit.validator
 
 import com.luizalabs.ktor.toolkit.validator.data.ValidationError
 import com.luizalabs.ktor.toolkit.validator.validators.nil

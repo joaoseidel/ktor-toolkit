@@ -1,0 +1,64 @@
+public final class com/luizalabs/ktor/toolkit/hateoas/KtorRoutingRequestExtensionsKt {
+	public static final fun createPaginationLinks (Lio/ktor/server/routing/RoutingCall;Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse;)Ljava/util/List;
+	public static final fun createPaginationLinks (Lio/ktor/server/routing/RoutingRequest;III)Ljava/util/List;
+	public static final fun createPaginationLinks (Lio/ktor/server/routing/RoutingRequest;Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse;)Ljava/util/List;
+}
+
+public final class com/luizalabs/ktor/toolkit/hateoas/PagedResponseExtensionsKt {
+	public static final fun toResource (Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse;Lio/ktor/server/routing/RoutingCall;)Lcom/luizalabs/ktor/toolkit/hateoas/data/Resource;
+	public static final fun toResource (Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse;Lio/ktor/server/routing/RoutingCall;Ljava/util/List;)Lcom/luizalabs/ktor/toolkit/hateoas/data/Resource;
+	public static final fun toResource (Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse;Lio/ktor/server/routing/RoutingRequest;)Lcom/luizalabs/ktor/toolkit/hateoas/data/Resource;
+	public static final fun toResource (Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse;Lio/ktor/server/routing/RoutingRequest;Ljava/util/List;)Lcom/luizalabs/ktor/toolkit/hateoas/data/Resource;
+}
+
+public final class com/luizalabs/ktor/toolkit/hateoas/data/Link {
+	public static final field Companion Lcom/luizalabs/ktor/toolkit/hateoas/data/Link$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/ktor/http/HttpMethod;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/ktor/http/HttpMethod;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHref ()Ljava/lang/String;
+	public final fun getMethod ()Ljava/lang/String;
+	public final fun getRel ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/luizalabs/ktor/toolkit/hateoas/data/Link$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/luizalabs/ktor/toolkit/hateoas/data/Link$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/luizalabs/ktor/toolkit/hateoas/data/Link;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/luizalabs/ktor/toolkit/hateoas/data/Link;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/luizalabs/ktor/toolkit/hateoas/data/Link$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/luizalabs/ktor/toolkit/hateoas/data/Resource {
+	public static final field Companion Lcom/luizalabs/ktor/toolkit/hateoas/data/Resource$Companion;
+	public fun <init> (Ljava/lang/Object;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/Object;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/Object;Ljava/util/List;)Lcom/luizalabs/ktor/toolkit/hateoas/data/Resource;
+	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/hateoas/data/Resource;Ljava/lang/Object;Ljava/util/List;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/hateoas/data/Resource;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContent ()Ljava/lang/Object;
+	public final fun getLinks ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+	public final fun withLink (Lcom/luizalabs/ktor/toolkit/hateoas/data/Link;)Lcom/luizalabs/ktor/toolkit/hateoas/data/Resource;
+	public final fun withLinks (Ljava/util/List;)Lcom/luizalabs/ktor/toolkit/hateoas/data/Resource;
+}
+
+public final class com/luizalabs/ktor/toolkit/hateoas/data/Resource$Companion {
+	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
+}
+

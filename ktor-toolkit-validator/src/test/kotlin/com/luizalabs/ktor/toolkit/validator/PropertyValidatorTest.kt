@@ -1,4 +1,4 @@
-﻿package com.luizalabs.ktor.toolkit.validator
+package com.luizalabs.ktor.toolkit.validator
 
 import com.luizalabs.ktor.toolkit.validator.data.ValidationError
 import io.kotest.core.spec.style.ShouldSpec

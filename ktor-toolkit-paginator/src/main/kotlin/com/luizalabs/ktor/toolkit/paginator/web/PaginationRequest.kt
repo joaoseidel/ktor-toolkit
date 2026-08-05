@@ -1,4 +1,4 @@
-﻿package com.luizalabs.ktor.toolkit.paginator.web
+package com.luizalabs.ktor.toolkit.paginator.web
 
 import com.luizalabs.ktor.toolkit.paginator.data.Page
 import com.luizalabs.ktor.toolkit.paginator.data.Sort
@@ -27,7 +27,7 @@ data class PaginationRequest(
          *
          * @param page The page number to fetch, typically starting from 0.
          * @param pageSize The number of elements to retrieve per page.
-         * @param sortedBy A list of sorting instructions where each string defines the property to sort by
+         * @param sortBy A list of sorting instructions where each string defines the property to sort by
          *                 and optionally includes a prefix (`-`) to specify descending order.
          */
         fun from(

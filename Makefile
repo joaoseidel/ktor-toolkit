@@ -1,6 +1,5 @@
-# Arguments: Use the argument 'th' in make command to define the number of threads in Gradle execution.
-## Samples:
-### $make verify th=4 (build with 4 threads)
+# Arguments: use 'th' to define the number of workers in Gradle execution.
+## Sample: $ make build th=4
 th = 10
 
 # Determine the OS and set the Gradle command accordingly
@@ -10,56 +9,35 @@ else
   gradle_cmd := ./gradlew
 endif
 
-# Commands to build
+.PHONY: setup clean build test coverage lint format api publish
+
 setup:
 	chmod +x ./gradlew
 
 clean: setup
 	$(gradle_cmd) clean
 
-install: clean
-	$(gradle_cmd) build --parallel --max-workers=$(th) --no-build-cache
+# Compiles every module, runs the tests and the ktlint check.
+build: setup
+	$(gradle_cmd) build --parallel --max-workers=$(th)
 
-install_without_tests: clean
-	$(gradle_cmd) build --parallel --max-workers=$(th) --no-build-cache \
-		-x :gel-query-dsl-core:test \
-		-x :gel-query-dsl-processor:test \
-		-x :gel-query-dsl-runtime:test \
- 		-x :acceptance-tests:build \
- 		-x :report:build
+test: setup
+	$(gradle_cmd) test --parallel --max-workers=$(th)
 
-publish: install_without_tests
-	$(gradle_cmd) publishToMavenCentral --no-configuration-cache
+# Aggregated coverage report at report/build/reports/kover/html/index.html
+coverage: setup
+	$(gradle_cmd) :report:koverHtmlReport :report:koverVerify
 
-# Commands to Linting
 lint: setup
 	$(gradle_cmd) ktlintCheck
 
-lint_format: setup
+format: setup
 	$(gradle_cmd) ktlintFormat
 
-# Test the app
-## If you want to run a pipeline, use test_unit, then test_integration, and finally test_report
-test_unit: setup
-	$(gradle_cmd) test --parallel --max-workers=$(th) --build-cache \
- 		:gel-query-dsl-core:test \
- 		:gel-query-dsl-processor:test \
- 		:gel-query-dsl-runtime:test \
- 		:report:build \
-		-x :acceptance-tests:test
+# Refresh the public API dumps after an intentional API change.
+api: setup
+	$(gradle_cmd) apiDump
 
-test_integration: setup
-	$(gradle_cmd) test --parallel --max-workers=$(th) --build-cache \
-		:acceptance-tests:test \
- 		-x :gel-query-dsl-core:test \
- 		-x :gel-query-dsl-processor:test \
- 		-x :gel-query-dsl-runtime:test \
- 		-x :report:build
-
-test_report: setup
-	$(gradle_cmd) test --parallel --max-workers=$(th) --build-cache \
-		:report:build \
-		-x :gel-query-dsl-core:test \
-		-x :gel-query-dsl-processor:test \
-		-x :gel-query-dsl-runtime:test \
-		-x :acceptance-tests:test
+# No remote repository is wired yet — this installs into the local ~/.m2 repository.
+publish: setup
+	$(gradle_cmd) publishToMavenLocal

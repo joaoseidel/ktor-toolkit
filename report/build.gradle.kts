@@ -6,27 +6,27 @@ plugins {
     alias(libs.plugins.kotlinx.kover)
 }
 
-val koverSkip: Boolean = false
+val koverSkip: Boolean = providers.gradleProperty("koverSkip").map(String::toBoolean).getOrElse(false)
 val koverCoverageLineRate: Int = 0
 val koverCoverageBranchRate: Int = 0
-val koverExclusions = listOf("")
+
+/** Every library module contributes to the aggregated coverage report. */
+val coveredProjects =
+    listOf(
+        ":ktor-toolkit-cache",
+        ":ktor-toolkit-expander",
+        ":ktor-toolkit-hateoas",
+        ":ktor-toolkit-mediator",
+        ":ktor-toolkit-paginator",
+        ":ktor-toolkit-validator",
+    )
 
 dependencies {
-    kover(project(":ktor-toolkit-expander"))
-    kover(project(":ktor-toolkit-hateoas"))
-    kover(project(":ktor-toolkit-mediator"))
-    kover(project(":ktor-toolkit-paginator"))
-    kover(project(":ktor-toolkit-validator"))
+    coveredProjects.forEach { kover(project(it)) }
 }
 
-tasks.withType<KoverReport> {
-    dependsOn(
-        project(":ktor-toolkit-expander").tasks.test,
-        project(":ktor-toolkit-hateoas").tasks.test,
-        project(":ktor-toolkit-mediator").tasks.test,
-        project(":ktor-toolkit-paginator").tasks.test,
-        project(":ktor-toolkit-validator").tasks.test,
-    )
+tasks.withType<KoverReport>().configureEach {
+    dependsOn(coveredProjects.map { project(it).tasks.named("test") })
 }
 
 kover {
@@ -44,12 +44,6 @@ kover {
 
             html {
                 onCheck = true
-            }
-        }
-
-        filters {
-            excludes {
-                classes(koverExclusions)
             }
         }
 

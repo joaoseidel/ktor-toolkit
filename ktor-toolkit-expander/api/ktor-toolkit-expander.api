@@ -1,0 +1,117 @@
+public final class com/luizalabs/ktor/toolkit/expander/ExpandExtensionsKt {
+	public static final fun getExpand (Lio/ktor/server/application/ApplicationCall;)Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/ExpandSpec {
+	public static final field Companion Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Companion;
+	public synthetic fun <init> (Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun apply (Ljava/lang/Object;Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun apply (Ljava/util/List;Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getKnownFields ()Ljava/util/Set;
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Builder {
+	public fun <init> ()V
+	public final fun field (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;)V
+	public static synthetic fun field$default (Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Builder;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public final fun listField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;)V
+	public static synthetic fun listField$default (Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Builder;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public final fun optionalField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;)V
+	public static synthetic fun optionalField$default (Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Builder;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public final fun polymorphicField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Ljava/util/Map;)V
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Companion {
+	public final fun build (Lkotlin/jvm/functions/Function1;)Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;
+}
+
+public abstract interface class com/luizalabs/ktor/toolkit/expander/data/Expandable {
+	public static final field Companion Lcom/luizalabs/ktor/toolkit/expander/data/Expandable$Companion;
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/Expandable$Companion {
+	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/Expandable$Partial : com/luizalabs/ktor/toolkit/expander/data/Expandable {
+	public fun <init> (Ljava/lang/Object;Ljava/util/Set;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/util/Set;
+	public final fun copy (Ljava/lang/Object;Ljava/util/Set;)Lcom/luizalabs/ktor/toolkit/expander/data/Expandable$Partial;
+	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/expander/data/Expandable$Partial;Ljava/lang/Object;Ljava/util/Set;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/expander/data/Expandable$Partial;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFields ()Ljava/util/Set;
+	public final fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/Expandable$Ref : com/luizalabs/ktor/toolkit/expander/data/Expandable {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/expander/data/Expandable$Ref;
+	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/expander/data/Expandable$Ref;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/expander/data/Expandable$Ref;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/Expandable$Resolved : com/luizalabs/ktor/toolkit/expander/data/Expandable {
+	public fun <init> (Ljava/lang/Object;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun copy (Ljava/lang/Object;)Lcom/luizalabs/ktor/toolkit/expander/data/Expandable$Resolved;
+	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/expander/data/Expandable$Resolved;Ljava/lang/Object;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/expander/data/Expandable$Resolved;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/ExpandableKt {
+	public static final fun resolve (Lcom/luizalabs/ktor/toolkit/expander/data/Expandable;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun resolveAll (Ljava/util/List;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/ExpandableSerializer : kotlinx/serialization/KSerializer {
+	public fun <init> (Lkotlinx/serialization/KSerializer;)V
+	public fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/luizalabs/ktor/toolkit/expander/data/Expandable;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/luizalabs/ktor/toolkit/expander/data/Expandable;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/web/ExpandRequest {
+	public static final field Companion Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest$Companion;
+	public fun <init> (Ljava/util/Map;)V
+	public final fun child (Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;
+	public final fun component1 ()Ljava/util/Map;
+	public final fun copy (Ljava/util/Map;)Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;
+	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;Ljava/util/Map;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFields ()Ljava/util/Map;
+	public fun hashCode ()I
+	public final fun isEmpty ()Z
+	public final fun toFetchPaths ()Ljava/util/List;
+	public fun toString ()Ljava/lang/String;
+	public final fun wants (Ljava/lang/String;)Z
+}
+
+public final synthetic class com/luizalabs/ktor/toolkit/expander/web/ExpandRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/web/ExpandRequest$Companion {
+	public final fun from (Lio/ktor/http/Parameters;)Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;
+	public final fun getNONE ()Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+

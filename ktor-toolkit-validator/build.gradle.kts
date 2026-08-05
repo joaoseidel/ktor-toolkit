@@ -3,11 +3,13 @@ plugins {
 }
 
 dependencies {
-    compileOnly(libs.bundles.kotlinx)
-    compileOnly(libs.bundles.ktor)
+    // Exposed in the public API: RequestValidationConfig, ValidationResult, KProperty1-based DSL.
+    api(libs.ktor.server.core)
+    api(libs.ktor.request.validation)
+    api(libs.kotlinx.serialization)
+    api(libs.kotlinx.datetime)
+    api(kotlin("reflect"))
 
-    testImplementation(libs.bundles.kotlinx)
-    testImplementation(libs.bundles.ktor)
     testImplementation(libs.bundles.testing)
 }
 

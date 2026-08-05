@@ -1,4 +1,4 @@
-﻿package com.luizalabs.ktor.toolkit.validator.validators
+package com.luizalabs.ktor.toolkit.validator.validators
 
 import com.luizalabs.ktor.toolkit.validator.PropertyValidator
 import com.luizalabs.ktor.toolkit.validator.ValidationRule

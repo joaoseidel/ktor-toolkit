@@ -30,7 +30,7 @@ data class PagedResponse<T> private constructor(
      * @property totalElements The total number of elements across all pages.
      * @property hasNext Indicates whether there is a next page available.
      * @property isSorted Indicates whether the data is sorted.
-     * @property sort A list of sorting criteria applied to the data, where each criterion specifies
+     * @property sortCriteria A list of sorting criteria applied to the data, where each criterion specifies
      * the property being sorted and the direction (ascending or descending).
      */
     @ConsistentCopyVisibility

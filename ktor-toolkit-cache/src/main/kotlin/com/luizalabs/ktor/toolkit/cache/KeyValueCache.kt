@@ -4,8 +4,14 @@ import java.util.concurrent.ConcurrentHashMap
 
 interface KeyValueCache {
     suspend fun get(key: String): ByteArray?
-    suspend fun put(key: String, value: ByteArray)
+
+    suspend fun put(
+        key: String,
+        value: ByteArray,
+    )
+
     suspend fun delete(key: String)
+
     suspend fun keys(): List<String>
 }
 
@@ -14,7 +20,10 @@ class InMemoryCache : KeyValueCache {
 
     override suspend fun get(key: String): ByteArray? = store[key]
 
-    override suspend fun put(key: String, value: ByteArray) {
+    override suspend fun put(
+        key: String,
+        value: ByteArray,
+    ) {
         store[key] = value
     }
 

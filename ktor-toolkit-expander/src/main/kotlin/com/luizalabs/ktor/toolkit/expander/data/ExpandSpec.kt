@@ -77,6 +77,28 @@ class ExpandSpec<T> private constructor(
         }
 
         /**
+         * Registers an optional (nullable) single [Expandable]<F> field
+         * (e.g. `mergedInto: Expandable<TagResponse>?`).
+         *
+         * Behaves like [field] but skips expansion when the getter returns null.
+         *
+         * @param name   The `?expand=` key (case-insensitive).
+         * @param getter Extracts the nullable [Expandable] field from the item.
+         * @param setter Returns a copy of the item with the field replaced.
+         * @param nested Optional spec applied to the resolved value.
+         * @param batch  Resolves a set of ref IDs → `id to value` map in a single call.
+         */
+        fun <F> optionalField(
+            name: String,
+            getter: (T) -> Expandable<F>?,
+            setter: T.(Expandable<F>) -> T,
+            nested: ExpandSpec<F>? = null,
+            batch: suspend (ids: Set<String>, fields: Set<String>) -> Map<String, F>,
+        ) {
+            fields += OptionalFieldSpec(name, getter, setter, batch, nested)
+        }
+
+        /**
          * Registers a list [Expandable]<F> field (e.g. `chapters: List<Expandable<ChapterResponse>>?`).
          *
          * The [batch] lambda receives the **union** of all unresolved ref IDs across all
@@ -278,6 +300,71 @@ private class ListFieldSpec<T, F>(
                         }
                     }
             item.setter(expanded)
+        }
+    }
+}
+
+private class OptionalFieldSpec<T, F>(
+    override val name: String,
+    private val getter: (T) -> Expandable<F>?,
+    private val setter: T.(Expandable<F>) -> T,
+    private val batch: suspend (Set<String>, Set<String>) -> Map<String, F>,
+    private val nested: ExpandSpec<F>? = null,
+) : ExpandFieldSpec<T> {
+    override suspend fun applyTo(
+        item: T,
+        expand: ExpandRequest,
+    ): T {
+        if (!expand.wants(name)) return item
+        var expandable = getter(item) ?: return item
+        val childExpand = expand.child(name)
+        val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
+        expandable = expandable.resolve { id -> batch(setOf(id), projFields)[id] }
+        if (nested != null && expandable is Expandable.Resolved) {
+            expandable = Expandable.Resolved(nested.apply(expandable.value, childExpand))
+        }
+        if (projFields.isNotEmpty() && expandable is Expandable.Resolved) {
+            expandable = Expandable.Partial(expandable.value, projFields)
+        }
+        return item.setter(expandable)
+    }
+
+    override suspend fun applyTo(
+        items: List<T>,
+        expand: ExpandRequest,
+    ): List<T> {
+        if (!expand.wants(name)) return items
+        val childExpand = expand.child(name)
+        val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
+        var expandables = items.map { getter(it) }
+        val nonNullExpandables = expandables.filterNotNull()
+        val resolved = nonNullExpandables.resolveAll { ids -> batch(ids, projFields) }
+        var resolvedIdx = 0
+        expandables =
+            expandables.map { exp ->
+                if (exp == null) null else resolved[resolvedIdx++]
+            }
+        val withNested =
+            if (nested != null) {
+                expandables.map { exp ->
+                    when (exp) {
+                        is Expandable.Resolved -> Expandable.Resolved(nested.apply(exp.value, childExpand))
+                        is Expandable.Partial, is Expandable.Ref, null -> exp
+                    }
+                }
+            } else {
+                expandables
+            }
+        val withProjection =
+            if (projFields.isNotEmpty()) {
+                withNested.map { exp ->
+                    if (exp is Expandable.Resolved) Expandable.Partial(exp.value, projFields) else exp
+                }
+            } else {
+                withNested
+            }
+        return items.zip(withProjection).map { (item, expandable) ->
+            if (expandable != null) item.setter(expandable) else item
         }
     }
 }

@@ -13,8 +13,7 @@ import org.jetbrains.exposed.v1.core.Table
  *
  * @param table The [Table] containing the columns used for sorting.
  */
-fun Sort.toExposedQueryExpression(table: Table): Pair<Expression<*>, SortOrder> =
-    this.toExposedQueryExpression(*table.columns.toTypedArray())
+fun Sort.toExposedQueryExpression(table: Table): Pair<Expression<*>, SortOrder> = this.toExposedQueryExpression(*table.columns.toTypedArray())
 
 /**
  * Converts a list of [Sort] objects into a list of expressions for constructing query sorting logic.

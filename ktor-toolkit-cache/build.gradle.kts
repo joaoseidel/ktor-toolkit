@@ -3,20 +3,10 @@ plugins {
 }
 
 dependencies {
-    compileOnly(libs.bundles.kotlinx)
-    compileOnly(libs.bundles.ktor)
+    // Exposed in the public API: ApplicationRequest, Json, suspending cache contract.
+    api(libs.ktor.server.core)
+    api(libs.kotlinx.serialization)
+    api(libs.kotlinx.coroutines)
 
-    testImplementation(libs.bundles.kotlinx)
-    testImplementation(libs.bundles.ktor)
     testImplementation(libs.bundles.testing)
-}
-
-kotlin {
-    jvmToolchain(25)
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
 }

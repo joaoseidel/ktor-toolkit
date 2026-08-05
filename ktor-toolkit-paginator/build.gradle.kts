@@ -3,12 +3,16 @@ plugins {
 }
 
 dependencies {
-    compileOnly(libs.bundles.kotlinx)
-    compileOnly(libs.bundles.ktor)
-    compileOnly(libs.bundles.exposed)
+    // Exposed in the public API: Parameters, @Serializable models.
+    api(libs.ktor.server.core)
+    api(libs.kotlinx.serialization)
+
+    // Optional integrations — consumers opt in by adding the dependency themselves.
+    // See SortExposedExtensions.kt / SortGelExtensions.kt.
+    compileOnly(libs.exposed.core)
     compileOnly(libs.gel.query.dsl.core)
 
-    testImplementation(libs.bundles.kotlinx)
-    testImplementation(libs.bundles.ktor)
+    testImplementation(libs.exposed.core)
+    testImplementation(libs.gel.query.dsl.core)
     testImplementation(libs.bundles.testing)
 }
