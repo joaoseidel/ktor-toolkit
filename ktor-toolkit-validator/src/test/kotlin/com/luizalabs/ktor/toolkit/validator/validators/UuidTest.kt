@@ -1,4 +1,4 @@
-﻿@file:OptIn(ExperimentalUuidApi::class)
+@file:OptIn(ExperimentalUuidApi::class)
 
 package com.luizalabs.ktor.toolkit.validator.validators
 

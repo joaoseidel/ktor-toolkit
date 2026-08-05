@@ -1,4 +1,4 @@
-﻿package com.luizalabs.ktor.toolkit.validator
+package com.luizalabs.ktor.toolkit.validator
 
 /**
  * A scoped mechanism for applying validation rules to a property.

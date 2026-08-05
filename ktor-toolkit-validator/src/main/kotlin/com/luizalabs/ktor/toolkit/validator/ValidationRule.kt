@@ -1,4 +1,4 @@
-﻿package com.luizalabs.ktor.toolkit.validator
+package com.luizalabs.ktor.toolkit.validator
 
 /**
  * Represents a rule for validating properties of an object.

@@ -3,12 +3,13 @@ plugins {
 }
 
 dependencies {
-    compileOnly(libs.bundles.kotlinx)
-    compileOnly(libs.bundles.ktor)
-    compileOnly(libs.bundles.exposed)
+    // Exposed in the public API: ApplicationCall, StatusPagesConfig, RequestValidationException.
+    api(libs.ktor.server.core)
+    api(libs.ktor.status.pages)
+    api(libs.ktor.request.validation)
+    api(libs.kotlinx.serialization)
 
-    testImplementation(libs.bundles.kotlinx)
-    testImplementation(libs.bundles.ktor)
-    testImplementation(libs.bundles.exposed)
+    testImplementation(libs.ktor.content.negotiation)
+    testImplementation(libs.ktor.serialization.kotlinx.json)
     testImplementation(libs.bundles.testing)
 }

@@ -1,0 +1,22 @@
+public final class com/luizalabs/ktor/toolkit/cache/InMemoryCache : com/luizalabs/ktor/toolkit/cache/KeyValueCache {
+	public fun <init> ()V
+	public fun delete (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun get (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun keys (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun put (Ljava/lang/String;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class com/luizalabs/ktor/toolkit/cache/KeyValueCache {
+	public abstract fun delete (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun get (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun keys (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun put (Ljava/lang/String;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/luizalabs/ktor/toolkit/cache/KtorCacheKt {
+	public static final fun buildCacheKey (Ljava/lang/String;Lio/ktor/server/request/ApplicationRequest;Ljava/util/Set;)Ljava/lang/String;
+	public static synthetic fun buildCacheKey$default (Ljava/lang/String;Lio/ktor/server/request/ApplicationRequest;Ljava/util/Set;ILjava/lang/Object;)Ljava/lang/String;
+	public static final fun invalidateContaining (Lcom/luizalabs/ktor/toolkit/cache/KeyValueCache;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun invalidateNamespace (Lcom/luizalabs/ktor/toolkit/cache/KeyValueCache;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+

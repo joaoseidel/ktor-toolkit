@@ -1,4 +1,4 @@
-﻿package com.luizalabs.ktor.toolkit.paginator
+package com.luizalabs.ktor.toolkit.paginator
 
 import com.luizalabs.ktor.toolkit.paginator.data.Pagination
 import com.luizalabs.ktor.toolkit.paginator.web.PaginationRequest

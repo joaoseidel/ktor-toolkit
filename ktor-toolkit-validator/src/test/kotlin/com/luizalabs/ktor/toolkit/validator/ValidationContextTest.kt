@@ -1,4 +1,4 @@
-﻿package com.luizalabs.ktor.toolkit.validator
+package com.luizalabs.ktor.toolkit.validator
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

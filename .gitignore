@@ -9,6 +9,8 @@ build/
 .idea/jarRepositories.xml
 .idea/compiler.xml
 .idea/libraries/
+.idea/workspace.xml
+.idea/json_assistant_history.xml
 *.iws
 *.iml
 *.ipr
@@ -43,3 +45,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Environment ###
+.env
+.env.*
+!.env.example

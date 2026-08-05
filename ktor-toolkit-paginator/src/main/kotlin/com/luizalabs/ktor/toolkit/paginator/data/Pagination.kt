@@ -1,4 +1,4 @@
-﻿package com.luizalabs.ktor.toolkit.paginator.data
+package com.luizalabs.ktor.toolkit.paginator.data
 
 /**
  * Represents a paginated request specification with sorting options.
