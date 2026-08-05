@@ -26,7 +26,7 @@ sealed interface Expandable<out T> {
 
     /**
      * A resolved object that will be serialized with only the requested [fields] included.
-     * Used by [com.luizalabs.ktor.toolkit.expander.data.ExpandSpec] when the client requests
+     * Used by [ExpandSpec] when the client requests
      * field-level projection via dot notation, e.g. `?expand=author.name,author.username`.
      *
      * [fields] must contain the JSON key names (lowercased) to keep in the output.

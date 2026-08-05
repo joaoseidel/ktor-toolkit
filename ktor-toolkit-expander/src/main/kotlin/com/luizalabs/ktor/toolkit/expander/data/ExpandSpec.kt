@@ -2,6 +2,9 @@ package com.luizalabs.ktor.toolkit.expander.data
 
 import com.luizalabs.ktor.toolkit.expander.web.ExpandRequest
 
+/** Resolves a set of ref IDs into `id to value`, optionally projecting down to `fields`. */
+private typealias Batch<F> = suspend (ids: Set<String>, fields: Set<String>) -> Map<String, F>
+
 /**
  * Declarative specification for expanding a response type [T].
  *
@@ -9,21 +12,23 @@ import com.luizalabs.ktor.toolkit.expander.web.ExpandRequest
  *   `spec.apply(item, expand)`        — single item
  *   `spec.apply(items, expand)`       — list, one batch call per registered field
  *
- * Two field types:
- *   [Builder.field]      — single [Expandable]<F> field (e.g. `author`)
- *   [Builder.listField]  — list [Expandable]<F> field (e.g. `chapters`)
+ * Field kinds:
+ *   [Builder.field]            — single [Expandable] field (e.g. `author`)
+ *   [Builder.optionalField]    — nullable single field (e.g. `mergedInto`)
+ *   [Builder.listField]        — list field (e.g. `chapters`)
+ *   [Builder.polymorphicField] — single field resolved by a per-item type discriminator
  *
- * Supports arbitrary nesting via the `nested` parameter on either field type:
+ * Supports arbitrary nesting via the `nested` parameter on any field kind:
  *   `?expand=author.books` resolves `author` first, then applies a nested
- *   [ExpandSpec]<UserResponse> to each resolved value using `expand.child("author")`.
+ *   [ExpandSpec] to each resolved value using `expand.child("author")`.
  *
- * The batch lambda receives the **union** of all unresolved ref IDs — for list
- * fields this means one query covers all items' refs in a single call.
+ * The batch lambda receives the **union** of all unresolved ref IDs — one query covers a whole
+ * page, for every field kind.
  *
  * Field-level projection (`?expand=author.name,author.username`) is detected automatically.
- * When projection is requested the batch receives a non-empty [fields] set so the
+ * When projection is requested the batch receives a non-empty `fields` set so the
  * data source can issue a selective query (e.g. `SELECT id, name, username FROM …`).
- * When [fields] is empty the caller should fetch all fields (`SELECT *`).
+ * When `fields` is empty the caller should fetch all fields (`SELECT *`).
  */
 class ExpandSpec<T> private constructor(
     private val fields: List<ExpandFieldSpec<T>>,
@@ -35,11 +40,7 @@ class ExpandSpec<T> private constructor(
     suspend fun apply(
         item: T,
         expand: ExpandRequest,
-    ): T {
-        var result = item
-        for (field in fields) result = field.applyTo(result, expand)
-        return result
-    }
+    ): T = apply(listOf(item), expand).first()
 
     /** Applies all registered field expansions to [items], batching each field in one call. */
     suspend fun apply(
@@ -55,14 +56,14 @@ class ExpandSpec<T> private constructor(
         private val fields = mutableListOf<ExpandFieldSpec<T>>()
 
         /**
-         * Registers a single [Expandable]<F> field (e.g. `author: Expandable<UserResponse>`).
+         * Registers a single [Expandable] field (e.g. `author: Expandable<UserResponse>`).
          *
          * @param name   The `?expand=` key (case-insensitive).
          * @param getter Extracts the [Expandable] field from the item.
          * @param setter Returns a copy of the item with the field replaced (data-class `copy`).
          * @param nested Optional spec applied to the resolved value (enables `author.books`).
          * @param batch  Resolves a set of ref IDs → `id to value` map in a single call.
-         *               Second parameter [fields] is the set of JSON field names requested by the
+         *               Its second parameter is the set of JSON field names requested by the
          *               client (lowercased). When non-empty the caller may issue a selective query;
          *               when empty the caller should return all fields.
          */
@@ -71,16 +72,16 @@ class ExpandSpec<T> private constructor(
             getter: (T) -> Expandable<F>,
             setter: T.(Expandable<F>) -> T,
             nested: ExpandSpec<F>? = null,
-            batch: suspend (ids: Set<String>, fields: Set<String>) -> Map<String, F>,
+            batch: Batch<F>,
         ) {
             fields += SingleFieldSpec(name, getter, setter, batch, nested)
         }
 
         /**
-         * Registers an optional (nullable) single [Expandable]<F> field
+         * Registers an optional (nullable) single [Expandable] field
          * (e.g. `mergedInto: Expandable<TagResponse>?`).
          *
-         * Behaves like [field] but skips expansion when the getter returns null.
+         * Behaves like [field] but leaves the item untouched when the getter returns null.
          *
          * @param name   The `?expand=` key (case-insensitive).
          * @param getter Extracts the nullable [Expandable] field from the item.
@@ -93,36 +94,34 @@ class ExpandSpec<T> private constructor(
             getter: (T) -> Expandable<F>?,
             setter: T.(Expandable<F>) -> T,
             nested: ExpandSpec<F>? = null,
-            batch: suspend (ids: Set<String>, fields: Set<String>) -> Map<String, F>,
+            batch: Batch<F>,
         ) {
-            fields += OptionalFieldSpec(name, getter, setter, batch, nested)
+            fields += SingleFieldSpec(name, getter, setter, batch, nested)
         }
 
         /**
-         * Registers a list [Expandable]<F> field (e.g. `chapters: List<Expandable<ChapterResponse>>?`).
-         *
-         * The [batch] lambda receives the **union** of all unresolved ref IDs across all
-         * items when called from [apply] — one query covers the entire page.
+         * Registers a list [Expandable] field (e.g. `chapters: List<Expandable<ChapterResponse>>?`).
          *
          * @param name   The `?expand=` key (case-insensitive).
          * @param getter Extracts the nullable list field from the item.
          * @param setter Returns a copy of the item with the list replaced.
          * @param nested Optional spec applied to each resolved value.
          * @param batch  Resolves a set of ref IDs → `id to value` map in a single call.
-         *               Second parameter [fields] mirrors the same contract as in [field].
+         *               Its second parameter mirrors the same contract as in [field].
          */
         fun <F> listField(
             name: String,
             getter: (T) -> List<Expandable<F>>?,
             setter: T.(List<Expandable<F>>) -> T,
             nested: ExpandSpec<F>? = null,
-            batch: suspend (ids: Set<String>, fields: Set<String>) -> Map<String, F>,
+            batch: Batch<F>,
         ) {
             fields += ListFieldSpec(name, getter, setter, batch, nested)
         }
 
         /**
-         * Registers a polymorphic [Expandable]<F> field.
+         * Registers a polymorphic [Expandable] field, where the concrete type — and therefore the
+         * data source to resolve it against — is decided per item.
          *
          * @param name      The `?expand=` key.
          * @param getter    Extracts the [Expandable] field from the item.
@@ -135,7 +134,7 @@ class ExpandSpec<T> private constructor(
             getter: (T) -> Expandable<F>,
             setter: T.(Expandable<F>) -> T,
             type: (T) -> String,
-            batchers: Map<String, Pair<ExpandSpec<out F>?, suspend (ids: Set<String>, fields: Set<String>) -> Map<String, F>>>,
+            batchers: Map<String, Pair<ExpandSpec<out F>?, Batch<F>>>,
         ) {
             fields += PolymorphicFieldSpec(name, getter, setter, type, batchers)
         }
@@ -148,15 +147,10 @@ class ExpandSpec<T> private constructor(
     }
 }
 
-// Sealed interface — both field types expose only T, hiding F inside each impl.
+// Sealed interface — every field kind exposes only T, hiding F inside each implementation.
 // This lets ExpandSpec store List<ExpandFieldSpec<T>> with no casts.
 private sealed interface ExpandFieldSpec<T> {
     val name: String
-
-    suspend fun applyTo(
-        item: T,
-        expand: ExpandRequest,
-    ): T
 
     suspend fun applyTo(
         items: List<T>,
@@ -164,57 +158,28 @@ private sealed interface ExpandFieldSpec<T> {
     ): List<T>
 }
 
+/** Handles both `field` and `optionalField`: a null getter result simply leaves the item alone. */
 private class SingleFieldSpec<T, F>(
     override val name: String,
-    private val getter: (T) -> Expandable<F>,
+    private val getter: (T) -> Expandable<F>?,
     private val setter: T.(Expandable<F>) -> T,
-    private val batch: suspend (Set<String>, Set<String>) -> Map<String, F>,
-    private val nested: ExpandSpec<F>? = null,
+    private val batch: Batch<F>,
+    private val nested: ExpandSpec<F>?,
 ) : ExpandFieldSpec<T> {
-    override suspend fun applyTo(
-        item: T,
-        expand: ExpandRequest,
-    ): T {
-        if (!expand.wants(name)) return item
-        val childExpand = expand.child(name)
-        val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
-        var expandable = getter(item)
-        expandable = expandable.resolve { id -> batch(setOf(id), projFields)[id] }
-        if (nested != null && expandable is Expandable.Resolved) {
-            expandable = Expandable.Resolved(nested.apply(expandable.value, childExpand))
-        }
-        if (projFields.isNotEmpty() && expandable is Expandable.Resolved) {
-            expandable = Expandable.Partial(expandable.value, projFields)
-        }
-        return item.setter(expandable)
-    }
-
     override suspend fun applyTo(
         items: List<T>,
         expand: ExpandRequest,
     ): List<T> {
         if (!expand.wants(name)) return items
+
         val childExpand = expand.child(name)
-        val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
-        var expandables = items.map { getter(it) }
-        expandables = expandables.resolveAll { ids -> batch(ids, projFields) }
-        if (nested != null) {
-            expandables =
-                expandables.map { exp ->
-                    when (exp) {
-                        is Expandable.Resolved -> Expandable.Resolved(nested.apply(exp.value, childExpand))
-                        is Expandable.Partial -> exp
-                        is Expandable.Ref -> exp
-                    }
-                }
+        val projection = projectionFields(childExpand, nested)
+        val resolved = batch.forRefs(items.mapNotNull(getter).refIds(), projection)
+
+        return items.map { item ->
+            val expandable = getter(item) ?: return@map item
+            item.setter(expandable.resolveWith(resolved).finish(nested, projection, childExpand))
         }
-        if (projFields.isNotEmpty()) {
-            expandables =
-                expandables.map { exp ->
-                    if (exp is Expandable.Resolved) Expandable.Partial(exp.value, projFields) else exp
-                }
-        }
-        return items.zip(expandables).map { (item, expandable) -> item.setter(expandable) }
     }
 }
 
@@ -222,149 +187,22 @@ private class ListFieldSpec<T, F>(
     override val name: String,
     private val getter: (T) -> List<Expandable<F>>?,
     private val setter: T.(List<Expandable<F>>) -> T,
-    private val batch: suspend (Set<String>, Set<String>) -> Map<String, F>,
-    private val nested: ExpandSpec<F>? = null,
+    private val batch: Batch<F>,
+    private val nested: ExpandSpec<F>?,
 ) : ExpandFieldSpec<T> {
-    override suspend fun applyTo(
-        item: T,
-        expand: ExpandRequest,
-    ): T {
-        if (!expand.wants(name)) return item
-        val expandables = getter(item) ?: return item
-        val childExpand = expand.child(name)
-        val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
-        var resolved = expandables.resolveAll { ids -> batch(ids, projFields) }
-        if (nested != null) {
-            resolved =
-                resolved.map { exp ->
-                    when (exp) {
-                        is Expandable.Resolved -> Expandable.Resolved(nested.apply(exp.value, childExpand))
-                        is Expandable.Partial -> exp
-                        is Expandable.Ref -> exp
-                    }
-                }
-        }
-        if (projFields.isNotEmpty()) {
-            resolved =
-                resolved.map { exp ->
-                    if (exp is Expandable.Resolved) Expandable.Partial(exp.value, projFields) else exp
-                }
-        }
-        return item.setter(resolved)
-    }
-
     override suspend fun applyTo(
         items: List<T>,
         expand: ExpandRequest,
     ): List<T> {
         if (!expand.wants(name)) return items
+
         val childExpand = expand.child(name)
-        val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
-        // One pass — collect every unresolved ref ID from every item
-        val allIds =
-            items
-                .flatMap { item -> getter(item)?.filterIsInstance<Expandable.Ref>()?.map { it.id } ?: emptyList() }
-                .toSet()
-        if (allIds.isEmpty()) return items
-        val resolved = batch(allIds, projFields)
-        val needsProjection = projFields.isNotEmpty()
+        val projection = projectionFields(childExpand, nested)
+        val resolved = batch.forRefs(items.flatMap { getter(it).orEmpty() }.refIds(), projection)
+
         return items.map { item ->
             val expandables = getter(item) ?: return@map item
-            val expanded =
-                expandables
-                    .map { exp ->
-                        when (exp) {
-                            is Expandable.Resolved -> exp
-                            is Expandable.Partial -> exp
-                            is Expandable.Ref -> resolved[exp.id]?.let { Expandable.Resolved(it) } ?: exp
-                        }
-                    }.let { exps ->
-                        if (nested == null) {
-                            exps
-                        } else {
-                            exps.map { exp ->
-                                when (exp) {
-                                    is Expandable.Resolved -> Expandable.Resolved(nested.apply(exp.value, childExpand))
-                                    is Expandable.Partial -> exp
-                                    is Expandable.Ref -> exp
-                                }
-                            }
-                        }
-                    }.let { exps ->
-                        if (needsProjection) {
-                            exps.map { exp ->
-                                if (exp is Expandable.Resolved) Expandable.Partial(exp.value, projFields) else exp
-                            }
-                        } else {
-                            exps
-                        }
-                    }
-            item.setter(expanded)
-        }
-    }
-}
-
-private class OptionalFieldSpec<T, F>(
-    override val name: String,
-    private val getter: (T) -> Expandable<F>?,
-    private val setter: T.(Expandable<F>) -> T,
-    private val batch: suspend (Set<String>, Set<String>) -> Map<String, F>,
-    private val nested: ExpandSpec<F>? = null,
-) : ExpandFieldSpec<T> {
-    override suspend fun applyTo(
-        item: T,
-        expand: ExpandRequest,
-    ): T {
-        if (!expand.wants(name)) return item
-        var expandable = getter(item) ?: return item
-        val childExpand = expand.child(name)
-        val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
-        expandable = expandable.resolve { id -> batch(setOf(id), projFields)[id] }
-        if (nested != null && expandable is Expandable.Resolved) {
-            expandable = Expandable.Resolved(nested.apply(expandable.value, childExpand))
-        }
-        if (projFields.isNotEmpty() && expandable is Expandable.Resolved) {
-            expandable = Expandable.Partial(expandable.value, projFields)
-        }
-        return item.setter(expandable)
-    }
-
-    override suspend fun applyTo(
-        items: List<T>,
-        expand: ExpandRequest,
-    ): List<T> {
-        if (!expand.wants(name)) return items
-        val childExpand = expand.child(name)
-        val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
-        var expandables = items.map { getter(it) }
-        val nonNullExpandables = expandables.filterNotNull()
-        val resolved = nonNullExpandables.resolveAll { ids -> batch(ids, projFields) }
-        var resolvedIdx = 0
-        expandables =
-            expandables.map { exp ->
-                if (exp == null) null else resolved[resolvedIdx++]
-            }
-        val withNested =
-            if (nested != null) {
-                expandables.map { exp ->
-                    when (exp) {
-                        is Expandable.Resolved -> Expandable.Resolved(nested.apply(exp.value, childExpand))
-                        is Expandable.Partial, is Expandable.Ref, null -> exp
-                    }
-                }
-            } else {
-                expandables
-            }
-        val withProjection =
-            if (projFields.isNotEmpty()) {
-                withNested.map { exp ->
-                    if (exp is Expandable.Resolved) Expandable.Partial(exp.value, projFields) else exp
-                }
-            } else {
-                withNested
-            }
-        return items.zip(withProjection).map { (item, expandable) ->
-            if (expandable != null) item.setter(expandable) else item
+            item.setter(expandables.map { it.resolveWith(resolved).finish(nested, projection, childExpand) })
         }
     }
 }
@@ -374,86 +212,74 @@ private class PolymorphicFieldSpec<T, F>(
     private val getter: (T) -> Expandable<F>,
     private val setter: T.(Expandable<F>) -> T,
     private val type: (T) -> String,
-    private val batchers: Map<String, Pair<ExpandSpec<out F>?, suspend (Set<String>, Set<String>) -> Map<String, F>>>,
+    private val batchers: Map<String, Pair<ExpandSpec<out F>?, Batch<F>>>,
 ) : ExpandFieldSpec<T> {
-    override suspend fun applyTo(
-        item: T,
-        expand: ExpandRequest,
-    ): T {
-        if (!expand.wants(name)) return item
-        val t = type(item)
-        val (nested, batch) = batchers[t] ?: return item
-        val childExpand = expand.child(name)
-        val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
-
-        var expandable = getter(item)
-        expandable = expandable.resolve { id -> batch(setOf(id), projFields)[id] }
-
-        if (nested != null && expandable is Expandable.Resolved) {
-            @Suppress("UNCHECKED_CAST")
-            val nestedSpec = nested as ExpandSpec<F>
-            expandable = Expandable.Resolved(nestedSpec.apply(expandable.value, childExpand))
-        }
-        if (projFields.isNotEmpty() && expandable is Expandable.Resolved) {
-            expandable = Expandable.Partial(expandable.value, projFields)
-        }
-        return item.setter(expandable)
-    }
-
     override suspend fun applyTo(
         items: List<T>,
         expand: ExpandRequest,
     ): List<T> {
         if (!expand.wants(name)) return items
+
         val childExpand = expand.child(name)
 
-        val groups = items.groupBy { type(it) }
-        val allResolved = mutableMapOf<String, F>()
-
-        for ((t, group) in groups) {
-            val (nested, batch) = batchers[t] ?: continue
-            val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
-            val ids =
-                group
-                    .map { getter(it) }
-                    .filterIsInstance<Expandable.Ref>()
-                    .map { it.id }
-                    .toSet()
-            if (ids.isNotEmpty()) {
-                val batchResolved = batch(ids, projFields)
-                allResolved.putAll(batchResolved)
-            }
+        // One batch call per discriminator, not per item.
+        val resolved = mutableMapOf<String, F>()
+        for ((discriminator, group) in items.groupBy(type)) {
+            val (nested, batch) = batchers[discriminator] ?: continue
+            resolved += batch.forRefs(group.map(getter).refIds(), projectionFields(childExpand, nested))
         }
 
         return items.map { item ->
-            val t = type(item)
-            val (nested, _) = batchers[t] ?: return@map item
-            val projFields = if (projectionNeeded(childExpand, nested)) childExpand.fields.keys else emptySet()
+            val (nested, _) = batchers[type(item)] ?: return@map item
 
-            var exp = getter(item)
-            if (exp is Expandable.Ref) {
-                exp = allResolved[exp.id]?.let { Expandable.Resolved(it) } ?: exp
-            }
+            @Suppress("UNCHECKED_CAST")
+            val nestedSpec = nested as ExpandSpec<F>?
+            val projection = projectionFields(childExpand, nested)
 
-            if (nested != null && exp is Expandable.Resolved) {
-                @Suppress("UNCHECKED_CAST")
-                val nestedSpec = nested as ExpandSpec<F>
-                exp = Expandable.Resolved(nestedSpec.apply(exp.value, childExpand))
-            }
-            if (projFields.isNotEmpty() && exp is Expandable.Resolved) {
-                exp = Expandable.Partial(exp.value, projFields)
-            }
-            item.setter(exp)
+            item.setter(getter(item).resolveWith(resolved).finish(nestedSpec, projection, childExpand))
         }
     }
 }
 
+/** The IDs of every entry still awaiting resolution. */
+private fun <F> Iterable<Expandable<F>>.refIds(): Set<String> = filterIsInstance<Expandable.Ref>().mapTo(mutableSetOf()) { it.id }
+
+/** Skips the round trip when nothing needs resolving, so a batcher never sees an empty ID set. */
+private suspend fun <F> Batch<F>.forRefs(
+    ids: Set<String>,
+    projection: Set<String>,
+): Map<String, F> = if (ids.isEmpty()) emptyMap() else this(ids, projection)
+
+/** Swaps a [Expandable.Ref] for its resolved value; an ID absent from [resolved] stays a ref. */
+private fun <F> Expandable<F>.resolveWith(resolved: Map<String, F>): Expandable<F> =
+    if (this is Expandable.Ref) resolved[id]?.let { Expandable.Resolved(it) } ?: this else this
+
 /**
- * Returns true if [childExpand] contains any field name that is NOT registered
- * as an expandable field in [nestedSpec]. Such unregistered paths are treated as
- * field-level projection selectors (e.g. `?expand=author.name,author.username`).
+ * Applies the nested spec and the field projection to a freshly resolved value.
+ *
+ * Unresolved refs and already-projected values pass through untouched.
  */
-private fun projectionNeeded(
+private suspend fun <F> Expandable<F>.finish(
+    nested: ExpandSpec<F>?,
+    projection: Set<String>,
+    childExpand: ExpandRequest,
+): Expandable<F> {
+    if (this !is Expandable.Resolved) return this
+
+    val expanded = if (nested != null) nested.apply(value, childExpand) else value
+    return if (projection.isEmpty()) Expandable.Resolved(expanded) else Expandable.Partial(expanded, projection)
+}
+
+/**
+ * The field names in [childExpand] that are not registered as expandable fields of [nestedSpec].
+ *
+ * Such unregistered paths are field-level projection selectors — `?expand=author.name,author.username`
+ * asks for two columns of `author`, not for two nested expansions.
+ */
+private fun projectionFields(
     childExpand: ExpandRequest,
     nestedSpec: ExpandSpec<*>?,
-): Boolean = childExpand.fields.keys.any { it !in (nestedSpec?.knownFields ?: emptySet()) }
+): Set<String> {
+    val known = nestedSpec?.knownFields ?: emptySet()
+    return if (childExpand.fields.keys.any { it !in known }) childExpand.fields.keys else emptySet()
+}

@@ -1,16 +1,15 @@
 package com.luizalabs.ktor.toolkit.paginator.data
 
 /**
- * Represents a paginated request specification with sorting options.
+ * The pagination and sorting a query should apply.
  *
- * The [Pagination] class is used to define the pagination and sorting criteria for retrieving
- * data that is divided into pages. It consists of a [Page] object to specify the current page
- * and size, along with an optional list of [Sort] objects to define sorting rules.
+ * This is what a route hands to a repository, obtained from
+ * [com.luizalabs.ktor.toolkit.paginator.web.PaginationRequest.toPagination].
  *
- * @property page The pagination information including the current page and size of the page.
- * @property sort A list of sorting definitions, specifying the properties and directions for ordering.
+ * @property page The requested page index and page size.
+ * @property sortBy Sorting criteria, in order of precedence.
  */
 data class Pagination(
     val page: Page,
-    val sortedBy: List<Sort> = emptyList(),
+    val sortBy: List<Sort> = emptyList(),
 )

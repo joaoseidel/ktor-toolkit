@@ -32,14 +32,14 @@ object ResponseHandlers {
     }
 
     /**
-     * Handles an [com.luizalabs.ktor.toolkit.mediator.exception.HttpStatusException] by transforming it into a standardized HTTP response
-     * using the [com.luizalabs.ktor.toolkit.mediator.data.ProblemDetail] format.
+     * Handles an [HttpStatusException] by transforming it into a standardized HTTP response
+     * using the [ProblemDetail] format.
      *
      * This method generates a structured error response that includes the HTTP status code,
      * a human-readable detail message, and any additional properties provided by the exception.
      *
      * @param call The [ApplicationCall] instance representing the current HTTP request/response context.
-     * @param cause The [com.luizalabs.ktor.toolkit.mediator.exception.HttpStatusException] containing the status, detail message, and optional properties
+     * @param cause The [HttpStatusException] containing the status, detail message, and optional properties
      *        to include in the response.
      */
     suspend fun handleHttpStatusException(

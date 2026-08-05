@@ -1,5 +1,4 @@
 public final class com/luizalabs/ktor/toolkit/validator/PropertyValidator {
-	public fun <init> (Ljava/lang/Object;Lkotlin/reflect/KProperty1;Ljava/util/List;)V
 	public final fun getErrors ()Ljava/util/List;
 	public final fun getProperty ()Lkotlin/reflect/KProperty1;
 	public final fun getShould ()Lcom/luizalabs/ktor/toolkit/validator/ShouldScope;
@@ -20,8 +19,8 @@ public final class com/luizalabs/ktor/toolkit/validator/ValidationContext {
 	public fun <init> (Ljava/lang/Object;)V
 	public final fun getErrors ()Ljava/util/List;
 	public final fun getHasErrors ()Z
-	public final fun nested (Lkotlin/reflect/KProperty1;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
-	public static synthetic fun nested$default (Lcom/luizalabs/ktor/toolkit/validator/ValidationContext;Lkotlin/reflect/KProperty1;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun nested (Lkotlin/reflect/KProperty1;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun nested$default (Lcom/luizalabs/ktor/toolkit/validator/ValidationContext;Lkotlin/reflect/KProperty1;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public final fun property (Lkotlin/reflect/KProperty1;Lkotlin/jvm/functions/Function1;)Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;
 	public final fun validateResult ()Lio/ktor/server/plugins/requestvalidation/ValidationResult;
 }

@@ -24,13 +24,13 @@ class ValidationContext<T>(
      * Adds a validation block for a specific property within the target object.
      *
      * This method allows specifying validation rules for an individual property of the target object.
-     * It creates a [com.luizalabs.ktor.toolkit.validator.PropertyValidator] for the given property and applies the provided validation logic
+     * It creates a [PropertyValidator] for the given property and applies the provided validation logic
      * defined in the [block]. Any validation errors encountered during the validation process are collected
      * into the context's list of errors.
      *
      * @param prop The property to be validated, represented as a [KProperty1].
-     * @param block The validation logic to be applied for the property using a [com.luizalabs.ktor.toolkit.validator.PropertyValidator].
-     * @return The [com.luizalabs.ktor.toolkit.validator.PropertyValidator] instance configured for the specified property.
+     * @param block The validation logic to be applied for the property using a [PropertyValidator].
+     * @return The [PropertyValidator] instance configured for the specified property.
      */
     fun <V> property(
         prop: KProperty1<T, V>,
@@ -45,21 +45,24 @@ class ValidationContext<T>(
      * validation logic defined in [block], and propagates any validation errors back to the
      * current context with an updated property path reflecting the nested structure.
      *
+     * A null nested value is an error in itself — there is nothing to descend into — so it is
+     * reported as [nullMessage] and [block] is skipped.
+     *
      * @param R The type of the nested property's value.
      * @param prop The reference to the nested property to be validated.
+     * @param nullMessage The error recorded when the nested property is absent.
      * @param block The validation logic to be applied to the nested property's value.
      */
     fun <R : Any> nested(
         prop: KProperty1<T, R?>,
-        positiveMessage: String = "should be null",
-        negativeMessage: String = "should not be null",
+        nullMessage: String = "should not be null",
         block: ValidationContext<R>.() -> Unit,
     ) {
         val nestedValue = prop.get(target)
 
         if (nestedValue == null) {
             PropertyValidator(target, prop, errors).apply {
-                should notBe nil(positiveMessage, negativeMessage)
+                should notBe nil(negativeMessage = nullMessage)
             }
             return
         }

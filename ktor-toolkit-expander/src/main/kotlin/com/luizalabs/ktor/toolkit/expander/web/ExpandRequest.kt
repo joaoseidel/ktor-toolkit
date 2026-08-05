@@ -21,9 +21,11 @@ data class ExpandRequest(
     fun child(field: String): ExpandRequest = fields[field.lowercase().trim()] ?: NONE
 
     /**
-     * All SurrealDB FETCH paths this expand tree implies.
-     * ?expand=author.books,author.posts → ["author", "author.books", "author.posts"]
-     * Intermediate paths (e.g. "author") are always included so FETCH resolves each level.
+     * Flattens this tree into the dotted paths it implies, for data sources that take a fetch or
+     * join list rather than a tree.
+     *
+     * `?expand=author.books,author.posts` → `["author", "author.books", "author.posts"]`.
+     * Intermediate paths are always included, so each level can be resolved in turn.
      */
     fun toFetchPaths(): List<String> =
         buildList {

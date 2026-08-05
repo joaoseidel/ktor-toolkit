@@ -9,13 +9,13 @@ import kotlinx.serialization.Serializable
  *
  * @param T The type of the content within the paginated response.
  * @property metadata Contains information about the pagination such as current page, page size, total pages, etc.
- * @property content A list of entities that encapsulate content of type [T]. Can be null, but defaults to an empty list.
+ * @property content The entities on the current page. Empty when the page is past the end of the data.
  */
 @ConsistentCopyVisibility
 @Serializable
 data class PagedResponse<T> private constructor(
     val metadata: Metadata,
-    val content: List<T>? = emptyList(),
+    val content: List<T> = emptyList(),
 ) {
     /**
      * Represents metadata for paginated resources.
@@ -67,7 +67,7 @@ data class PagedResponse<T> private constructor(
             val pageSpec = paged.page
             val pageNumber = pageSpec.page
             val pageSize = pageSpec.pageSize
-            val sortCriteria = paged.sortedBy
+            val sortCriteria = paged.sortBy
             val totalElements = paged.totalElements
 
             require(pageSize > 0) { "pageSize must be greater than 0, but was $pageSize" }
