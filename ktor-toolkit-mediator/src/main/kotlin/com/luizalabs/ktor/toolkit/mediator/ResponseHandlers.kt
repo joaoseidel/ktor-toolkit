@@ -132,7 +132,12 @@ object ResponseHandlers {
         namingStrategy: JsonNamingStrategy? = null,
         json: Json = ProblemJson,
     ) {
-        val missingFields = cause.cause?.cause as? MissingFieldException
+        // Walk the chain rather than assume a depth: how deeply Ktor wraps the serialization
+        // failure depends on the content negotiation path the request took.
+        val missingFields =
+            generateSequence(cause as Throwable) { it.cause }
+                .filterIsInstance<MissingFieldException>()
+                .firstOrNull()
 
         val problem =
             if (missingFields != null) {
