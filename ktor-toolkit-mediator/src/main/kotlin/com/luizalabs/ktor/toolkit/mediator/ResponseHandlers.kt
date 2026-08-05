@@ -7,18 +7,21 @@ import io.ktor.http.HttpStatusCode.Companion.InternalServerError
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.requestvalidation.RequestValidationException
-import io.ktor.server.response.respond
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 
 /**
  * Collection of response handler functions that can be used with the Ktor StatusPages plugin.
  *
- * These handlers mediate between exceptions and the client, transforming
- * various error conditions into standardized, consistent HTTP responses.
+ * These handlers mediate between exceptions and the client, transforming various error conditions
+ * into consistent `application/problem+json` responses.
+ *
+ * Registering all four at once is what [problemDetails] does; call them individually only when a
+ * route needs different treatment.
  */
 object ResponseHandlers {
     @OptIn(ExperimentalSerializationApi::class)
@@ -32,39 +35,47 @@ object ResponseHandlers {
     }
 
     /**
-     * Handles an [HttpStatusException] by transforming it into a standardized HTTP response
-     * using the [ProblemDetail] format.
+     * Handles an [HttpStatusException] by transforming it into a [ProblemDetail] response.
      *
-     * This method generates a structured error response that includes the HTTP status code,
-     * a human-readable detail message, and any additional properties provided by the exception.
+     * The response carries the exception's status code, its detail message, and any additional
+     * properties it was given.
      *
      * @param call The [ApplicationCall] instance representing the current HTTP request/response context.
-     * @param cause The [HttpStatusException] containing the status, detail message, and optional properties
-     *        to include in the response.
+     * @param cause The [HttpStatusException] containing the status, detail message and optional properties.
+     * @param json The serializer used for the problem body.
      */
     suspend fun handleHttpStatusException(
         call: ApplicationCall,
         cause: HttpStatusException,
+        json: Json = ProblemJson,
     ) {
-        call.respond(
-            status = cause.status,
-            message = ProblemDetail.fromStatus(cause.status, cause.detail, cause.properties),
+        call.respondProblem(
+            ProblemDetail.fromStatus(
+                status = cause.status,
+                detail = cause.detail,
+                properties = cause.properties,
+                instance = call.problemInstance,
+            ),
+            json,
         )
     }
 
     /**
-     * Handles a request validation exception by processing validation error messages and responding
-     * with a structured error response containing detailed information about the validation failure.
+     * Turns the validator's failures into a `400` problem whose `properties` map each offending
+     * JSON path to a human-readable message.
      *
-     * @param call The ApplicationCall instance representing the current HTTP call.
-     * @param cause The RequestValidationException containing the validation failure details.
-     * @param namingStrategy The [JsonNamingStrategy] used to transform field names in the response properties.
+     * @param call The [ApplicationCall] representing the current HTTP call.
+     * @param cause The [RequestValidationException] containing the validation failure details.
+     * @param namingStrategy The [JsonNamingStrategy] used to transform field names in the response
+     *        properties, so they match the names the client actually sent.
+     * @param json The serializer used for the problem body.
      */
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun handleValidationException(
         call: ApplicationCall,
         cause: RequestValidationException,
         namingStrategy: JsonNamingStrategy? = null,
+        json: Json = ProblemJson,
     ) {
         val properties =
             cause.reasons.associate {
@@ -91,82 +102,82 @@ object ResponseHandlers {
                 "$path.$field" to "Property `$field` at `$.$realPath` $message"
             }
 
-        call.respond(
-            status = BadRequest,
-            message =
-                ProblemDetail.fromStatus(
-                    status = BadRequest,
-                    detail = "Validation failed",
-                    properties = properties,
-                ),
+        call.respondProblem(
+            ProblemDetail.fromStatus(
+                status = BadRequest,
+                detail = "Validation failed",
+                properties = properties,
+                instance = call.problemInstance,
+            ),
+            json,
         )
     }
 
     /**
-     * Handles exceptions of type [BadRequestException] in an HTTP context. This function processes
-     * the exception to generate structured error responses with appropriate HTTP status codes and
-     * error details. It specifically handles cases where the cause of the exception is a
-     * [MissingFieldException], providing detailed information about the missing fields, and responds
-     * with a [ProblemDetail] object.
+     * Handles a [BadRequestException], which Ktor raises when a request body cannot be bound.
+     *
+     * When the underlying cause is a [MissingFieldException] the response names the missing fields
+     * individually; otherwise it falls back to the exception's own message, which for a binding
+     * failure describes the request rather than the server.
      *
      * @param call The [ApplicationCall] representing the HTTP request.
      * @param cause The [BadRequestException] to be handled.
      * @param namingStrategy The [JsonNamingStrategy] used to transform field names in the response properties.
+     * @param json The serializer used for the problem body.
      */
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun handleBadRequestException(
         call: ApplicationCall,
         cause: BadRequestException,
         namingStrategy: JsonNamingStrategy? = null,
+        json: Json = ProblemJson,
     ) {
-        if (cause.cause?.cause is MissingFieldException) {
-            val missingFields: (String?) -> Map<String, String> = { message ->
-                val regexField = Regex("Field '([^']+)' is required .*? at path: (\\$\\.?\\S*)")
-                val regexFields = Regex("Fields \\[([^]]+)] are required .*? at path: (\\$\\.?\\S*)")
+        val missingFields = cause.cause?.cause as? MissingFieldException
 
-                val matchField = regexField.find(message ?: "")
-                if (matchField != null) {
-                    val path = matchField.groupValues[2]
-                    val realPath = path.let { if (it == "$") "$.root" else it }
-                    val field = matchField.groupValues[1].applyNamingStrategy(namingStrategy)
-
-                    mapOf("$path.$field" to "Property `$field` at `$realPath` is required")
-                } else {
-                    val matchFields = regexFields.find(message ?: "")
-                    if (matchFields != null) {
-                        val path = matchFields.groupValues[2]
-                        val realPath = path.let { if (it == "$") "$.root" else it }
-                        val fields = matchFields.groupValues[1].split(", ")
-
-                        fields.associate { rawField ->
-                            val field = rawField.applyNamingStrategy(namingStrategy)
-                            "$path.$field" to "Property `$field` at `$realPath` is required"
-                        }
-                    } else {
-                        emptyMap()
-                    }
-                }
+        val problem =
+            if (missingFields != null) {
+                ProblemDetail.fromStatus(
+                    status = BadRequest,
+                    detail = "Missing required fields",
+                    properties = missingFieldProperties(missingFields.message, namingStrategy),
+                    instance = call.problemInstance,
+                )
+            } else {
+                ProblemDetail.fromStatus(
+                    status = BadRequest,
+                    detail = cause.message,
+                    instance = call.problemInstance,
+                )
             }
 
-            call.respond(
-                status = BadRequest,
-                message =
-                    ProblemDetail.fromStatus(
-                        status = BadRequest,
-                        detail = "Missing required fields",
-                        properties = missingFields(cause.cause?.cause?.message),
-                    ),
-            )
-        } else {
-            // Generic BadRequestException
-            call.respond(
-                status = BadRequest,
-                message =
-                    ProblemDetail.fromStatus(
-                        status = BadRequest,
-                        detail = cause.message,
-                    ),
-            )
+        call.respondProblem(problem, json)
+    }
+
+    /**
+     * Extracts the offending field names out of a [MissingFieldException] message, which
+     * kotlinx.serialization phrases either as a single `Field 'x' is required` or as a plural
+     * `Fields [x, y] are required`.
+     */
+    private fun missingFieldProperties(
+        message: String?,
+        namingStrategy: JsonNamingStrategy?,
+    ): Map<String, String> {
+        val text = message.orEmpty()
+        val single = Regex("Field '([^']+)' is required .*? at path: (\\$\\.?\\S*)").find(text)
+        val plural = Regex("Fields \\[([^]]+)] are required .*? at path: (\\$\\.?\\S*)").find(text)
+
+        val (rawFields, path) =
+            when {
+                single != null -> listOf(single.groupValues[1]) to single.groupValues[2]
+                plural != null -> plural.groupValues[1].split(", ") to plural.groupValues[2]
+                else -> return emptyMap()
+            }
+
+        val readablePath = if (path == "$") "$.root" else path
+
+        return rawFields.associate { rawField ->
+            val field = rawField.applyNamingStrategy(namingStrategy)
+            "$path.$field" to "Property `$field` at `$readablePath` is required"
         }
     }
 
@@ -181,11 +192,13 @@ object ResponseHandlers {
      * @param cause The [Throwable] instance representing the exception that was thrown.
      * @param includeExceptionMessage Echoes the exception message back to the client. Useful while
      *        developing locally; leave it off anywhere the caller is not trusted.
+     * @param json The serializer used for the problem body.
      */
     suspend fun handleGenericException(
         call: ApplicationCall,
         cause: Throwable,
         includeExceptionMessage: Boolean = false,
+        json: Json = ProblemJson,
     ) {
         call.application.environment.log
             .error("Unhandled exception", cause)
@@ -197,9 +210,13 @@ object ResponseHandlers {
                 "An unexpected error occurred."
             }
 
-        call.respond(
-            status = InternalServerError,
-            message = ProblemDetail.fromStatus(status = InternalServerError, detail = detail),
+        call.respondProblem(
+            ProblemDetail.fromStatus(
+                status = InternalServerError,
+                detail = detail,
+                instance = call.problemInstance,
+            ),
+            json,
         )
     }
 }

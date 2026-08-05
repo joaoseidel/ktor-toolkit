@@ -1,4 +1,7 @@
 public final class com/luizalabs/ktor/toolkit/paginator/PaginationExtensionsKt {
+	public static final fun getPagination (Lio/ktor/server/application/ApplicationCall;)Lcom/luizalabs/ktor/toolkit/paginator/data/Pagination;
+	public static final fun paginationRequest (Lio/ktor/server/application/ApplicationCall;II)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
+	public static synthetic fun paginationRequest$default (Lio/ktor/server/application/ApplicationCall;IIILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
 	public static final fun toPagination (Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;)Lcom/luizalabs/ktor/toolkit/paginator/data/Pagination;
 }
 
