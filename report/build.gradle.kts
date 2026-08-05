@@ -7,8 +7,8 @@ plugins {
 }
 
 val koverSkip: Boolean = providers.gradleProperty("koverSkip").map(String::toBoolean).getOrElse(false)
-val koverCoverageLineRate: Int = 0
-val koverCoverageBranchRate: Int = 0
+val koverCoverageLineRate: Int = 85
+val koverCoverageBranchRate: Int = 65
 
 /** Every library module contributes to the aggregated coverage report. */
 val coveredProjects =

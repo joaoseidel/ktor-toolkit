@@ -8,6 +8,8 @@ dependencies {
     api(libs.ktor.server.core)
     api(libs.kotlinx.serialization)
 
+    testImplementation(libs.ktor.content.negotiation)
+    testImplementation(libs.ktor.serialization.kotlinx.json)
     testImplementation(libs.bundles.testing)
 }
 
