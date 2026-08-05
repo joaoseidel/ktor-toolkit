@@ -9,6 +9,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
+import java.security.MessageDigest
 import java.util.Base64
 import kotlin.text.Charsets.UTF_8
 
@@ -116,7 +117,11 @@ suspend fun KeyValueCache.invalidateNamespace(namespace: String) {
  * Builds a stable cache key from [namespace], the request path and its query parameters.
  *
  * Parameters are sorted by name and their values sorted within each name, so the same logical
- * request produces the same key regardless of the order the client sent them in.
+ * request produces the same key regardless of the order the client sent them in. The result is
+ * hashed rather than encoded, because a key derived from a URL would otherwise be as long as the
+ * URL — and a client controls how long that is.
+ *
+ * The namespace stays in the clear so [invalidateNamespace] can match on it.
  */
 @PublishedApi
 internal fun buildCacheKey(
@@ -131,6 +136,6 @@ internal fun buildCacheKey(
             .sortedBy { it.key }
             .joinToString("&") { "${it.key}=${it.value.sorted().joinToString(",")}" }
     val raw = if (query.isEmpty()) request.path() else "${request.path()}?$query"
-    val encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(raw.toByteArray(UTF_8))
-    return "$namespace.$encoded"
+    val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(UTF_8))
+    return "$namespace.${Base64.getUrlEncoder().withoutPadding().encodeToString(digest)}"
 }

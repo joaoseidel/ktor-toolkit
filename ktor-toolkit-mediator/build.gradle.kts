@@ -13,3 +13,10 @@ dependencies {
     testImplementation(libs.ktor.serialization.kotlinx.json)
     testImplementation(libs.bundles.testing)
 }
+
+kotlin {
+    sourceSets.all {
+        // JsonNamingStrategy is still experimental, and it appears in the problem-details config.
+        languageSettings.optIn("kotlinx.serialization.ExperimentalSerializationApi")
+    }
+}

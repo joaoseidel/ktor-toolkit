@@ -1,9 +1,16 @@
 public final class com/luizalabs/ktor/toolkit/cache/InMemoryCache : com/luizalabs/ktor/toolkit/cache/KeyValueCache {
-	public fun <init> ()V
+	public static final field Companion Lcom/luizalabs/ktor/toolkit/cache/InMemoryCache$Companion;
+	public static final field DEFAULT_MAX_SIZE I
+	public synthetic fun <init> (IJLkotlin/time/Clock;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (IJLkotlin/time/Clock;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun delete (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun get (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun keys (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun put (Ljava/lang/String;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun size (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/luizalabs/ktor/toolkit/cache/InMemoryCache$Companion {
 }
 
 public abstract interface class com/luizalabs/ktor/toolkit/cache/KeyValueCache {
