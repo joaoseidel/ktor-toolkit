@@ -16,7 +16,7 @@ Requires **Java 21+**, Kotlin 2.3 and Ktor 3.4.
 | [`ktor-toolkit-paginator`](#paginator) | Parses `?page`/`?pageSize`/`?sortBy`, and shapes the paged response |
 | [`ktor-toolkit-hateoas`](#hateoas) | Wraps a response in a `_links` envelope, with pagination links built for you |
 | [`ktor-toolkit-validator`](#validator) | A type-safe `should be` / `should notBe` DSL over Ktor's RequestValidation |
-| [`ktor-toolkit-mediator`](#mediator) | Turns exceptions into RFC 9457 `application/problem+json` responses |
+| [`ktor-toolkit-problem-details`](#problem-details) | Turns exceptions into RFC 9457 `application/problem+json` responses |
 | [`ktor-toolkit-expander`](#expander) | Resolves `?expand=author.books` references, batching one query per field |
 | [`ktor-toolkit-cache`](#cache) | Caches a response by request path and query, over any key–value store |
 
@@ -35,7 +35,7 @@ dependencies {
     implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-paginator:1.0.0")
     implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-hateoas:1.0.0")
     implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-validator:1.0.0")
-    implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-mediator:1.0.0")
+    implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-problem-details:1.0.0")
     implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-expander:1.0.0")
     implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-cache:1.0.0")
 }
@@ -233,7 +233,7 @@ rulesFor<CreateBookRequest> {
 `timeZone = TimeZone.UTC` when the comparison should not depend on where the server runs, and `now`
 to make a test deterministic.
 
-## Mediator
+## Problem Details
 
 One installer turns validation failures, malformed bodies, deliberate status exceptions and
 anything otherwise unhandled into `application/problem+json`:
