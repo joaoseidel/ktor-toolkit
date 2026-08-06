@@ -32,8 +32,9 @@ for anyone who consumed the library from source.
   built with the `validationRule` factory instead of by subclassing.
 - **Validation rules no longer take `positiveMessage` / `negativeMessage`.** Override a message with
   `describedAs`, either on the rule or on the assertion: `should be email() describedAs "…"`.
-- **`RequestValidationConfig.withValidationContext` is now `rules`,** for both the block and the
-  `RequestValidator` overload: `install(RequestValidation) { rules<CreateBookRequest> { … } }`.
+- **`RequestValidationConfig.withValidationContext` is split into `rulesFor` and `rulesFrom`:**
+  `rulesFor<CreateBookRequest> { … }` declares rules inline, and `rulesFrom(CreateBookValidator())`
+  takes them from a `RequestValidator`.
 - **`ValidationContext.getErrors()` is now the `errors` property,** `validateResult()` is
   `toValidationResult()`, and `PropertyValidator.propertyValue` is `value`.
 - **`ValidationContext` and `PropertyValidator` are `@DslMarker`-scoped,** so an inner block can no
