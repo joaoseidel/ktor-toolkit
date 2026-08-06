@@ -147,15 +147,17 @@ public final class com/luizalabs/ktor/toolkit/paginator/data/SortExposedExtensio
 	public static final fun toExposedQueryExpression (Ljava/util/List;[Lorg/jetbrains/exposed/v1/core/Column;)Ljava/util/List;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/SortGelExtensionsKt {
-	public static final fun toGelOrderingExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;Ljava/util/List;)Lio/github/joaoseidel/geldsl/core/GelOrderingExpression;
-	public static final fun toGelOrderingExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;[Lio/github/joaoseidel/geldsl/core/entity/properties/GelPropertyRef;)Lio/github/joaoseidel/geldsl/core/GelOrderingExpression;
-	public static final fun toGelOrderingExpression (Ljava/util/List;Ljava/util/List;)Ljava/util/List;
-	public static final fun toGelOrderingExpression (Ljava/util/List;[Lio/github/joaoseidel/geldsl/core/entity/properties/GelPropertyRef;)Ljava/util/List;
-}
-
 public final class com/luizalabs/ktor/toolkit/paginator/data/SortKt {
 	public static final fun sortBy (Lkotlin/jvm/functions/Function1;)Ljava/util/List;
+}
+
+public final class com/luizalabs/ktor/toolkit/paginator/data/SortMongoExtensionsKt {
+	public static final fun toMongoSortExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;Ljava/util/List;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;[Ljava/lang/String;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;[Lkotlin/reflect/KProperty1;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Ljava/util/List;Ljava/util/List;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Ljava/util/List;[Ljava/lang/String;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Ljava/util/List;[Lkotlin/reflect/KProperty1;)Lorg/bson/conversions/Bson;
 }
 
 public final class com/luizalabs/ktor/toolkit/paginator/web/PagedResponse {

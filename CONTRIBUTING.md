@@ -61,9 +61,9 @@ and it belongs in the same commit as the change.
 Modules declare a dependency as `api` only when it appears in a public signature — that is what puts
 it in the published POM for consumers. Anything a module merely uses internally is `implementation`.
 
-Optional integrations (Exposed, gel-query-dsl) are `compileOnly`, so consumers who do not use them
-do not pay for them. Add the matching `testImplementation` so the code is still compiled and tested
-here, and document the requirement in the README.
+Optional integrations (Exposed, the MongoDB driver) are `compileOnly`, so consumers who do not use
+them do not pay for them. Add the matching `testImplementation` so the code is still compiled and
+tested here, and document the requirement in the README.
 
 ## Continuous integration
 

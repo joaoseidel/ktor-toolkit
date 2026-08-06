@@ -5,7 +5,7 @@ kotlinx-datetime = "0.7.1"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization-json = "1.10.0"
 exposed = "1.1.1"
-gel-query-dsl = "3.2.1"
+mongodb = "5.5.1"
 ktor = "3.4.1"
 lettuce = "6.7.1.RELEASE"
 koin = "4.1.1"
@@ -30,8 +30,9 @@ exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "e
 exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "exposed" }
 exposed-crypt = { module = "org.jetbrains.exposed:exposed-crypt", version.ref = "exposed" }
 exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
-# GelQueryDSL
-gel-query-dsl-core = { module = "io.github.joaoseidel.geldsl:gel-query-dsl-core", version.ref = "gel-query-dsl" }
+# MongoDB
+mongodb-driver-core = { module = "org.mongodb:mongodb-driver-core", version.ref = "mongodb" }
+mongodb-driver-kotlin-coroutine = { module = "org.mongodb:mongodb-driver-kotlin-coroutine", version.ref = "mongodb" }
 # Ktor
 ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
 ktor-server-cio = { module = "io.ktor:ktor-server-cio-jvm", version.ref = "ktor" }

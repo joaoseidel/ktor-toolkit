@@ -7,7 +7,7 @@ description: >-
   something, whenever a client can choose the order of results, and whenever you see hand-written
   page/limit/offset parsing, a bespoke {items, total, page} response, or a sort key going to the
   database unchecked. Covers Page, Sort, Pagination, Paged, PaginationRequest, PagedResponse, the
-  sortBy { } DSL and Sort.toExposedQueryExpression.
+  sortBy { } DSL, Sort.toExposedQueryExpression and Sort.toMongoSortExpression.
 ---
 
 # Pagination
@@ -114,6 +114,33 @@ for.
 An empty `sortBy` produces an empty array, so `orderBy()` is a no-op and the query is unordered.
 If the endpoint needs a stable default order, supply one — see below.
 
+On MongoDB the adapter has the same shape, with `toMongoSortExpression`:
+
+```kotlin
+class MongoBookRepository(private val collection: MongoCollection<BookDocument>) : BookRepository {
+    override suspend fun findAll(pagination: Pagination): List<Book> {
+        val (page, pageSize) = pagination.page
+
+        return collection
+            .find()
+            .sort(pagination.sortBy.toMongoSortExpression(BookDocument::title, BookDocument::createdAt))
+            .skip(page * pageSize)
+            .limit(pageSize)
+            .map { it.toBook() }
+            .toList()
+    }
+
+    override suspend fun count(): Long = collection.countDocuments()
+}
+```
+
+Two differences from the Exposed conversion. The criteria collapse into **one** `Bson` document
+rather than a list, because that is what `find().sort(...)` takes — no spread, no `toTypedArray()`;
+an empty `sortBy` becomes `{}`, which MongoDB reads as unordered. And the allow-list is field names:
+either `String`s, or property references of the **document** class, whose names must be the fields
+as stored. Passing the domain entity's properties compiles and then silently stops matching the
+moment the two diverge.
+
 ### 4. The route — `-adapters/web`
 
 ```kotlin
@@ -160,9 +187,9 @@ whenever one exists — that is the whole reason the overload is there.
 
 ### The trap: an unknown sort key is a 500
 
-`toExposedQueryExpression` throws `IllegalArgumentException` for a property that is not in the
-allow-list. Nothing in `problemDetails { }` maps that type, so it lands on the catch-all and the
-client gets **500 for what is really a bad request**.
+Both conversions throw `IllegalArgumentException` for a property that is not in the allow-list.
+Nothing in `problemDetails { }` maps that type, so it lands on the catch-all and the client gets
+**500 for what is really a bad request**.
 
 `?sortBy=titel` is a typo, not a server fault. Map it once, in `-adapters/web`:
 
@@ -221,6 +248,7 @@ guess corrupts the whole block.
 | `findAll(page: Int, size: Int)` on the port | Discards the sort criteria; every caller reassembles what it had |
 | Use case returning `PagedResponse` | `-core` now depends on a web type to satisfy a wire shape |
 | `toExposedQueryExpression(Books)` when only two columns should sort | Every column becomes sortable, including unindexed ones |
+| `toMongoSortExpression(Book::…)` against the domain entity, not the document | Compiles, then stops matching the day the two names diverge |
 | Sorting straight from the client string with no allow-list | A column name from the client reaches SQL |
 | No default order | Pages overlap and drop rows between requests |
 | Leaving `IllegalArgumentException` unmapped | A typo in `?sortBy` answers 500 |

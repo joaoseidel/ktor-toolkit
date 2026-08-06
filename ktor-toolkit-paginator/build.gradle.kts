@@ -8,11 +8,11 @@ dependencies {
     api(libs.kotlinx.serialization)
 
     // Optional integrations — consumers opt in by adding the dependency themselves.
-    // See SortExposedExtensions.kt / SortGelExtensions.kt.
+    // See SortExposedExtensions.kt / SortMongoExtensions.kt.
     compileOnly(libs.exposed.core)
-    compileOnly(libs.gel.query.dsl.core)
+    compileOnly(libs.mongodb.driver.core)
 
     testImplementation(libs.exposed.core)
-    testImplementation(libs.gel.query.dsl.core)
+    testImplementation(libs.mongodb.driver.core)
     testImplementation(libs.bundles.testing)
 }

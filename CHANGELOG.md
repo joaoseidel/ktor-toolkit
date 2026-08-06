@@ -22,6 +22,8 @@ for anyone who consumed the library from source.
   floored at 0 and `pageSize` is coerced into `1..maxPageSize` (100 by default).
 - **`Paged.sortedBy` and `Pagination.sortedBy` are now `sortBy`,** matching `PaginationRequest`.
 - **`Paged.from(...)` is gone** — use the constructor.
+- **`Sort.toGelOrderingExpression` is gone.** The Gel query DSL integration was dropped in favour of
+  `Sort.toMongoSortExpression`; nothing else about sorting changed.
 - **Error responses are served as `application/problem+json`,** not `application/json`.
 - **`ResponseHandlers.handleGenericException` no longer echoes the exception message.** Pass
   `includeExceptionMessage = true` to restore the old behaviour.
@@ -99,6 +101,10 @@ for anyone who consumed the library from source.
   `rel` / `href` / `method` directly.
 - `Sort` accepts a property reference, and `sortBy { desc(…); asc(…) }` builds an ordering from
   them, so a rename cannot leave a stale sort key behind.
+- `Sort.toMongoSortExpression(...)` resolves sort criteria against an allow-list of field names or
+  document property references, collapsing them into the single `Bson` document `find().sort(...)`
+  takes; no criteria yields `{}`. The MongoDB driver is an optional dependency — add
+  `org.mongodb:mongodb-driver-core`, which any MongoDB driver already brings, yourself.
 - `StatusPagesConfig.problemDetails { }` registers every handler in one call, and `on<E> { }` inside
   it maps an application's own exceptions to problems.
 - `ProblemDetail` carries the RFC 9457 `type` and `instance` members.
@@ -114,7 +120,7 @@ for anyone who consumed the library from source.
 ### Changed
 
 - Dependencies that appear in a module's public signatures are declared `api`, so the published POM
-  resolves them. Exposed and gel-query-dsl remain optional — see the README.
+  resolves them. Exposed and the MongoDB driver remain optional — see the README.
 - `ExpandSpec` collapsed from four near-duplicate field implementations to two; single-item
   expansion now delegates to the batched path, so the two can no longer diverge.
 - ktlint and binary-compatibility-validator run as part of `build`.
