@@ -7,47 +7,26 @@ import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingRequest
 
 /**
- * Creates pagination links using a [RoutingRequest] to maintain query parameters.
+ * Wraps a page in a [Resource], carrying the pagination links for the current request.
  *
- * @param call The current routing call
- */
-fun <T> PagedResponse<T>.toResource(call: RoutingCall): Resource<PagedResponse<T>> =
-    Resource(this)
-        .withLinks(call.createPaginationLinks(this))
-
-/**
- * Creates pagination links using a [RoutingRequest] to maintain query parameters.
+ * The links preserve every other query parameter, so a filtered listing stays filtered as the
+ * client follows `next`.
  *
- * @param call The current routing call
- * @param links A list of custom links to be added to the resource
- */
-fun <T> PagedResponse<T>.toResource(
-    call: RoutingCall,
-    links: List<Link>,
-): Resource<PagedResponse<T>> =
-    Resource(this, links)
-        .withLinks(call.createPaginationLinks(this))
-        .withLinks(links)
-
-/**
- * Creates pagination links using a [RoutingRequest] to maintain query parameters.
- *
- * @param request The current routing request
- */
-fun <T> PagedResponse<T>.toResource(request: RoutingRequest): Resource<PagedResponse<T>> =
-    Resource(this)
-        .withLinks(request.createPaginationLinks(this))
-
-/**
- * Creates pagination links using a [RoutingRequest] to maintain query parameters.
- *
- * @param request The current routing request
- * @param links A list of custom links to be added to the resource
+ * @param request The current routing request, which the links are derived from.
+ * @param links Additional links to publish alongside the pagination ones.
  */
 fun <T> PagedResponse<T>.toResource(
     request: RoutingRequest,
-    links: List<Link>,
-): Resource<PagedResponse<T>> =
-    Resource(this, links)
-        .withLinks(request.createPaginationLinks(this))
-        .withLinks(links)
+    links: List<Link> = emptyList(),
+): Resource<PagedResponse<T>> = Resource(this, request.createPaginationLinks(this) + links)
+
+/**
+ * Wraps a page in a [Resource], carrying the pagination links for the current call.
+ *
+ * @param call The current routing call, whose request the links are derived from.
+ * @param links Additional links to publish alongside the pagination ones.
+ */
+fun <T> PagedResponse<T>.toResource(
+    call: RoutingCall,
+    links: List<Link> = emptyList(),
+): Resource<PagedResponse<T>> = toResource(call.request, links)

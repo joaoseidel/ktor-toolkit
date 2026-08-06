@@ -35,4 +35,42 @@ class SortTest :
                 }
             }
         }
+
+        context("a property reference") {
+            should("take the property's name as the sort key") {
+                Sort(Book::title) shouldBe Sort("title", ASC)
+            }
+
+            should("carry the direction it was given") {
+                Sort(Book::publishedAt, DESC) shouldBe Sort("publishedAt", DESC)
+            }
+        }
+
+        context("sortBy") {
+            should("keep the criteria in the order they were declared") {
+                val ordering =
+                    sortBy {
+                        desc(Book::publishedAt)
+                        asc(Book::title)
+                    }
+
+                ordering shouldBe listOf(Sort("publishedAt", DESC), Sort("title", ASC))
+            }
+
+            should("accept a name for a property that has no reference to hand") {
+                sortBy {
+                    asc("relevance")
+                    desc("score")
+                } shouldBe listOf(Sort("relevance", ASC), Sort("score", DESC))
+            }
+
+            should("produce nothing when it declares nothing") {
+                sortBy { } shouldBe emptyList()
+            }
+        }
     })
+
+private data class Book(
+    val title: String,
+    val publishedAt: String,
+)
