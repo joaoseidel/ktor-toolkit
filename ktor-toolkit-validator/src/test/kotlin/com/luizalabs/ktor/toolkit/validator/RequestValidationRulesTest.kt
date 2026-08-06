@@ -32,12 +32,12 @@ private fun Application.reportValidationFailures() {
 
 class RequestValidationRulesTest :
     ShouldSpec({
-        context("rules, given a block") {
+        context("rulesFor") {
             should("accept a request that satisfies the rules") {
                 testApplication {
                     application {
                         install(RequestValidation) {
-                            rules<String> {
+                            rulesFor<String> {
                                 property(String::length) { should be min(3) }
                             }
                         }
@@ -55,7 +55,7 @@ class RequestValidationRulesTest :
                 testApplication {
                     application {
                         install(RequestValidation) {
-                            rules<String> {
+                            rulesFor<String> {
                                 property(String::length) { should be min(3) }
                             }
                         }
@@ -70,7 +70,7 @@ class RequestValidationRulesTest :
             }
         }
 
-        context("rules, given a RequestValidator") {
+        context("rulesFrom") {
             val validator =
                 object : RequestValidator<String> {
                     override fun ValidationContext<String>.validate() {
@@ -82,7 +82,7 @@ class RequestValidationRulesTest :
             should("run the validator's rules") {
                 testApplication {
                     application {
-                        install(RequestValidation) { rules(validator) }
+                        install(RequestValidation) { rulesFrom(validator) }
                         reportValidationFailures()
                     }
 
