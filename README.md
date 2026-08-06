@@ -143,7 +143,7 @@ error rather than a silently dead rule:
 
 ```kotlin
 install(RequestValidation) {
-    withValidationContext<CreateBookRequest> {
+    rules<CreateBookRequest> {
         property(CreateBookRequest::title) {
             should notBe blank()
             should be size(min = 3, max = 200)
@@ -162,7 +162,7 @@ install(RequestValidation) {
 ```
 
 For anything beyond a couple of fields, implement `RequestValidator<T>` and pass the instance to
-`withValidationContext(validator)` instead.
+`rules(validator)` instead.
 
 Available rules, and the property types each applies to:
 
@@ -211,7 +211,7 @@ objects, reporting at `tags[0]` and `authors[0].email`. `whenever` makes a group
 conditional, and `invariant` states a rule that no single property owns:
 
 ```kotlin
-withValidationContext<CreateBookRequest> {
+rules<CreateBookRequest> {
     each(CreateBookRequest::tags) { should notBe blank() }
 
     eachNested(CreateBookRequest::authors) {
