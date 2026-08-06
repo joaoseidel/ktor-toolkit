@@ -17,7 +17,6 @@ setup:
 clean: setup
 	$(gradle_cmd) clean
 
-# Compiles every module, runs the tests and the ktlint check.
 build: setup
 	$(gradle_cmd) build --parallel --max-workers=$(th)
 
@@ -38,6 +37,5 @@ format: setup
 api: setup
 	$(gradle_cmd) apiDump
 
-# No remote repository is wired yet — this installs into the local ~/.m2 repository.
-publish: setup
+publish_local: setup
 	$(gradle_cmd) publishToMavenLocal
