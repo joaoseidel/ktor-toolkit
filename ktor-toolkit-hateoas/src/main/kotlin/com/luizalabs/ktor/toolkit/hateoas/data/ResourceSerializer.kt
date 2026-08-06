@@ -41,10 +41,13 @@ internal class ResourceSerializer<T>(
         val jsonDecoder = decoder as JsonDecoder
 
         val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
+        val linksJson = jsonObject["_links"]
         val links =
-            jsonObject["_links"]?.let {
-                jsonDecoder.json.decodeFromJsonElement(ListSerializer(Link.serializer()), it)
-            } ?: emptyList()
+            if (linksJson == null) {
+                emptyList()
+            } else {
+                jsonDecoder.json.decodeFromJsonElement(ListSerializer(Link.serializer()), linksJson)
+            }
 
         val contentJson = JsonObject(jsonObject.toMutableMap().apply { remove("_links") })
         val content = jsonDecoder.json.decodeFromJsonElement(contentSerializer, contentJson)

@@ -1,11 +1,16 @@
 package com.luizalabs.ktor.toolkit.validator.validators
 
+import com.luizalabs.ktor.toolkit.validator.support.appliedTo
 import com.luizalabs.ktor.toolkit.validator.support.messagesOf
+import com.luizalabs.ktor.toolkit.validator.support.validatorFor
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
@@ -69,6 +74,31 @@ class WithinTest :
             should("reject one inside it") {
                 messagesOf(LocalDate(2026, 6, 15)) { should notBe within(7.days, now, utc) } shouldBe
                     listOf("should not be within 7d from now")
+            }
+        }
+
+        context("without a reference point") {
+            // Anchored on the system clock itself, so the window holds whenever the suite runs.
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+
+            should("measure a date against the system clock and zone") {
+                messagesOf(today.date) { should be within(1.days) } shouldBe emptyList()
+            }
+
+            should("measure a date and time against the system clock and zone") {
+                messagesOf(today) { should be within(1.days) } shouldBe emptyList()
+            }
+
+            should("measure an instant against the system clock") {
+                messagesOf(Clock.System.now()) { should be within(1.days) } shouldBe emptyList()
+            }
+        }
+
+        should("answer false for a value of a type it cannot measure against a point in time, rather than throw") {
+            val rule = validatorFor<LocalDate?>(null).within(7.days, now, utc)
+
+            listOf(42, "2026-06-15", true, Unit).forEach { value ->
+                withClue("$value") { rule appliedTo value shouldBe false }
             }
         }
 

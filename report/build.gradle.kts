@@ -7,8 +7,8 @@ plugins {
 }
 
 val koverSkip: Boolean = providers.gradleProperty("koverSkip").map(String::toBoolean).getOrElse(false)
-val koverCoverageLineRate: Int = 85
-val koverCoverageBranchRate: Int = 65
+val koverCoverageLineRate: Int = 100
+val koverCoverageBranchRate: Int = 100
 
 /** Every library module contributes to the aggregated coverage report. */
 val coveredProjects =
@@ -37,6 +37,20 @@ kover {
     }
 
     reports {
+        filters {
+            excludes {
+                // The compiler emits a non-inlined copy of a public inline function for the
+                // declaration itself; callers inline the body instead, so that copy never runs.
+                annotatedBy("com.luizalabs.ktor.toolkit.cache.UnreachableBytecode")
+
+                // Every property of PaginationRequest is optional, so kotlinx.serialization guards
+                // its generated `throwMissingFieldException` with `(0 and seen) != 0` — always
+                // false. Named precisely: PaginationRequest$Companion, which holds the parsing this
+                // class is really about, stays measured.
+                classes("com.luizalabs.ktor.toolkit.paginator.web.PaginationRequest")
+            }
+        }
+
         total {
             xml {
                 onCheck = true

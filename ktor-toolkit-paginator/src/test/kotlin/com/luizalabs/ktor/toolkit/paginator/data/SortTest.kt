@@ -2,9 +2,14 @@ package com.luizalabs.ktor.toolkit.paginator.data
 
 import com.luizalabs.ktor.toolkit.paginator.data.Sort.Direction.ASC
 import com.luizalabs.ktor.toolkit.paginator.data.Sort.Direction.DESC
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 
 class SortTest :
     ShouldSpec({
@@ -66,6 +71,67 @@ class SortTest :
 
             should("produce nothing when it declares nothing") {
                 sortBy { } shouldBe emptyList()
+            }
+        }
+
+        context("comparing two criteria") {
+            val criterion = Sort("title", ASC)
+
+            should("consider a criterion equal to itself") {
+                criterion.equals(criterion) shouldBe true
+            }
+
+            should("consider a criterion equal to a structurally identical one") {
+                criterion shouldBe Sort("title", ASC)
+                criterion.hashCode() shouldBe Sort("title", ASC).hashCode()
+            }
+
+            should("consider a criterion different from anything that is not one") {
+                criterion.equals("title asc") shouldBe false
+            }
+
+            should("consider criteria different when any single detail differs") {
+                val variants =
+                    mapOf(
+                        "the property" to criterion.copy(property = "createdAt"),
+                        "the direction" to criterion.copy(direction = DESC),
+                    )
+
+                variants.forEach { (detail, variant) ->
+                    withClue("differing in $detail") { criterion shouldNotBe variant }
+                }
+            }
+
+            should("hand its parts back in declaration order") {
+                val (property, direction) = criterion
+
+                property shouldBe "title"
+                direction shouldBe ASC
+            }
+
+            should("name every part in its string form") {
+                criterion.toString() shouldContain "property=title"
+                criterion.toString() shouldContain "direction=ASC"
+            }
+        }
+
+        context("serializing a criterion") {
+            should("survive a round trip") {
+                val criterion = Sort("createdAt", DESC)
+
+                Json.decodeFromString<Sort>(Json.encodeToString(criterion)) shouldBe criterion
+            }
+
+            should("spell the direction out") {
+                Json.encodeToString(Sort("createdAt", DESC)) shouldBe """{"property":"createdAt","direction":"DESC"}"""
+            }
+
+            should("refuse a payload that leaves the property or the direction out") {
+                listOf("""{"property":"createdAt"}""", """{"direction":"DESC"}""").forEach { payload ->
+                    withClue(payload) {
+                        shouldThrow<SerializationException> { Json.decodeFromString<Sort>(payload) }
+                    }
+                }
             }
         }
     })

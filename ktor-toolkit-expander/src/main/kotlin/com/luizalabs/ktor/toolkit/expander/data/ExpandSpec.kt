@@ -324,8 +324,11 @@ private suspend fun <F> Batch<F>.forRefs(
 ): Map<String, F> = if (ids.isEmpty()) emptyMap() else this(ids, projection)
 
 /** Swaps a [Expandable.Ref] for its resolved value; an ID absent from [resolved] stays a ref. */
-private fun <F> Expandable<F>.resolveWith(resolved: Map<String, F>): Expandable<F> =
-    if (this is Expandable.Ref) resolved[id]?.let { Expandable.Resolved(it) } ?: this else this
+private fun <F> Expandable<F>.resolveWith(resolved: Map<String, F>): Expandable<F> {
+    if (this !is Expandable.Ref) return this
+    val value = resolved[id] ?: return this
+    return Expandable.Resolved(value)
+}
 
 /**
  * Applies the nested spec and the field projection to a freshly resolved value.
@@ -353,6 +356,6 @@ private fun projectionFields(
     childExpand: ExpandRequest,
     nestedSpec: ExpandSpec<*>?,
 ): Set<String> {
-    val known = nestedSpec?.knownFields ?: emptySet()
+    val known = if (nestedSpec == null) emptySet() else nestedSpec.knownFields
     return if (childExpand.fields.keys.any { it !in known }) childExpand.fields.keys else emptySet()
 }

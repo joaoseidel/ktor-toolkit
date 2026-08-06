@@ -51,6 +51,7 @@ internal inline fun <T> cacheCatching(
  * @param excludeQueryKeys Query parameters that must not take part in the cache key.
  * @param produce Computes the value on a cache miss.
  */
+@UnreachableBytecode
 suspend inline fun <reified T : Any> ApplicationRequest.withCache(
     namespace: String,
     cache: KeyValueCache,

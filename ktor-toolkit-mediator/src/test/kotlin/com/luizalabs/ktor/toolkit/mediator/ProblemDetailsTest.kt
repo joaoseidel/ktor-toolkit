@@ -42,6 +42,18 @@ private data class CreateBook(
     val authorName: String,
 )
 
+@Serializable
+private data class Address(
+    val street: String,
+    val city: String,
+)
+
+@Serializable
+private data class CreateOrder(
+    val reference: String,
+    val shipTo: Address,
+)
+
 /** An application's own exception, of the kind `on<E>` exists to map. */
 private class BookNotFoundException(
     val id: String,
@@ -332,6 +344,65 @@ class ProblemDetailsTest :
                     },
                 ) {
                     client.get("/broken").status shouldBe HttpStatusCode.InternalServerError
+                }
+            }
+        }
+
+        context("installing the handlers without configuring them") {
+            should("still answer an unhandled exception as problem+json") {
+                testApplication {
+                    install(StatusPages) { problemDetails() }
+                    routing { get("/boom") { error("nope") } }
+
+                    val response = client.get("/boom")
+
+                    response.status shouldBe HttpStatusCode.InternalServerError
+                    response.contentType()?.withoutParameters() shouldBe ProblemJsonContentType
+                    response.problemBody().string("detail") shouldBe "An unexpected error occurred."
+                }
+            }
+        }
+
+        context("responding with a problem from a route") {
+            should("serve it as problem+json on the default serializer") {
+                testApplication {
+                    routing {
+                        get("/gone") {
+                            call.respondProblem(ProblemDetail.fromStatus(HttpStatusCode.Gone, "Long gone"))
+                        }
+                    }
+
+                    val response = client.get("/gone")
+
+                    response.status shouldBe HttpStatusCode.Gone
+                    response.contentType()?.withoutParameters() shouldBe ProblemJsonContentType
+                    response.problemBody().string("detail") shouldBe "Long gone"
+                }
+            }
+        }
+
+        context("a missing field inside a nested object") {
+            should("quote the path the field sits on rather than the root") {
+                problemApp(
+                    routes = {
+                        routing {
+                            post("/orders") {
+                                call.receive<CreateOrder>()
+                                call.respondText("ok")
+                            }
+                        }
+                    },
+                ) {
+                    val response =
+                        client.post("/orders") {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"reference":"A-1","shipTo":{"street":"Main"}}""")
+                        }
+
+                    response.status shouldBe HttpStatusCode.BadRequest
+
+                    val properties = response.problemBody()["properties"]!!.jsonObject
+                    properties shouldContainKey "$.shipTo.city"
                 }
             }
         }

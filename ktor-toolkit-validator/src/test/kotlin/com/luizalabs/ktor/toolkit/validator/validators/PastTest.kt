@@ -1,6 +1,9 @@
 package com.luizalabs.ktor.toolkit.validator.validators
 
+import com.luizalabs.ktor.toolkit.validator.support.appliedTo
 import com.luizalabs.ktor.toolkit.validator.support.messagesOf
+import com.luizalabs.ktor.toolkit.validator.support.validatorFor
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.datetime.LocalDate
@@ -69,10 +72,48 @@ class PastTest :
                 } shouldBe listOf("should be a past date of at most 7d")
             }
 
+            should("accept a date and time inside the window") {
+                messagesOf(LocalDateTime(2026, 6, 12, 12, 0)) {
+                    should be past(7.days, now, utc)
+                } shouldBe emptyList()
+            }
+
+            should("reject a date and time further back than it") {
+                messagesOf(LocalDateTime(2026, 5, 1, 12, 0)) {
+                    should be past(7.days, now, utc)
+                }.size shouldBe 1
+            }
+
+            should("accept an instant inside the window") {
+                messagesOf(Instant.parse("2026-06-12T12:00:00Z")) {
+                    should be past(7.days, now, utc)
+                } shouldBe emptyList()
+            }
+
             should("bound an Instant, too") {
                 messagesOf(Instant.parse("2026-06-01T12:00:00Z")) {
                     should be past(7.days, now, utc)
                 }.size shouldBe 1
+            }
+
+            should("still reject an instant that is not behind at all") {
+                messagesOf(Instant.parse("2026-06-16T12:00:00Z")) {
+                    should be past(7.days, now, utc)
+                }.size shouldBe 1
+            }
+        }
+
+        context("without a reference point") {
+            should("compare a date against the system clock and zone") {
+                messagesOf(LocalDate(2000, 1, 1)) { should be past() } shouldBe emptyList()
+            }
+
+            should("compare a date and time against the system clock and zone") {
+                messagesOf(LocalDateTime(2000, 1, 1, 0, 0)) { should be past() } shouldBe emptyList()
+            }
+
+            should("compare an instant against the system clock") {
+                messagesOf(Instant.parse("2000-01-01T00:00:00Z")) { should be past() } shouldBe emptyList()
             }
         }
 
@@ -84,6 +125,14 @@ class PastTest :
             should("reject a past one") {
                 messagesOf(LocalDate(2026, 6, 14)) { should notBe past(now = now, timeZone = utc) } shouldBe
                     listOf("should not be a past date")
+            }
+        }
+
+        should("answer false for a value of a type it cannot compare against a point in time, rather than throw") {
+            val rule = validatorFor<LocalDate?>(null).past(now = now, timeZone = utc)
+
+            listOf(42, "2026-06-15", true, Unit).forEach { value ->
+                withClue("$value") { rule appliedTo value shouldBe false }
             }
         }
 

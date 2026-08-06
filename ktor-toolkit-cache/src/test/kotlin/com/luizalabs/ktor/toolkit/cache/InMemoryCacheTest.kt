@@ -8,6 +8,7 @@ import io.kotest.matchers.shouldBe
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 /** A clock the test moves by hand, so expiry can be exercised without sleeping. */
@@ -93,6 +94,11 @@ class InMemoryCacheTest :
             should("reject a non-positive size") {
                 shouldThrow<IllegalArgumentException> { InMemoryCache(maxSize = 0) }
                 shouldThrow<IllegalArgumentException> { InMemoryCache(maxSize = -1) }
+            }
+
+            should("reject a non-positive ttl, which would expire every entry on arrival") {
+                shouldThrow<IllegalArgumentException> { InMemoryCache(ttl = Duration.ZERO) }
+                shouldThrow<IllegalArgumentException> { InMemoryCache(ttl = (-1).seconds) }
             }
         }
 

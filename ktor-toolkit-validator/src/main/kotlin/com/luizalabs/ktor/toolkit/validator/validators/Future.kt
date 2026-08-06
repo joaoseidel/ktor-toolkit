@@ -49,7 +49,7 @@ private fun futureRule(
     now: Instant,
     timeZone: TimeZone,
 ): ValidationRule<Any?> {
-    val described = duration?.let { "a future date of at most $it" } ?: "a future date"
+    val described = if (duration != null) "a future date of at most $duration" else "a future date"
 
     return validationRule(
         positiveMessage = "should be $described",
@@ -60,7 +60,7 @@ private fun futureRule(
         when (value) {
             is LocalDate -> {
                 val today = now.toLocalDateTime(timeZone).date
-                val latest = upperBound?.toLocalDateTime(timeZone)?.date
+                val latest = upperBound?.let { it.toLocalDateTime(timeZone).date }
                 value > today && (latest == null || value <= latest)
             }
 

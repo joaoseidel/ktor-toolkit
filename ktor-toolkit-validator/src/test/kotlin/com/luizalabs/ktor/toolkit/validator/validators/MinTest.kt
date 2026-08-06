@@ -71,6 +71,19 @@ class MinTest :
                 messagesOf(10) { should be min(9.5) } shouldBe emptyList()
                 messagesOf(10) { should be min(10.5) }.size shouldBe 1
             }
+
+            should("keep the precision of an arbitrary-precision bound") {
+                messagesOf(10) { should be min(BigDecimal("9.99")) } shouldBe emptyList()
+                messagesOf(10) { should be min(BigDecimal("10.01")) }.size shouldBe 1
+                messagesOf(10) { should be min(BigInteger("11")) }.size shouldBe 1
+            }
+
+            should("widen a fractional value against an arbitrary-precision bound") {
+                messagesOf(10.5) { should be min(BigDecimal("10.4")) } shouldBe emptyList()
+                messagesOf(10.5) { should be min(BigDecimal("10.6")) }.size shouldBe 1
+                messagesOf(10.5f) { should be min(BigDecimal("10.4")) } shouldBe emptyList()
+                messagesOf(10.5f) { should be min(BigDecimal("10.6")) }.size shouldBe 1
+            }
         }
 
         should("stay silent on an absent value") {

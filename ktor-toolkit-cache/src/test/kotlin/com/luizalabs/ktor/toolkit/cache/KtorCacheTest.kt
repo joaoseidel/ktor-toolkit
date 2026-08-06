@@ -14,7 +14,9 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.util.concurrent.atomic.AtomicInteger
 
 @Serializable
@@ -58,6 +60,71 @@ private class BrokenCache(
 
     override suspend fun keys(): List<String> = throw failure()
 }
+
+/**
+ * A store that lists a key whose entry it cannot hand back — either because it is gone, as a shared
+ * cache's can be between the listing and the read, or because that one read fails.
+ */
+private class PartialCache(
+    private val delegate: KeyValueCache,
+    private val awkwardKey: String,
+    private val read: () -> ByteArray?,
+) : KeyValueCache by delegate {
+    override suspend fun keys(): List<String> = delegate.keys() + awkwardKey
+
+    override suspend fun get(key: String): ByteArray? = if (key == awkwardKey) read() else delegate.get(key)
+}
+
+/**
+ * A store whose reads and writes really suspend, the way a network-backed one does.
+ *
+ * [InMemoryCache] answers without ever parking the caller, which leaves the suspension paths of
+ * [withCache] untried — and those are the paths every remote cache, [LettuceCache] included, takes.
+ */
+private class SuspendingCache(
+    private val delegate: KeyValueCache,
+) : KeyValueCache by delegate {
+    override suspend fun get(key: String): ByteArray? {
+        delay(1)
+        return delegate.get(key)
+    }
+
+    override suspend fun put(
+        key: String,
+        value: ByteArray,
+    ) {
+        delay(1)
+        delegate.put(key, value)
+    }
+}
+
+/** Serves one book through [withCache] on its defaults, counting how often the origin was asked. */
+private fun cachedBook(
+    path: String,
+    cache: KeyValueCache,
+    calls: AtomicInteger = AtomicInteger(),
+): Book =
+    withRequest(path) { request ->
+        request.withCache("books", cache) {
+            calls.incrementAndGet()
+            Book("1", "Dune")
+        }
+    }
+
+/** As [cachedBook], but with the serializer and the excluded parameters named explicitly. */
+private fun cachedBook(
+    path: String,
+    cache: KeyValueCache,
+    calls: AtomicInteger,
+    json: Json = Json.Default,
+    excludeQueryKeys: Set<String> = emptySet(),
+): Book =
+    withRequest(path) { request ->
+        request.withCache("books", cache, json, excludeQueryKeys) {
+            calls.incrementAndGet()
+            Book("1", "Dune")
+        }
+    }
 
 class KtorCacheTest :
     ShouldSpec({
@@ -112,13 +179,9 @@ class KtorCacheTest :
             should("call the producer on a miss and serve the cache on a hit") {
                 val cache = InMemoryCache()
                 val calls = AtomicInteger()
-                val produce = {
-                    calls.incrementAndGet()
-                    Book("1", "Dune")
-                }
 
-                val first = withRequest("/books/1") { it.withCache("books", cache, produce = produce) }
-                val second = withRequest("/books/1") { it.withCache("books", cache, produce = produce) }
+                val first = cachedBook("/books/1", cache, calls)
+                val second = cachedBook("/books/1", cache, calls)
 
                 first shouldBe Book("1", "Dune")
                 second shouldBe Book("1", "Dune")
@@ -128,32 +191,57 @@ class KtorCacheTest :
             should("treat a different query as a different entry") {
                 val cache = InMemoryCache()
                 val calls = AtomicInteger()
-                val produce = {
-                    calls.incrementAndGet()
-                    Book("1", "Dune")
-                }
 
-                withRequest("/books?page=1") { it.withCache("books", cache, produce = produce) }
-                withRequest("/books?page=2") { it.withCache("books", cache, produce = produce) }
+                cachedBook("/books?page=1", cache, calls)
+                cachedBook("/books?page=2", cache, calls)
 
                 calls.get() shouldBe 2
+            }
+
+            should("call the producer on a miss and serve the cache on a hit, through a store that suspends") {
+                val cache = SuspendingCache(InMemoryCache())
+                val calls = AtomicInteger()
+
+                cachedBook("/books/1", cache, calls) shouldBe Book("1", "Dune")
+                cachedBook("/books/1", cache, calls) shouldBe Book("1", "Dune")
+
+                calls.get() shouldBe 1
             }
 
             should("serve from the origin when the cache is down") {
                 val cache = BrokenCache { IllegalStateException("redis is unreachable") }
 
-                val book = withRequest("/books/1") { it.withCache("books", cache) { Book("1", "Dune") } }
-
-                book shouldBe Book("1", "Dune")
+                cachedBook("/books/1", cache) shouldBe Book("1", "Dune")
             }
 
             should("propagate cancellation instead of swallowing it") {
                 // runCatching would have caught this and quietly broken structured concurrency.
                 val cache = BrokenCache { CancellationException("scope cancelled") }
 
-                shouldThrow<CancellationException> {
-                    withRequest("/books/1") { it.withCache("books", cache) { Book("1", "Dune") } }
-                }
+                shouldThrow<CancellationException> { cachedBook("/books/1", cache) }
+            }
+
+            should("store the entry with the serializer it was given") {
+                val cache = InMemoryCache()
+                val calls = AtomicInteger()
+                val fetch = { path: String -> cachedBook(path, cache, calls, Json { encodeDefaults = true }) }
+
+                fetch("/books/1") shouldBe Book("1", "Dune")
+                fetch("/books/1") shouldBe Book("1", "Dune")
+
+                calls.get() shouldBe 1
+                String(cache.get(cache.keys().single())!!) shouldBe """{"id":"1","title":"Dune"}"""
+            }
+
+            should("serve one entry for two requests that differ only in an excluded parameter") {
+                val cache = InMemoryCache()
+                val calls = AtomicInteger()
+                val fetch = { path: String -> cachedBook(path, cache, calls, excludeQueryKeys = setOf("trace")) }
+
+                fetch("/books?page=1&trace=a")
+                fetch("/books?page=1&trace=b")
+
+                calls.get() shouldBe 1
             }
         }
 
@@ -198,6 +286,32 @@ class KtorCacheTest :
 
             should("report failure rather than throw when the cache is down") {
                 val cache = BrokenCache { IllegalStateException("redis is unreachable") }
+
+                cache.invalidateContaining("42") shouldBe false
+            }
+
+            should("skip a listed key whose entry is already gone") {
+                val store = InMemoryCache()
+                store.put("books.one", """{"id":"42"}""".toByteArray())
+                val cache = PartialCache(store, awkwardKey = "books.ghost") { null }
+
+                cache.invalidateContaining("42") shouldBe true
+
+                store.keys() shouldContainExactlyInAnyOrder emptyList()
+            }
+
+            should("keep going when one entry cannot be read") {
+                val store = InMemoryCache()
+                store.put("books.one", """{"id":"42"}""".toByteArray())
+                val cache = PartialCache(store, awkwardKey = "books.broken") { error("unreadable") }
+
+                cache.invalidateContaining("42") shouldBe true
+            }
+
+            should("report that nothing matched when the only readable entry does not mention the id") {
+                val store = InMemoryCache()
+                store.put("books.one", """{"id":"7"}""".toByteArray())
+                val cache = PartialCache(store, awkwardKey = "books.broken") { error("unreadable") }
 
                 cache.invalidateContaining("42") shouldBe false
             }

@@ -77,7 +77,8 @@ data class PaginationRequest(
         ): PaginationRequest {
             val page = queryParameters["page"]?.toIntOrNull() ?: DEFAULT_PAGE
             val pageSize = queryParameters["pageSize"]?.toIntOrNull() ?: defaultPageSize
-            val sortBy = queryParameters["sortBy"]?.split(",") ?: emptyList()
+            // An absent parameter and an empty one mean the same thing: `from` drops blank tokens.
+            val sortBy = queryParameters["sortBy"].orEmpty().split(",")
             return from(page, pageSize, sortBy, maxPageSize)
         }
     }
