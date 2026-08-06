@@ -48,13 +48,13 @@ If two types both fit, the commit is doing two things. Split it.
 ### Scope
 
 The area the change belongs to, in parentheses. In this repository that is the module without its
-prefix — `validator`, `cache`, `expander`, `hateoas`, `paginator`, `mediator` — or `build` for the
+prefix — `validator`, `cache`, `expander`, `hateoas`, `paginator`, `problem-details` — or `build` for the
 Gradle layer. In a service it is the feature: `books`, `auth`, `search`.
 
 Several scopes are allowed when one change genuinely lands across them, comma-separated:
 
 ```
-feat(hateoas,paginator,mediator)!: round out the remaining DSLs
+feat(hateoas,paginator,problem-details)!: round out the remaining DSLs
 ```
 
 Omit the scope when the change is repository-wide (`docs: describe the reworked DSLs`). Do not
