@@ -112,7 +112,7 @@ dependency only alongside the feature:
 | Using | Add |
 |---|---|
 | `Sort.toExposedQueryExpression(...)` | `org.jetbrains.exposed:exposed-core` |
-| `Sort.toGelOrderingExpression(...)` | `io.github.joaoseidel.geldsl:gel-query-dsl-core` |
+| `Sort.toMongoSortExpression(...)` | `org.mongodb:mongodb-driver-core` — already transitive to any MongoDB driver |
 | `LettuceCache` | `io.lettuce:lettuce-core` |
 
 These fail at runtime with `NoClassDefFoundError`, not at compile time — the module compiled fine
@@ -228,7 +228,7 @@ is the compile, not the prose.
 |---|---|
 | `Could not find com.luizalabs.ktor-toolkit:...` | `mavenCentral()` missing from the build's repositories |
 | `Response pipeline couldn't transform` | ContentNegotiation missing (Step 3) |
-| `NoClassDefFoundError` on Exposed / Lettuce / Gel classes | Optional integration used without its dependency (Step 3) |
+| `NoClassDefFoundError` on Exposed / Lettuce / MongoDB classes | Optional integration used without its dependency (Step 3) |
 | Validation failures return HTML, not `problem+json` | `problemDetails { }` missing from StatusPages (Step 4) |
 | `JsonNamingStrategy` is experimental and its usage must be marked | Opt-in missing (Step 4) |
 | Skills resolve as `/start` instead of `/ktor-toolkit:start` | Installed via the skills CLI rather than as a Claude Code plugin |

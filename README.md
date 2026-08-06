@@ -52,7 +52,7 @@ them, add the dependency yourself:
 | Feature | You must add |
 |---|---|
 | `Sort.toExposedQueryExpression(...)` | `org.jetbrains.exposed:exposed-core` |
-| `Sort.toGelOrderingExpression(...)` | `io.github.joaoseidel.geldsl:gel-query-dsl-core` |
+| `Sort.toMongoSortExpression(...)` | `org.mongodb:mongodb-driver-core` (comes with any MongoDB driver) |
 | `LettuceCache` | `io.lettuce:lettuce-core` |
 
 Everything else in the toolkit works without them.
@@ -93,6 +93,13 @@ raises `IllegalArgumentException` rather than reaching the database:
 
 ```kotlin
 Books.selectAll().orderBy(*pagination.sortBy.toExposedQueryExpression(Books.title, Books.createdAt).toTypedArray())
+```
+
+MongoDB works the same way, except the criteria collapse into the single sort document `find` takes.
+The allow-list is field names, or property references of the document class:
+
+```kotlin
+collection.find().sort(pagination.sortBy.toMongoSortExpression(BookDocument::title, BookDocument::createdAt))
 ```
 
 The response carries a `metadata` block: `page`, `pageSize`, `totalPages` (a count — the last page
