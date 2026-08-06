@@ -1,0 +1,14 @@
+{
+  "name": "ktor-toolkit",
+  "owner": {
+    "name": "João Seidel",
+    "url": "https://github.com/joaoseidel"
+  },
+  "plugins": [
+    {
+      "name": "ktor-toolkit",
+      "source": "./",
+      "description": "The official development workflow for services built with Ktor Toolkit."
+    }
+  ]
+}
