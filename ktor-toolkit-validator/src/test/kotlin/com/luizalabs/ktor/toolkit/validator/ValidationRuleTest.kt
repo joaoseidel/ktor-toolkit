@@ -1,124 +1,85 @@
 package com.luizalabs.ktor.toolkit.validator
 
+import com.luizalabs.ktor.toolkit.validator.support.messagesOf
+import com.luizalabs.ktor.toolkit.validator.validators.blank
+import com.luizalabs.ktor.toolkit.validator.validators.email
+import com.luizalabs.ktor.toolkit.validator.validators.nil
+import com.luizalabs.ktor.toolkit.validator.validators.size
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
 
 class ValidationRuleTest :
     ShouldSpec({
-        context("ValidationRule") {
-            class TestRule(
-                override val positiveMessage: String = "should be valid",
-                override val negativeMessage: String = "should not be valid",
-            ) : ValidationRule(positiveMessage, negativeMessage) {
-                override fun supportedTypes() = listOf(Number::class.java)
-
-                override fun validate(value: Any?) =
-                    when (value) {
-                        is Int -> value > 0
-                        is Long -> value > 0
-                        else -> false
+        context("validationRule") {
+            should("never hand a null value to the predicate") {
+                var sawValue = false
+                val rule =
+                    validationRule<String>("should be seen", "should not be seen") {
+                        sawValue = true
+                        true
                     }
+
+                messagesOf<String?>(null) { should be rule }
+
+                sawValue shouldBe false
             }
 
-            class SingleTypeRule : ValidationRule() {
-                override fun supportedTypes() = listOf(String::class.java)
+            should("build a rule that stays silent on an absent value") {
+                messagesOf<String?>(null) { should be email() } shouldBe emptyList()
+            }
+        }
 
-                override fun validate(value: Any?) = value is String && value.isNotEmpty()
+        context("and") {
+            should("hold only when both operands hold") {
+                messagesOf("ab") { should be (blank() and size(max = 1)) }.size shouldBe 1
+                messagesOf("") { should be (blank() and size(max = 1)) } shouldBe emptyList()
             }
 
-            class AnyTypeRule : ValidationRule() {
-                override fun supportedTypes() = emptyList<Class<*>>()
+            should("join both messages into one") {
+                messagesOf("ab") { should be (blank() and size(max = 1)) } shouldBe
+                    listOf("should be blank and size should be between 0 and 1")
+            }
+        }
 
-                override fun validate(value: Any?) = value != null
+        context("or") {
+            should("hold when either operand holds") {
+                messagesOf("") { should be (blank() or email()) } shouldBe emptyList()
+                messagesOf("a@b.com") { should be (blank() or email()) } shouldBe emptyList()
             }
 
-            context("apply method") {
-                context("type compatibility") {
-                    should("add error message when type is incompatible (single type)") {
-                        val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                        every { validator.propertyValue } returns 123
+            should("fail when neither operand holds") {
+                messagesOf("not an email") { should be (blank() or email()) } shouldBe
+                    listOf("should be blank or should be a valid email address")
+            }
 
-                        val rule = SingleTypeRule()
-                        rule.apply(validator, false)
+            should("keep an operand's opinion about absence") {
+                // `nil` applies to null, so the composition does too.
+                messagesOf<String?>(null) { should be (nil() or blank()) } shouldBe emptyList()
+            }
+        }
 
-                        verify { validator.addError("should be of type String") }
-                    }
+        context("not") {
+            should("invert the rule and swap its messages") {
+                messagesOf("") { should be !blank() } shouldBe listOf("should not be blank")
+                messagesOf("a") { should be !blank() } shouldBe emptyList()
+            }
 
-                    should("add error message when type is incompatible (multiple types)") {
-                        val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                        every { validator.propertyValue } returns "not a number"
+            should("be the same as asserting the rule with notBe") {
+                messagesOf("") { should be !blank() } shouldBe messagesOf("") { should notBe blank() }
+            }
+        }
 
-                        val rule = TestRule()
-                        rule.apply(validator, false)
+        context("describedAs on a rule") {
+            should("replace both messages") {
+                messagesOf("a") { should be (blank() describedAs "should be empty") } shouldBe
+                    listOf("should be empty")
+                messagesOf("") { should notBe (blank() describedAs "should be empty") } shouldBe
+                    listOf("should be empty")
+            }
 
-                        verify { validator.addError("should be of type Number") }
-                    }
-
-                    should("not check type compatibility when supportedTypes is empty") {
-                        val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                        every { validator.propertyValue } returns "any value"
-
-                        val rule = AnyTypeRule()
-                        rule.apply(validator, false)
-
-                        verify(exactly = 0) { validator.addError(any()) }
-                    }
-                }
-
-                context("validation result handling") {
-                    should("add positive error message when value is invalid and negate is false") {
-                        val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                        every { validator.propertyValue } returns -5
-
-                        val rule = TestRule()
-                        rule.apply(validator, false)
-
-                        verify { validator.addError("should be valid") }
-                    }
-
-                    should("add negative error message when value is valid and negate is true") {
-                        val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                        every { validator.propertyValue } returns 5
-
-                        val rule = TestRule()
-                        rule.apply(validator, true)
-
-                        verify { validator.addError("should not be valid") }
-                    }
-
-                    should("not add error message when value is valid and negate is false") {
-                        val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                        every { validator.propertyValue } returns 5
-
-                        val rule = TestRule()
-                        rule.apply(validator, false)
-
-                        verify(exactly = 0) { validator.addError(any()) }
-                    }
-
-                    should("not add error message when value is invalid and negate is true") {
-                        val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                        every { validator.propertyValue } returns -5
-
-                        val rule = TestRule()
-                        rule.apply(validator, true)
-
-                        verify(exactly = 0) { validator.addError(any()) }
-                    }
-                }
-
-                should("return the validator instance") {
-                    val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                    every { validator.propertyValue } returns 5
-
-                    val rule = TestRule()
-                    val result = rule.apply(validator, false)
-
-                    result shouldBe validator
-                }
+            should("apply to a whole composition") {
+                messagesOf("x") { should be (blank() or email() describedAs "should be empty or an address") } shouldBe
+                    listOf("should be empty or an address")
             }
         }
     })

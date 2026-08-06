@@ -2,34 +2,52 @@ package com.luizalabs.ktor.toolkit.validator.validators
 
 import com.luizalabs.ktor.toolkit.validator.PropertyValidator
 import com.luizalabs.ktor.toolkit.validator.ValidationRule
+import com.luizalabs.ktor.toolkit.validator.validationRule
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlin.time.Instant
 
 /**
- * Adds a validation rule to check if a property value is after a specified date.
+ * Asserts that a date is strictly after [date].
  *
- * Supports `LocalDate`, `LocalDateTime` and `Instant` on either side, in any combination: both
- * values are projected onto the absolute timeline before being compared, with a `LocalDate`
- * anchored at the start of its day in [timeZone].
+ * Both sides are projected onto the absolute timeline before being compared, with a [LocalDate]
+ * anchored at the start of its day in [timeZone], so the property and the reference need not share
+ * a type. Because [date] is a sibling field as often as a constant, `target` is in scope:
+ * `should be after(target.startsAt)`.
  *
- * @param date The date to compare with. Accepts `LocalDate`, `LocalDateTime` or `Instant`.
+ * @param date The point to compare against. A [LocalDate], [LocalDateTime] or [Instant]; anything
+ * else fails when the rule is built.
  * @param timeZone The zone used to resolve zone-less values. Defaults to the system zone.
- * @param positiveMessage The error message to be used if the property fails the validation
- *                        when the rule is not negated. Defaults to "should be after $date".
- * @param negativeMessage The error message to be used if the property fails the validation
- *                        when the rule is negated. Defaults to "should not be after $date".
  */
-fun PropertyValidator<*, *>.after(
+@JvmName("afterLocalDate")
+fun PropertyValidator<*, LocalDate?>.after(
     date: Any,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    positiveMessage: String = "should be after $date",
-    negativeMessage: String = "should not be after $date",
-): ValidationRule =
-    object : ValidationRule(positiveMessage, negativeMessage) {
-        override fun supportedTypes(): List<Class<*>> = TEMPORAL_TYPES
+): ValidationRule<LocalDate?> = afterRule(date, timeZone)
 
-        override fun validate(value: Any?): Boolean {
-            val instant = temporalToInstant(value, timeZone) ?: return false
-            val reference = temporalToInstant(date, timeZone) ?: return false
-            return instant > reference
-        }
-    }
+/** Asserts that a date and time is strictly after [date]. See the [LocalDate] overload. */
+@JvmName("afterLocalDateTime")
+fun PropertyValidator<*, LocalDateTime?>.after(
+    date: Any,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): ValidationRule<LocalDateTime?> = afterRule(date, timeZone)
+
+/** Asserts that an instant is strictly after [date]. See the [LocalDate] overload. */
+@JvmName("afterInstant")
+fun PropertyValidator<*, Instant?>.after(
+    date: Any,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): ValidationRule<Instant?> = afterRule(date, timeZone)
+
+private fun afterRule(
+    date: Any,
+    timeZone: TimeZone,
+): ValidationRule<Any?> {
+    val reference = requireTemporal(date, timeZone)
+
+    return validationRule(
+        positiveMessage = "should be after $date",
+        negativeMessage = "should not be after $date",
+    ) { value -> temporalToInstant(value, timeZone)?.let { it > reference } ?: false }
+}

@@ -1,264 +1,68 @@
 package com.luizalabs.ktor.toolkit.validator.validators
 
-import com.luizalabs.ktor.toolkit.validator.PropertyValidator
-import com.luizalabs.ktor.toolkit.validator.data.ValidationError
+import com.luizalabs.ktor.toolkit.validator.support.messagesOf
 import io.kotest.core.spec.style.ShouldSpec
-import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
-import io.mockk.every
-import io.mockk.mockk
-import kotlin.reflect.KProperty1
+import java.math.BigDecimal
 
 class PositiveTest :
     ShouldSpec({
-        context("positive validator") {
-            context("type compatibility") {
-                should("support Number type") {
-                    val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                    val rule = validator.positive()
-
-                    rule.supportedTypes() shouldContainExactly listOf(Number::class.java)
-                }
-
-                should("reject non-Number types") {
-                    val property = mockk<KProperty1<Any, String>>()
-                    val target = mockk<Any>()
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.name } returns "text"
-                    every { property.get(target) } returns "not a number"
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(validator.positive())
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should be of type Number"
-                }
+        context("be positive") {
+            should("accept a value above zero") {
+                messagesOf(1) { should be positive() } shouldBe emptyList()
             }
 
-            context("validation") {
-                context("be context") {
-                    context("Integer type") {
-                        val property = mockk<KProperty1<Any, Int>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept positive value") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns 5
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.positive())
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject zero") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns 0
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.positive())
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be positive"
-                        }
-
-                        should("reject negative value") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns -5
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.positive())
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be positive"
-                        }
-                    }
-
-                    context("Float type") {
-                        val property = mockk<KProperty1<Any, Float>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept positive value") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns 5.5f
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.positive())
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject negative value") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns -5.5f
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.positive())
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be positive"
-                        }
-                    }
-
-                    context("Double type") {
-                        val property = mockk<KProperty1<Any, Double>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept positive value") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns 5.5
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.positive())
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject negative value") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns -5.5
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.positive())
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be positive"
-                        }
-                    }
-
-                    context("Long type") {
-                        val property = mockk<KProperty1<Any, Long>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept positive value") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns 5L
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.positive())
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject negative value") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns -5L
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.positive())
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be positive"
-                        }
-                    }
-                }
-
-                context("notBe context") {
-                    val property = mockk<KProperty1<Any, Int>>()
-                    val target = mockk<Any>()
-                    every { property.name } returns "value"
-
-                    should("reject positive value") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns 5
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.positive())
-
-                        errors.size shouldBe 1
-                        errors[0].message shouldBe "should not be positive"
-                    }
-
-                    should("accept zero") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns 0
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.positive())
-
-                        errors shouldBe emptyList()
-                    }
-
-                    should("accept negative value") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns -5
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.positive())
-
-                        errors shouldBe emptyList()
-                    }
-                }
+            should("reject zero") {
+                messagesOf(0) { should be positive() } shouldBe listOf("should be positive")
             }
 
-            context("default error messages") {
-                val property = mockk<KProperty1<Any, Int>>()
-                val target = mockk<Any>()
-                every { property.name } returns "value"
+            should("reject a value below zero") {
+                messagesOf(-1) { should be positive() } shouldBe listOf("should be positive")
+            }
+        }
 
-                should("use default positive message") {
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.get(target) } returns -5
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(validator.positive())
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should be positive"
-                }
-
-                should("use default negative message") {
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.get(target) } returns 5
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.notBe(validator.positive())
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should not be positive"
-                }
+        context("notBe positive") {
+            should("accept zero and below") {
+                messagesOf(0) { should notBe positive() } shouldBe emptyList()
+                messagesOf(-1) { should notBe positive() } shouldBe emptyList()
             }
 
-            context("custom error messages") {
-                val property = mockk<KProperty1<Any, Int>>()
-                val target = mockk<Any>()
-                every { property.name } returns "value"
-
-                should("use custom positive message") {
-                    val errors = mutableListOf<ValidationError>()
-                    val customMessage = "custom positive message"
-                    every { property.get(target) } returns -5
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(
-                        validator.positive(
-                            positiveMessage = customMessage,
-                        ),
-                    )
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe customMessage
-                }
-
-                should("use custom negative message") {
-                    val errors = mutableListOf<ValidationError>()
-                    val customMessage = "custom negative message"
-                    every { property.get(target) } returns 5
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.notBe(
-                        validator.positive(
-                            negativeMessage = customMessage,
-                        ),
-                    )
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe customMessage
-                }
+            should("reject a value above zero") {
+                messagesOf(1) { should notBe positive() } shouldBe listOf("should not be positive")
             }
+        }
+
+        context("across numeric types") {
+            should("judge a Long") {
+                messagesOf(1L) { should be positive() } shouldBe emptyList()
+                messagesOf(-1L) { should be positive() }.size shouldBe 1
+            }
+
+            should("judge a Double") {
+                messagesOf(0.5) { should be positive() } shouldBe emptyList()
+                messagesOf(-0.5) { should be positive() }.size shouldBe 1
+            }
+
+            should("judge a Float") {
+                messagesOf(0.5f) { should be positive() } shouldBe emptyList()
+            }
+
+            should("judge a Short") {
+                messagesOf(1.toShort()) { should be positive() } shouldBe emptyList()
+                messagesOf((-1).toShort()) { should be positive() }.size shouldBe 1
+            }
+
+            should("judge a Byte") {
+                messagesOf(1.toByte()) { should be positive() } shouldBe emptyList()
+            }
+
+            should("judge a BigDecimal") {
+                messagesOf(BigDecimal("0.01")) { should be positive() } shouldBe emptyList()
+                messagesOf(BigDecimal("-0.01")) { should be positive() }.size shouldBe 1
+            }
+        }
+
+        should("stay silent on an absent value") {
+            messagesOf<Int?>(null) { should be positive() } shouldBe emptyList()
         }
     })

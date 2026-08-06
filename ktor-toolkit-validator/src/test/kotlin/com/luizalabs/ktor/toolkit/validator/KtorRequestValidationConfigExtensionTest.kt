@@ -1,100 +1,123 @@
 package com.luizalabs.ktor.toolkit.validator
 
+import com.luizalabs.ktor.toolkit.validator.validators.min
 import io.kotest.core.spec.style.ShouldSpec
-import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.shouldBeInstanceOf
-import io.ktor.server.plugins.requestvalidation.ValidationResult
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.plugins.requestvalidation.RequestValidation
+import io.ktor.server.plugins.requestvalidation.RequestValidationException
+import io.ktor.server.request.receive
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.post
+import io.ktor.server.routing.routing
+import io.ktor.server.testing.testApplication
+
+/** Echoes the body back, or the validation reasons when the plugin rejected it. */
+private fun Application.reportValidationFailures() {
+    routing {
+        post("/titles") {
+            try {
+                call.respondText(call.receive<String>())
+            } catch (failure: RequestValidationException) {
+                call.respondText(failure.reasons.joinToString("; "), status = HttpStatusCode.BadRequest)
+            }
+        }
+    }
+}
 
 class KtorRequestValidationConfigExtensionTest :
     ShouldSpec({
-        context("withValidationContext extension method") {
-            data class TestRequest(
-                val name: String,
-            )
-
-            class TestValidator : RequestValidator<TestRequest> {
-                override fun ValidationContext<TestRequest>.validate() {
-                    property(TestRequest::name) {
-                        if (propertyValue.isBlank()) {
-                            addError("should not be blank")
+        context("withValidationContext, given a block") {
+            should("accept a request that satisfies the rules") {
+                testApplication {
+                    application {
+                        install(RequestValidation) {
+                            withValidationContext<String> {
+                                property(String::length) { should be min(3) }
+                            }
                         }
+                        reportValidationFailures()
                     }
+
+                    val response = client.post("/titles") { setBody("Kotlin") }
+
+                    response.status shouldBe HttpStatusCode.OK
+                    response.bodyAsText() shouldBe "Kotlin"
                 }
             }
 
-            context("functionality testing") {
-                should("process block validation and create correct ValidationResult") {
-                    val validRequest = TestRequest("valid name")
-                    val validContext = ValidationContext(validRequest)
-                    validContext.property(TestRequest::name) {
-                        if (propertyValue.isBlank()) {
-                            addError("test error")
+            should("reject one that does not, quoting the property path") {
+                testApplication {
+                    application {
+                        install(RequestValidation) {
+                            withValidationContext<String> {
+                                property(String::length) { should be min(3) }
+                            }
                         }
+                        reportValidationFailures()
                     }
 
-                    val validResult =
-                        if (validContext.getErrors().isEmpty()) {
-                            ValidationResult.Valid
-                        } else {
-                            ValidationResult.Invalid(validContext.getErrors().map { it.toString() })
-                        }
+                    val response = client.post("/titles") { setBody("ab") }
 
-                    validResult shouldBe ValidationResult.Valid
+                    response.status shouldBe HttpStatusCode.BadRequest
+                    response.bodyAsText() shouldBe "`length` should be greater than or equal to 3"
+                }
+            }
+        }
 
-                    val invalidRequest = TestRequest("")
-                    val invalidContext = ValidationContext(invalidRequest)
-                    invalidContext.property(TestRequest::name) {
-                        if (propertyValue.isBlank()) {
-                            addError("test error")
-                        }
+        context("withValidationContext, given a RequestValidator") {
+            val validator =
+                object : RequestValidator<String> {
+                    override fun ValidationContext<String>.validate() {
+                        property(String::length) { should be min(3) }
+                        invariant("should not be blank") { it.isNotBlank() }
                     }
-
-                    val invalidResult =
-                        if (invalidContext.getErrors().isEmpty()) {
-                            ValidationResult.Valid
-                        } else {
-                            ValidationResult.Invalid(invalidContext.getErrors().map { it.toString() })
-                        }
-
-                    invalidResult.shouldBeInstanceOf<ValidationResult.Invalid>()
-                    (invalidResult as ValidationResult.Invalid).reasons shouldContain "`name` test error"
                 }
 
-                should("process RequestValidator and create correct ValidationResult") {
-                    val validator = TestValidator()
-
-                    val validRequest = TestRequest("valid name")
-                    val validContext = ValidationContext(validRequest)
-                    with(validator) {
-                        validContext.validate()
+            should("run the validator's rules") {
+                testApplication {
+                    application {
+                        install(RequestValidation) { withValidationContext(validator) }
+                        reportValidationFailures()
                     }
 
-                    val validResult =
-                        if (validContext.getErrors().isEmpty()) {
-                            ValidationResult.Valid
-                        } else {
-                            ValidationResult.Invalid(validContext.getErrors().map { it.toString() })
-                        }
+                    client.post("/titles") { setBody("Kotlin") }.status shouldBe HttpStatusCode.OK
 
-                    validResult shouldBe ValidationResult.Valid
+                    val response = client.post("/titles") { setBody("  ") }
 
-                    val invalidRequest = TestRequest("")
-                    val invalidContext = ValidationContext(invalidRequest)
-                    with(validator) {
-                        invalidContext.validate()
-                    }
-
-                    val invalidResult =
-                        if (invalidContext.getErrors().isEmpty()) {
-                            ValidationResult.Valid
-                        } else {
-                            ValidationResult.Invalid(invalidContext.getErrors().map { it.toString() })
-                        }
-
-                    invalidResult.shouldBeInstanceOf<ValidationResult.Invalid>()
-                    (invalidResult as ValidationResult.Invalid).reasons shouldContain "`name` should not be blank"
+                    response.status shouldBe HttpStatusCode.BadRequest
+                    response.bodyAsText() shouldBe
+                        "`length` should be greater than or equal to 3; should not be blank"
                 }
+            }
+        }
+
+        context("the context behind the bridge") {
+            should("collect what a RequestValidator declares") {
+                val validator =
+                    object : RequestValidator<String> {
+                        override fun ValidationContext<String>.validate() {
+                            property(String::length) { should notBe min(3) }
+                        }
+                    }
+
+                val context = ValidationContext("Kotlin")
+                with(validator) { context.validate() }
+
+                context.errors.map { it.toString() } shouldBe
+                    listOf("`length` should not be greater than or equal to 3")
+            }
+
+            should("stay valid when nothing is found") {
+                val context = ValidationContext("Kotlin")
+                context.property(String::length) { should be min(3) }
+
+                context.hasErrors shouldBe false
             }
         }
     })

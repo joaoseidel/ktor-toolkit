@@ -1,291 +1,90 @@
 package com.luizalabs.ktor.toolkit.validator.validators
 
-import com.luizalabs.ktor.toolkit.validator.PropertyValidator
-import com.luizalabs.ktor.toolkit.validator.data.ValidationError
+import com.luizalabs.ktor.toolkit.validator.support.messagesOf
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ShouldSpec
-import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
-import io.mockk.every
-import io.mockk.mockk
+import io.kotest.matchers.string.shouldContain
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
-import kotlin.reflect.KProperty1
+import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 class BeforeTest :
     ShouldSpec({
-        context("before validator") {
-            val earlierDate = LocalDate.parse("2023-01-01")
-            val laterDate = LocalDate.parse("2023-01-02")
+        val reference = LocalDate(2026, 6, 15)
+        val utc = TimeZone.UTC
 
-            val earlierDateTime = LocalDateTime.parse("2023-01-01T10:00:00")
-            val laterDateTime = LocalDateTime.parse("2023-01-01T11:00:00")
-
-            val earlierInstant = Instant.parse("2023-01-01T10:00:00Z")
-            val laterInstant = Instant.parse("2023-01-01T11:00:00Z")
-
-            context("type compatibility") {
-                should("support date types") {
-                    val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                    val rule = validator.before(laterDate)
-
-                    rule.supportedTypes() shouldContainExactly
-                        listOf(
-                            LocalDateTime::class.java,
-                            LocalDate::class.java,
-                            Instant::class.java,
-                        )
-                }
-
-                should("reject non-date types") {
-                    val property = mockk<KProperty1<Any, String>>()
-                    val target = mockk<Any>()
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.name } returns "text"
-                    every { property.get(target) } returns "not a date"
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(validator.before(laterDate))
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should be one of these types: LocalDateTime, LocalDate, Instant"
-                }
+        context("on a LocalDate") {
+            should("accept an earlier date") {
+                messagesOf(LocalDate(2026, 6, 14)) { should be before(reference, utc) } shouldBe emptyList()
             }
 
-            context("validation") {
-                context("be context") {
-                    context("LocalDate type") {
-                        val property = mockk<KProperty1<Any, LocalDate>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "date"
-
-                        should("accept earlier date") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns earlierDate
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.before(laterDate))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject later date") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns laterDate
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.before(earlierDate))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be before $earlierDate"
-                        }
-                    }
-
-                    context("LocalDateTime type") {
-                        val property = mockk<KProperty1<Any, LocalDateTime>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "dateTime"
-
-                        should("accept earlier datetime") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns earlierDateTime
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.before(laterDateTime))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject later datetime") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns laterDateTime
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.before(earlierDateTime))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be before $earlierDateTime"
-                        }
-                    }
-
-                    context("Instant type") {
-                        val property = mockk<KProperty1<Any, kotlin.time.Instant>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "instant"
-
-                        should("accept earlier instant") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns earlierInstant
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.before(laterInstant))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject later instant") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns laterInstant
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.before(earlierInstant))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be before $earlierInstant"
-                        }
-                    }
-
-                    context("mixed types") {
-                        context("LocalDate and LocalDateTime") {
-                            val property = mockk<KProperty1<Any, LocalDate>>()
-                            val target = mockk<Any>()
-                            every { property.name } returns "date"
-
-                            should("accept earlier date compared to datetime") {
-                                val errors = mutableListOf<ValidationError>()
-                                every { property.get(target) } returns earlierDate
-
-                                val validator = PropertyValidator(target, property, errors)
-                                validator.should.be(validator.before(laterDateTime))
-
-                                errors shouldBe emptyList()
-                            }
-
-                            should("reject later date compared to datetime") {
-                                val errors = mutableListOf<ValidationError>()
-                                every { property.get(target) } returns laterDate
-
-                                val validator = PropertyValidator(target, property, errors)
-                                validator.should.be(validator.before(earlierDateTime))
-
-                                errors.size shouldBe 1
-                                errors[0].message shouldBe "should be before $earlierDateTime"
-                            }
-                        }
-
-                        context("LocalDateTime and LocalDate") {
-                            val property = mockk<KProperty1<Any, LocalDateTime>>()
-                            val target = mockk<Any>()
-                            every { property.name } returns "dateTime"
-
-                            should("accept earlier datetime compared to date") {
-                                val errors = mutableListOf<ValidationError>()
-                                every { property.get(target) } returns earlierDateTime
-
-                                val validator = PropertyValidator(target, property, errors)
-                                validator.should.be(validator.before(laterDate))
-
-                                errors shouldBe emptyList()
-                            }
-
-                            should("reject later datetime compared to date") {
-                                val errors = mutableListOf<ValidationError>()
-                                every { property.get(target) } returns laterDateTime
-
-                                val validator = PropertyValidator(target, property, errors)
-                                validator.should.be(validator.before(earlierDate))
-
-                                errors.size shouldBe 1
-                                errors[0].message shouldBe "should be before $earlierDate"
-                            }
-                        }
-                    }
-                }
-
-                context("notBe context") {
-                    val property = mockk<KProperty1<Any, LocalDate>>()
-                    val target = mockk<Any>()
-                    every { property.name } returns "date"
-
-                    should("reject earlier date") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns earlierDate
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.before(laterDate))
-
-                        errors.size shouldBe 1
-                        errors[0].message shouldBe "should not be before $laterDate"
-                    }
-
-                    should("accept later date") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns laterDate
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.before(earlierDate))
-
-                        errors shouldBe emptyList()
-                    }
-                }
+            should("reject the same date, the comparison being strict") {
+                messagesOf(reference) { should be before(reference, utc) } shouldBe listOf("should be before 2026-06-15")
             }
 
-            context("default error messages") {
-                val property = mockk<KProperty1<Any, LocalDate>>()
-                val target = mockk<Any>()
-                every { property.name } returns "date"
+            should("reject a later date") {
+                messagesOf(LocalDate(2026, 6, 16)) { should be before(reference, utc) }.size shouldBe 1
+            }
+        }
 
-                should("use default positive message") {
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.get(target) } returns laterDate
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(validator.before(earlierDate))
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should be before $earlierDate"
-                }
-
-                should("use default negative message") {
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.get(target) } returns earlierDate
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.notBe(validator.before(laterDate))
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should not be before $laterDate"
-                }
+        context("on a LocalDateTime") {
+            should("accept a moment on the previous day") {
+                messagesOf(LocalDateTime(2026, 6, 14, 23, 0)) { should be before(reference, utc) } shouldBe emptyList()
             }
 
-            context("custom error messages") {
-                val property = mockk<KProperty1<Any, LocalDate>>()
-                val target = mockk<Any>()
-                every { property.name } returns "date"
-
-                should("use custom positive message") {
-                    val errors = mutableListOf<ValidationError>()
-                    val customMessage = "custom positive message"
-                    every { property.get(target) } returns laterDate
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(
-                        validator.before(
-                            date = earlierDate,
-                            positiveMessage = customMessage,
-                        ),
-                    )
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe customMessage
-                }
-
-                should("use custom negative message") {
-                    val errors = mutableListOf<ValidationError>()
-                    val customMessage = "custom negative message"
-                    every { property.get(target) } returns earlierDate
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.notBe(
-                        validator.before(
-                            date = laterDate,
-                            negativeMessage = customMessage,
-                        ),
-                    )
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe customMessage
-                }
+            should("reject a moment after the start of the reference day") {
+                messagesOf(LocalDateTime(2026, 6, 15, 1, 0)) { should be before(reference, utc) }.size shouldBe 1
             }
+        }
+
+        context("on an Instant") {
+            should("accept an earlier instant") {
+                messagesOf(Instant.parse("2026-06-14T00:00:00Z")) { should be before(reference, utc) } shouldBe
+                    emptyList()
+            }
+
+            should("reject a later one") {
+                messagesOf(Instant.parse("2026-06-16T00:00:00Z")) { should be before(reference, utc) }.size shouldBe 1
+            }
+        }
+
+        context("mixing the reference type") {
+            should("compare against a LocalDateTime") {
+                messagesOf(LocalDate(2026, 6, 14)) {
+                    should be before(LocalDateTime(2026, 6, 15, 12, 0), utc)
+                } shouldBe emptyList()
+            }
+
+            should("compare against an Instant") {
+                messagesOf(LocalDate(2026, 6, 14)) {
+                    should be before(Instant.parse("2026-06-15T12:00:00Z"), utc)
+                } shouldBe emptyList()
+            }
+        }
+
+        context("notBe before") {
+            should("accept a later date") {
+                messagesOf(LocalDate(2026, 6, 16)) { should notBe before(reference, utc) } shouldBe emptyList()
+            }
+
+            should("reject an earlier one") {
+                messagesOf(LocalDate(2026, 6, 14)) { should notBe before(reference, utc) } shouldBe
+                    listOf("should not be before 2026-06-15")
+            }
+        }
+
+        should("reject a reference that is not a temporal value, as the rule is built") {
+            val failure =
+                shouldThrow<IllegalArgumentException> {
+                    messagesOf(LocalDate(2026, 6, 14)) { should be before(1234L, utc) }
+                }
+
+            failure.message shouldContain "LocalDate, LocalDateTime or Instant"
+        }
+
+        should("stay silent on an absent value") {
+            messagesOf<LocalDate?>(null) { should be before(reference, utc) } shouldBe emptyList()
         }
     })

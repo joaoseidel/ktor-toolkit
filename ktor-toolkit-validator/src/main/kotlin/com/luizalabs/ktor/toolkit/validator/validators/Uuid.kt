@@ -4,39 +4,41 @@ package com.luizalabs.ktor.toolkit.validator.validators
 
 import com.luizalabs.ktor.toolkit.validator.PropertyValidator
 import com.luizalabs.ktor.toolkit.validator.ValidationRule
+import com.luizalabs.ktor.toolkit.validator.validationRule
 import java.util.UUID
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * Adds a validation rule to ensure a property value is a valid UUID.
+ * Asserts that a string is a well-formed UUID.
  *
- * This method validates whether the property value conforms to the standard UUID format. It can also validate
- * the negated condition, ensuring that the value should not be a valid UUID. The rule supports properties of
- * type [String] and [UUID].
- *
- * @param positiveMessage The error message to be used if the property fails the validation when the rule is not negated.
- *                        Defaults to "should be a valid UUID".
- * @param negativeMessage The error message to be used if the property fails the validation when the rule is negated.
- *                        Defaults to "should not be a valid UUID".
+ * The same rule is offered on [UUID] and [Uuid] properties, where it can only hold — assert it
+ * there when the property type might later be relaxed to a string.
  */
-fun PropertyValidator<*, *>.uuid(
-    positiveMessage: String = "should be a valid UUID",
-    negativeMessage: String = "should not be a valid UUID",
-): ValidationRule =
-    object : ValidationRule(positiveMessage, negativeMessage) {
-        override fun supportedTypes(): List<Class<*>> =
-            listOf(
-                String::class.java,
-                Uuid::class.java,
-                UUID::class.java,
-            )
+@JvmName("uuidOfString")
+fun PropertyValidator<*, String?>.uuid(): ValidationRule<String?> = uuidRule()
 
-        override fun validate(value: Any?) =
-            try {
-                UUID.fromString(value.toString())
-                true
-            } catch (_: IllegalArgumentException) {
-                false
-            }
+/** Asserts that a [UUID] is well formed. Always holds; see the `String` overload. */
+@JvmName("uuidOfJavaUuid")
+fun PropertyValidator<*, UUID?>.uuid(): ValidationRule<UUID?> = uuidRule()
+
+/** Asserts that a [Uuid] is well formed. Always holds; see the `String` overload. */
+@JvmName("uuidOfKotlinUuid")
+fun PropertyValidator<*, Uuid?>.uuid(): ValidationRule<Uuid?> = uuidRule()
+
+private fun uuidRule(): ValidationRule<Any?> =
+    validationRule(
+        positiveMessage = "should be a valid UUID",
+        negativeMessage = "should not be a valid UUID",
+    ) { value ->
+        when (value) {
+            is UUID, is Uuid -> true
+            else ->
+                try {
+                    UUID.fromString(value.toString())
+                    true
+                } catch (_: IllegalArgumentException) {
+                    false
+                }
+        }
     }

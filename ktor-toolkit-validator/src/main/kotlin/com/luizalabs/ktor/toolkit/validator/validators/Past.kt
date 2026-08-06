@@ -2,6 +2,7 @@ package com.luizalabs.ktor.toolkit.validator.validators
 
 import com.luizalabs.ktor.toolkit.validator.PropertyValidator
 import com.luizalabs.ktor.toolkit.validator.ValidationRule
+import com.luizalabs.ktor.toolkit.validator.validationRule
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -13,53 +14,69 @@ import kotlin.time.Duration
 import kotlin.time.Instant
 
 /**
- * Adds a validation rule to ensure that a property value represents a past date or time.
- * Optionally, a duration can be specified to limit how far in the past the value can be.
+ * Asserts that a date lies behind [now], and no further behind than [duration] if one is given.
  *
- * A `LocalDate` is compared at day granularity, so today is never "in the past".
+ * A [LocalDate] is compared at day granularity, so today is never "in the past".
  *
- * @param duration The maximum allowed duration that the value can be in the past.
- *                 If null, any past date or time is allowed. Defaults to null.
- * @param now The reference point in time to compare the value against.
- *            Defaults to the current system time.
+ * @param duration How far back the value may be. Unbounded when null.
+ * @param now The reference point in time to compare against. Defaults to the current system time;
+ * pass it explicitly to make a test deterministic.
  * @param timeZone The zone used to resolve zone-less values. Defaults to the system zone.
- * @param positiveMessage The error message to be used if the property fails the validation
- *                        when the rule is not negated. The default message is generated based
- *                        on whether a duration is specified.
- * @param negativeMessage The error message to be used if the property fails the validation
- *                        when the rule is negated. The default message is generated based
- *                        on whether a duration is specified.
  */
-fun PropertyValidator<*, *>.past(
+@JvmName("pastLocalDate")
+fun PropertyValidator<*, LocalDate?>.past(
     duration: Duration? = null,
     now: Instant = Clock.System.now(),
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    positiveMessage: String = "should be ${duration?.let { "a past date of at most $it" } ?: "a past date"}",
-    negativeMessage: String = "should not be ${duration?.let { "a past date of at most $it" } ?: "a past date"}",
-): ValidationRule =
-    object : ValidationRule(positiveMessage, negativeMessage) {
-        override fun supportedTypes(): List<Class<*>> = TEMPORAL_TYPES
+): ValidationRule<LocalDate?> = pastRule(duration, now, timeZone)
 
-        override fun validate(value: Any?): Boolean {
-            val cutoff = duration?.let { now.minus(it) }
+/** Asserts that a date and time lies behind [now]. See the [LocalDate] overload. */
+@JvmName("pastLocalDateTime")
+fun PropertyValidator<*, LocalDateTime?>.past(
+    duration: Duration? = null,
+    now: Instant = Clock.System.now(),
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): ValidationRule<LocalDateTime?> = pastRule(duration, now, timeZone)
 
-            return when (value) {
-                is LocalDate -> {
-                    val today = now.toLocalDateTime(timeZone).date
-                    // Day granularity: the cutoff is expressed in whole days.
-                    val earliest = duration?.let { today.minus(it.inWholeDays.toInt(), DateTimeUnit.DAY) }
-                    value < today && (earliest == null || value >= earliest)
-                }
+/** Asserts that an instant lies behind [now]. See the [LocalDate] overload. */
+@JvmName("pastInstant")
+fun PropertyValidator<*, Instant?>.past(
+    duration: Duration? = null,
+    now: Instant = Clock.System.now(),
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): ValidationRule<Instant?> = pastRule(duration, now, timeZone)
 
-                is LocalDateTime -> {
-                    val current = now.toLocalDateTime(timeZone)
-                    val earliest = cutoff?.toLocalDateTime(timeZone)
-                    value < current && (earliest == null || value >= earliest)
-                }
+private fun pastRule(
+    duration: Duration?,
+    now: Instant,
+    timeZone: TimeZone,
+): ValidationRule<Any?> {
+    val described = duration?.let { "a past date of at most $it" } ?: "a past date"
 
-                is Instant -> value < now && (cutoff == null || value >= cutoff)
+    return validationRule(
+        positiveMessage = "should be $described",
+        negativeMessage = "should not be $described",
+    ) { value ->
+        val cutoff = duration?.let { now.minus(it) }
 
-                else -> false
+        when (value) {
+            is LocalDate -> {
+                val today = now.toLocalDateTime(timeZone).date
+                // Day granularity: the cutoff is expressed in whole days.
+                val earliest = duration?.let { today.minus(it.inWholeDays.toInt(), DateTimeUnit.DAY) }
+                value < today && (earliest == null || value >= earliest)
             }
+
+            is LocalDateTime -> {
+                val current = now.toLocalDateTime(timeZone)
+                val earliest = cutoff?.toLocalDateTime(timeZone)
+                value < current && (earliest == null || value >= earliest)
+            }
+
+            is Instant -> value < now && (cutoff == null || value >= cutoff)
+
+            // Unreachable: the receiver of every `past` overload pins the type.
+            else -> false
         }
     }
+}
