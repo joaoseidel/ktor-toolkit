@@ -30,14 +30,14 @@ private fun Application.reportValidationFailures() {
     }
 }
 
-class KtorRequestValidationConfigExtensionTest :
+class RequestValidationRulesTest :
     ShouldSpec({
-        context("withValidationContext, given a block") {
+        context("rules, given a block") {
             should("accept a request that satisfies the rules") {
                 testApplication {
                     application {
                         install(RequestValidation) {
-                            withValidationContext<String> {
+                            rules<String> {
                                 property(String::length) { should be min(3) }
                             }
                         }
@@ -55,7 +55,7 @@ class KtorRequestValidationConfigExtensionTest :
                 testApplication {
                     application {
                         install(RequestValidation) {
-                            withValidationContext<String> {
+                            rules<String> {
                                 property(String::length) { should be min(3) }
                             }
                         }
@@ -70,7 +70,7 @@ class KtorRequestValidationConfigExtensionTest :
             }
         }
 
-        context("withValidationContext, given a RequestValidator") {
+        context("rules, given a RequestValidator") {
             val validator =
                 object : RequestValidator<String> {
                     override fun ValidationContext<String>.validate() {
@@ -82,7 +82,7 @@ class KtorRequestValidationConfigExtensionTest :
             should("run the validator's rules") {
                 testApplication {
                     application {
-                        install(RequestValidation) { withValidationContext(validator) }
+                        install(RequestValidation) { rules(validator) }
                         reportValidationFailures()
                     }
 
