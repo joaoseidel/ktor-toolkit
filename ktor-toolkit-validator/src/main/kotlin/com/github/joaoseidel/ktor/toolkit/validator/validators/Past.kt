@@ -73,10 +73,14 @@ private fun pastRule(
                 value < current && (earliest == null || value >= earliest)
             }
 
-            is Instant -> value < now && (cutoff == null || value >= cutoff)
+            is Instant -> {
+                value < now && (cutoff == null || value >= cutoff)
+            }
 
             // Unreachable: the receiver of every `past` overload pins the type.
-            else -> false
+            else -> {
+                false
+            }
         }
     }
 }

@@ -63,9 +63,13 @@ private fun sizeRule(
         val size =
             when (value) {
                 is String -> value.length
+
                 is Collection<*> -> value.size
+
                 is Map<*, *> -> value.size
+
                 is Array<*> -> value.size
+
                 // Unreachable: the receiver of every `size` overload pins the type.
                 else -> return@validationRule false
             }
