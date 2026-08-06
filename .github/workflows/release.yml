@@ -20,7 +20,7 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # The tag is what consumers will resolve by, so it has to agree with the version the
       # jars are actually stamped with.
