@@ -16,8 +16,7 @@ Gradle otherwise provisions a Java 21 toolchain itself, so a plain `./gradlew bu
 make build
 ```
 
-That compiles every module, runs the tests and runs ktlint — the same thing a reviewer will run.
-Narrower targets while iterating:
+That compiles every module, runs the tests and runs ktlint — the same thing a reviewer will run. Narrower targets while iterating:
 
 ```bash
 make test
@@ -28,28 +27,24 @@ make coverage
 
 ## What the build enforces
 
-**ktlint.** Style is pinned in `.editorconfig` (`ktlint_official`, 150 columns). `make format` fixes
-almost everything; the rest the check will name.
+**ktlint.** Style is pinned in `.editorconfig` (`ktlint_official`, 150 columns). `make format` fixes almost everything; the rest the check will name.
 
 **Coverage.** Kover gates the aggregate at 100% line and 100% branch. `make coverage` writes
 `report/build/reports/kover/html/index.html`. A new module must be registered in
 `report/build.gradle.kts` or its code will not be counted.
 
-**Binary compatibility.** Every module has a committed API dump under `api/`. Changing a public
-signature fails `apiCheck` until you refresh it:
+**Binary compatibility.** Every module has a committed API dump under `api/`. Changing a public signature fails `apiCheck` until you refresh it:
 
 ```bash
 make api
 make api_check
 ```
 
-Review that diff before committing — it is the clearest statement of what a change does to consumers,
-and it belongs in the same commit as the change.
+Review that diff before committing — it is the clearest statement of what a change does to consumers, and it belongs in the same commit as the change.
 
 ## Conventions
 
-- Public declarations carry KDoc. Say what the thing is for and what it does when the input is
-  absent or wrong, not what the signature already says.
+- Public declarations carry KDoc. Say what the thing is for and what it does when the input is absent or wrong, not what the signature already says.
 - Tests use Kotest `ShouldSpec` with MockK. Name the behaviour, not the method:
   `should("clamp values that are out of range")`.
 - A bug fix comes with a test that fails without it.
@@ -58,18 +53,16 @@ and it belongs in the same commit as the change.
 
 ## Dependencies
 
-Modules declare a dependency as `api` only when it appears in a public signature — that is what puts
-it in the published POM for consumers. Anything a module merely uses internally is `implementation`.
+Modules declare a dependency as `api` only when it appears in a public signature — that is what puts it in the published POM for consumers. Anything a
+module merely uses internally is `implementation`.
 
-Optional integrations (Exposed, the MongoDB driver) are `compileOnly`, so consumers who do not use
-them do not pay for them. Add the matching `testImplementation` so the code is still compiled and
-tested here, and document the requirement in the README.
+Optional integrations (Exposed, the MongoDB driver) are `compileOnly`, so consumers who do not use them do not pay for them. Add the matching
+`testImplementation` so the code is still compiled and tested here, and document the requirement in the README.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`. It calls the same
-targets you do — `make lint`, `make api_check`, `make build`, `make coverage` — so a green local
-build is a green CI build. Test and coverage reports are attached to the run as artifacts.
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`. It calls the same targets you do — `make lint`, `make api_check`,
+`make build`, `make coverage` — so a green local build is a green CI build. Test and coverage reports are attached to the run as artifacts.
 
 ## Releasing
 
@@ -83,6 +76,5 @@ make publish_local
 Before releasing: update `version` in `gradle.properties`, move the `unreleased` heading in
 `CHANGELOG.md`, and make sure `make build` and `make api` are both clean.
 
-Pushing a `v*` tag then runs `.github/workflows/release.yml`, which refuses the tag unless it
-matches `version` in `gradle.properties`, runs the full build, and publishes a GitHub Release with
-every module's main, sources and javadoc jars attached (`make dist`).
+Pushing a `v*` tag then runs `.github/workflows/release.yml`, which refuses the tag unless it matches `version` in `gradle.properties`, runs the full
+build, and publishes a GitHub Release with every module's main, sources and javadoc jars attached (`make dist`).
