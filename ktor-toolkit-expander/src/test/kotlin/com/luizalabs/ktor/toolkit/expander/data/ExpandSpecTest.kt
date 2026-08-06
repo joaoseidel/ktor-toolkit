@@ -1,6 +1,7 @@
 package com.luizalabs.ktor.toolkit.expander.data
 
 import com.luizalabs.ktor.toolkit.expander.web.ExpandRequest
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
@@ -28,6 +29,13 @@ private data class Review(
     val author: Expandable<Author>,
     val editor: Expandable<Author>? = null,
     val mentions: List<Expandable<Book>>? = null,
+)
+
+/** Its organiser is an author or a book, depending on [organiserType]. */
+private data class Report(
+    val id: String,
+    val organiserType: String,
+    val organiser: Expandable<Any>,
 )
 
 private fun expand(value: String) = ExpandRequest.from(parametersOf("expand", value))
@@ -106,7 +114,7 @@ class ExpandSpecTest :
             }
         }
 
-        context("optional field") {
+        context("a nullable single field") {
             should("skip an item whose field is absent") {
                 val spec = reviewSpec()
 
@@ -182,34 +190,24 @@ class ExpandSpecTest :
         }
 
         context("nesting") {
-            should("apply the nested spec to the resolved value") {
-                val bookSpec =
-                    ExpandSpec.build<Book> {
-                    }
+            should("apply a shared nested spec to the resolved value") {
                 val authorSpec =
                     ExpandSpec.build<Author> {
-                        listField(
-                            name = "books",
-                            getter = { it.books },
-                            setter = { copy(books = it) },
-                            batch = { ids, _ -> books.filterKeys { it in ids } },
-                        )
+                        listField("books", get = { it.books }, set = { copy(books = it) }) {
+                            batch { ids, _ -> books.filterKeys { it in ids } }
+                        }
                     }
                 val spec =
                     ExpandSpec.build<Review> {
-                        field(
-                            name = "author",
-                            getter = { it.author },
-                            setter = { copy(author = it) },
-                            nested = authorSpec,
-                            batch = { ids, _ ->
+                        field("author", get = { it.author }, set = { copy(author = it) }) {
+                            nested(authorSpec)
+                            batch { ids, _ ->
                                 ids.associateWith { id ->
                                     authors.getValue(id).copy(books = listOf(Expandable.Ref("b1")))
                                 }
-                            },
-                        )
+                            }
+                        }
                     }
-                bookSpec.knownFields shouldBe emptySet()
 
                 val result = spec.apply(Review("r1", Expandable.Ref("a1")), expand("author.books"))
 
@@ -219,6 +217,145 @@ class ExpandSpecTest :
                     .shouldBeInstanceOf<Expandable.Resolved<Book>>()
                     .value shouldBe books["b1"]
             }
+
+            should("accept a nested spec declared inline") {
+                val spec =
+                    ExpandSpec.build<Review> {
+                        field("author", get = { it.author }, set = { copy(author = it) }) {
+                            nested {
+                                listField("books", get = { it.books }, set = { copy(books = it) }) {
+                                    batch { ids, _ -> books.filterKeys { it in ids } }
+                                }
+                            }
+                            batch { ids, _ ->
+                                ids.associateWith { id ->
+                                    authors.getValue(id).copy(books = listOf(Expandable.Ref("b2")))
+                                }
+                            }
+                        }
+                    }
+
+                val result = spec.apply(Review("r1", Expandable.Ref("a1")), expand("author.books"))
+
+                result.author
+                    .shouldBeInstanceOf<Expandable.Resolved<Author>>()
+                    .value.books!!
+                    .single()
+                    .shouldBeInstanceOf<Expandable.Resolved<Book>>()
+                    .value shouldBe books["b2"]
+            }
+        }
+
+        context("polymorphic field") {
+            val organiserSpec =
+                ExpandSpec.build<Report> {
+                    polymorphicField(
+                        name = "organiser",
+                        get = { it.organiser },
+                        set = { copy(organiser = it) },
+                        type = { it.organiserType },
+                    ) {
+                        case("author") { batch { ids, _ -> authors.filterKeys { it in ids } } }
+                        case("book") { batch { ids, _ -> books.filterKeys { it in ids }.mapValues { (_, b) -> b } } }
+                    }
+                }
+
+            should("resolve each item against the source its discriminator names") {
+                val result =
+                    organiserSpec.apply(
+                        listOf(
+                            Report("p1", "author", Expandable.Ref("a1")),
+                            Report("p2", "book", Expandable.Ref("b1")),
+                        ),
+                        expand("organiser"),
+                    )
+
+                result[0].organiser.shouldBeInstanceOf<Expandable.Resolved<Any>>().value shouldBe authors["a1"]
+                result[1].organiser.shouldBeInstanceOf<Expandable.Resolved<Any>>().value shouldBe books["b1"]
+            }
+
+            should("leave an item whose discriminator has no case untouched") {
+                val result = organiserSpec.apply(Report("p3", "publisher", Expandable.Ref("a1")), expand("organiser"))
+
+                result.organiser.shouldBeInstanceOf<Expandable.Ref>()
+            }
+
+            should("reject a duplicate case") {
+                val failure =
+                    shouldThrow<IllegalArgumentException> {
+                        ExpandSpec.build<Report> {
+                            polymorphicField(
+                                name = "organiser",
+                                get = { it.organiser },
+                                set = { copy(organiser = it) },
+                                type = { it.organiserType },
+                            ) {
+                                case("author") { batch { _, _ -> emptyMap() } }
+                                case("author") { batch { _, _ -> emptyMap() } }
+                            }
+                        }
+                    }
+
+                failure.message shouldBe "Duplicate case \"author\""
+            }
+
+            should("reject a field with no case at all") {
+                val failure =
+                    shouldThrow<IllegalArgumentException> {
+                        ExpandSpec.build<Report> {
+                            polymorphicField(
+                                name = "organiser",
+                                get = { it.organiser },
+                                set = { copy(organiser = it) },
+                                type = { it.organiserType },
+                            ) { }
+                        }
+                    }
+
+                failure.message shouldBe "Polymorphic field \"organiser\" needs at least one case { } block"
+            }
+        }
+
+        context("a malformed spec") {
+            should("be rejected when a field has no batch") {
+                val failure =
+                    shouldThrow<IllegalArgumentException> {
+                        ExpandSpec.build<Review> {
+                            field("author", get = { it.author }, set = { copy(author = it) }) { }
+                        }
+                    }
+
+                failure.message shouldBe "Expandable field \"author\" needs a batch { } block to resolve its refs"
+            }
+
+            should("be rejected when a field has no name") {
+                val failure =
+                    shouldThrow<IllegalArgumentException> {
+                        ExpandSpec.build<Review> {
+                            field(" ", get = { it.author }, set = { copy(author = it) }) {
+                                batch { _, _ -> emptyMap() }
+                            }
+                        }
+                    }
+
+                failure.message shouldBe "An expandable field needs a name"
+            }
+
+            should("be rejected when two fields share a name") {
+                val failure =
+                    shouldThrow<IllegalArgumentException> {
+                        ExpandSpec.build<Review> {
+                            field("author", get = { it.author }, set = { copy(author = it) }) {
+                                batch { _, _ -> emptyMap() }
+                            }
+                            field("author", get = { it.editor }, set = { copy(editor = it) }) {
+                                batch { _, _ -> emptyMap() }
+                            }
+                        }
+                    }
+
+                failure.message shouldBe "Duplicate expandable fields: author"
+            }
         }
 
         context("field projection") {
@@ -226,15 +363,12 @@ class ExpandSpecTest :
                 var requestedFields: Set<String> = emptySet()
                 val spec =
                     ExpandSpec.build<Review> {
-                        field(
-                            name = "author",
-                            getter = { it.author },
-                            setter = { copy(author = it) },
-                            batch = { ids, fields ->
+                        field("author", get = { it.author }, set = { copy(author = it) }) {
+                            batch { ids, fields ->
                                 requestedFields = fields
                                 authors.filterKeys { it in ids }
-                            },
-                        )
+                            }
+                        }
                     }
 
                 val result = spec.apply(Review("r1", Expandable.Ref("a1")), expand("author.name"))
@@ -247,25 +381,19 @@ class ExpandSpecTest :
                 var requestedFields: Set<String> = setOf("sentinel")
                 val authorSpec =
                     ExpandSpec.build<Author> {
-                        listField(
-                            name = "books",
-                            getter = { it.books },
-                            setter = { copy(books = it) },
-                            batch = { ids, _ -> books.filterKeys { it in ids } },
-                        )
+                        listField("books", get = { it.books }, set = { copy(books = it) }) {
+                            batch { ids, _ -> books.filterKeys { it in ids } }
+                        }
                     }
                 val spec =
                     ExpandSpec.build<Review> {
-                        field(
-                            name = "author",
-                            getter = { it.author },
-                            setter = { copy(author = it) },
-                            nested = authorSpec,
-                            batch = { ids, fields ->
+                        field("author", get = { it.author }, set = { copy(author = it) }) {
+                            nested(authorSpec)
+                            batch { ids, fields ->
                                 requestedFields = fields
                                 authors.filterKeys { it in ids }
-                            },
-                        )
+                            }
+                        }
                     }
 
                 val result = spec.apply(Review("r1", Expandable.Ref("a1")), expand("author.books"))
@@ -288,31 +416,22 @@ private fun reviewSpec(
     mentionCalls: AtomicInteger = AtomicInteger(),
 ): ExpandSpec<Review> =
     ExpandSpec.build {
-        field(
-            name = "author",
-            getter = { it.author },
-            setter = { copy(author = it) },
-            batch = { ids, _ ->
+        field("author", get = { it.author }, set = { copy(author = it) }) {
+            batch { ids, _ ->
                 authorCalls.incrementAndGet()
                 authors.filterKeys { it in ids }
-            },
-        )
-        optionalField(
-            name = "editor",
-            getter = { it.editor },
-            setter = { copy(editor = it) },
-            batch = { ids, _ ->
+            }
+        }
+        field("editor", get = { it.editor }, set = { copy(editor = it) }) {
+            batch { ids, _ ->
                 editorCalls.incrementAndGet()
                 authors.filterKeys { it in ids }
-            },
-        )
-        listField(
-            name = "mentions",
-            getter = { it.mentions },
-            setter = { copy(mentions = it) },
-            batch = { ids, _ ->
+            }
+        }
+        listField("mentions", get = { it.mentions }, set = { copy(mentions = it) }) {
+            batch { ids, _ ->
                 mentionCalls.incrementAndGet()
                 books.filterKeys { it in ids }
-            },
-        )
+            }
+        }
     }

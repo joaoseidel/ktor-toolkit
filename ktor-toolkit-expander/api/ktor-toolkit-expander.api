@@ -2,6 +2,9 @@ public final class com/luizalabs/ktor/toolkit/expander/ExpandExtensionsKt {
 	public static final fun getExpand (Lio/ktor/server/application/ApplicationCall;)Lcom/luizalabs/ktor/toolkit/expander/web/ExpandRequest;
 }
 
+public abstract interface annotation class com/luizalabs/ktor/toolkit/expander/data/ExpandDsl : java/lang/annotation/Annotation {
+}
+
 public final class com/luizalabs/ktor/toolkit/expander/data/ExpandSpec {
 	public static final field Companion Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Companion;
 	public synthetic fun <init> (Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -11,18 +14,23 @@ public final class com/luizalabs/ktor/toolkit/expander/data/ExpandSpec {
 }
 
 public final class com/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Builder {
-	public fun <init> ()V
-	public final fun field (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;)V
-	public static synthetic fun field$default (Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Builder;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
-	public final fun listField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;)V
-	public static synthetic fun listField$default (Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Builder;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
-	public final fun optionalField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;)V
-	public static synthetic fun optionalField$default (Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Builder;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
-	public final fun polymorphicField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Ljava/util/Map;)V
+	public final fun field (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;)V
+	public final fun listField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;)V
+	public final fun polymorphicField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
 }
 
 public final class com/luizalabs/ktor/toolkit/expander/data/ExpandSpec$Companion {
 	public final fun build (Lkotlin/jvm/functions/Function1;)Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/ExpandSpec$FieldBuilder {
+	public final fun batch (Lkotlin/jvm/functions/Function3;)V
+	public final fun nested (Lcom/luizalabs/ktor/toolkit/expander/data/ExpandSpec;)V
+	public final fun nested (Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class com/luizalabs/ktor/toolkit/expander/data/ExpandSpec$PolymorphicBuilder {
+	public final fun case (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
 }
 
 public abstract interface class com/luizalabs/ktor/toolkit/expander/data/Expandable {
