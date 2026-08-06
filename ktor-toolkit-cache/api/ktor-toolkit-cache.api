@@ -29,3 +29,19 @@ public final class com/luizalabs/ktor/toolkit/cache/KtorCacheKt {
 	public static final fun invalidateNamespace (Lcom/luizalabs/ktor/toolkit/cache/KeyValueCache;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/luizalabs/ktor/toolkit/cache/LettuceCache : com/luizalabs/ktor/toolkit/cache/KeyValueCache {
+	public static final field Companion Lcom/luizalabs/ktor/toolkit/cache/LettuceCache$Companion;
+	public static final field DEFAULT_KEY_PREFIX Ljava/lang/String;
+	public static final field DEFAULT_SCAN_BATCH_SIZE I
+	public synthetic fun <init> (Lio/lettuce/core/cluster/api/async/RedisClusterAsyncCommands;JLjava/lang/String;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lio/lettuce/core/cluster/api/async/RedisClusterAsyncCommands;JLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun delete (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun get (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun keys (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun put (Ljava/lang/String;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/luizalabs/ktor/toolkit/cache/LettuceCache$Companion {
+	public final fun getCodec ()Lio/lettuce/core/codec/RedisCodec;
+}
+

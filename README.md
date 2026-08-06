@@ -46,13 +46,14 @@ signatures, so they are declared as `api` dependencies.
 
 ### Optional dependencies
 
-Two paginator features are compiled against libraries the module does **not** bring with it. If you
-use them, add the dependency yourself:
+A few features are compiled against libraries their module does **not** bring with it. If you use
+them, add the dependency yourself:
 
 | Feature | You must add |
 |---|---|
 | `Sort.toExposedQueryExpression(...)` | `org.jetbrains.exposed:exposed-core` |
 | `Sort.toGelOrderingExpression(...)` | `io.github.joaoseidel.geldsl:gel-query-dsl-core` |
+| `LettuceCache` | `io.lettuce:lettuce-core` |
 
 Everything else in the toolkit works without them.
 
@@ -249,9 +250,28 @@ cache.invalidateNamespace("books")   // everything under the namespace
 cache.invalidateContaining(bookId)   // entries whose payload mentions this id
 ```
 
-`InMemoryCache` is LRU-bounded with an optional TTL, which suits a single node. Implement
-`KeyValueCache` over Redis when more than one instance serves the same traffic — otherwise each
-holds, and invalidates, its own copy.
+`InMemoryCache` is LRU-bounded with an optional TTL, which suits a single node. Reach for a shared
+store once more than one instance serves the same traffic — otherwise each holds, and invalidates,
+its own copy.
+
+### Redis
+
+`LettuceCache` is that shared store, over [Lettuce](https://lettuce.io). Add
+`io.lettuce:lettuce-core` yourself — the toolkit only compiles against it.
+
+```kotlin
+val client = RedisClient.create("redis://localhost:6379")
+val connection = client.connect(LettuceCache.Codec)   // keys are text, values raw bytes
+val cache = LettuceCache(connection.async(), ttl = 5.minutes)
+```
+
+Nothing else changes: `withCache` and both invalidation helpers work the same, and Redis applies
+the TTL itself. The connection belongs to you — share it (it is thread-safe and multiplexes) and
+close it on shutdown. `connection.async()` from a cluster client fits too.
+
+Every key is stored under `keyPrefix`, `"ktor-toolkit:"` by default, which keeps the cache in its
+own corner of a shared instance and bounds what `invalidateNamespace` and `invalidateContaining`
+have to scan — they walk the keyspace with `SCAN`, so keep them to writes, not requests.
 
 ## Development
 
