@@ -6,7 +6,7 @@ description: >-
   RequestValidation), installs the ktor-toolkit skill collection itself, and verifies the whole
   thing compiles. Use whenever someone wants to start using the toolkit, add another of its modules
   to a project already using it, install or update these skills, or is stuck on
-  "Could not find com.luizalabs.ktor-toolkit:...". Also use when a task routed to a feature skill
+  "Could not find com.github.joaoseidel.ktor-toolkit:...". Also use when a task routed to a feature skill
   (pagination, hateoas, validation, problem-details, expand, cache) but that module turns out not
   to be on the classpath yet.
 ---
@@ -15,7 +15,7 @@ description: >-
 
 ## Two different things are called "install"
 
-**The libraries** — Gradle dependencies on `com.luizalabs.ktor-toolkit:*`, so the project can call
+**The libraries** — Gradle dependencies on `com.github.joaoseidel.ktor-toolkit:*`, so the project can call
 `call.pagination`, `problemDetails { }`, `rulesFor<T> { }`.
 
 **The skills** — this collection, so an agent working in the project knows how the maintainers
@@ -66,12 +66,12 @@ selected module:
 ktor-toolkit = "1.0.0"
 
 [libraries]
-ktor-toolkit-paginator       = { module = "com.luizalabs.ktor-toolkit:ktor-toolkit-paginator",       version.ref = "ktor-toolkit" }
-ktor-toolkit-hateoas         = { module = "com.luizalabs.ktor-toolkit:ktor-toolkit-hateoas",         version.ref = "ktor-toolkit" }
-ktor-toolkit-validator       = { module = "com.luizalabs.ktor-toolkit:ktor-toolkit-validator",       version.ref = "ktor-toolkit" }
-ktor-toolkit-problem-details = { module = "com.luizalabs.ktor-toolkit:ktor-toolkit-problem-details", version.ref = "ktor-toolkit" }
-ktor-toolkit-expander        = { module = "com.luizalabs.ktor-toolkit:ktor-toolkit-expander",        version.ref = "ktor-toolkit" }
-ktor-toolkit-cache           = { module = "com.luizalabs.ktor-toolkit:ktor-toolkit-cache",           version.ref = "ktor-toolkit" }
+ktor-toolkit-paginator       = { module = "com.github.joaoseidel.ktor-toolkit:ktor-toolkit-paginator",       version.ref = "ktor-toolkit" }
+ktor-toolkit-hateoas         = { module = "com.github.joaoseidel.ktor-toolkit:ktor-toolkit-hateoas",         version.ref = "ktor-toolkit" }
+ktor-toolkit-validator       = { module = "com.github.joaoseidel.ktor-toolkit:ktor-toolkit-validator",       version.ref = "ktor-toolkit" }
+ktor-toolkit-problem-details = { module = "com.github.joaoseidel.ktor-toolkit:ktor-toolkit-problem-details", version.ref = "ktor-toolkit" }
+ktor-toolkit-expander        = { module = "com.github.joaoseidel.ktor-toolkit:ktor-toolkit-expander",        version.ref = "ktor-toolkit" }
+ktor-toolkit-cache           = { module = "com.github.joaoseidel.ktor-toolkit:ktor-toolkit-cache",           version.ref = "ktor-toolkit" }
 ```
 
 One shared `ktor-toolkit` version key rather than one per module: the modules are released together
@@ -226,7 +226,7 @@ is the compile, not the prose.
 
 | Symptom | Cause |
 |---|---|
-| `Could not find com.luizalabs.ktor-toolkit:...` | `mavenCentral()` missing from the build's repositories |
+| `Could not find com.github.joaoseidel.ktor-toolkit:...` | `mavenCentral()` missing from the build's repositories |
 | `Response pipeline couldn't transform` | ContentNegotiation missing (Step 3) |
 | `NoClassDefFoundError` on Exposed / Lettuce / MongoDB classes | Optional integration used without its dependency (Step 3) |
 | Validation failures return HTML, not `problem+json` | `problemDetails { }` missing from StatusPages (Step 4) |

@@ -11,6 +11,9 @@ for anyone who consumed the library from source.
 
 ### Breaking
 
+- **The group id and base package moved to `com.github.joaoseidel`.** Dependencies are now
+  `com.github.joaoseidel.ktor-toolkit:*`, and every import changes from `com.luizalabs.ktor.toolkit.*`
+  to `com.github.joaoseidel.ktor.toolkit.*`. Nothing else about the API changed.
 - **`PagedResponse.metadata.totalPages` now counts pages.** It previously held the *index* of the
   last page — 25 elements over a page size of 10 reported `2`. It now reports `3`; the last page
   index is `totalPages - 1`. Any client doing arithmetic on this field must be updated.

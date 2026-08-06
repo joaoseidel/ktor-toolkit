@@ -32,12 +32,12 @@ Then depend on the modules you need:
 
 ```kotlin
 dependencies {
-    implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-paginator:1.0.0")
-    implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-hateoas:1.0.0")
-    implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-validator:1.0.0")
-    implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-problem-details:1.0.0")
-    implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-expander:1.0.0")
-    implementation("com.luizalabs.ktor-toolkit:ktor-toolkit-cache:1.0.0")
+    implementation("com.github.joaoseidel.ktor-toolkit:ktor-toolkit-paginator:1.0.0")
+    implementation("com.github.joaoseidel.ktor-toolkit:ktor-toolkit-hateoas:1.0.0")
+    implementation("com.github.joaoseidel.ktor-toolkit:ktor-toolkit-validator:1.0.0")
+    implementation("com.github.joaoseidel.ktor-toolkit:ktor-toolkit-problem-details:1.0.0")
+    implementation("com.github.joaoseidel.ktor-toolkit:ktor-toolkit-expander:1.0.0")
+    implementation("com.github.joaoseidel.ktor-toolkit:ktor-toolkit-cache:1.0.0")
 }
 ```
 
