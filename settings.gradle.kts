@@ -7,7 +7,7 @@ rootProject.name = "ktor-toolkit"
 // Production code
 include("ktor-toolkit-expander")
 include("ktor-toolkit-hateoas")
-include("ktor-toolkit-mediator")
+include("ktor-toolkit-problem-details")
 include("ktor-toolkit-paginator")
 include("ktor-toolkit-validator")
 include("ktor-toolkit-cache")

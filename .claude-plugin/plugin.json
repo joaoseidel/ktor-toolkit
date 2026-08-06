@@ -1,0 +1,13 @@
+{
+  "name": "ktor-toolkit",
+  "description": "The official development workflow for services built with Ktor Toolkit — pagination, HATEOAS, validation, RFC 9457 errors, field expansion and response caching, plus the architecture, testing and build conventions that go with them.",
+  "version": "1.0.0",
+  "author": {
+    "name": "João Seidel",
+    "url": "https://github.com/joaoseidel"
+  },
+  "homepage": "https://github.com/joaoseidel/ktor-toolkit",
+  "repository": "https://github.com/joaoseidel/ktor-toolkit",
+  "license": "MIT",
+  "keywords": ["ktor", "kotlin", "hexagonal", "ports-and-adapters", "rest", "hateoas"]
+}

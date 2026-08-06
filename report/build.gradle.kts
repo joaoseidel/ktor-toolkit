@@ -16,7 +16,7 @@ val coveredProjects =
         ":ktor-toolkit-cache",
         ":ktor-toolkit-expander",
         ":ktor-toolkit-hateoas",
-        ":ktor-toolkit-mediator",
+        ":ktor-toolkit-problem-details",
         ":ktor-toolkit-paginator",
         ":ktor-toolkit-validator",
     )
