@@ -25,12 +25,29 @@ for anyone who consumed the library from source.
 - **Error responses are served as `application/problem+json`,** not `application/json`.
 - **`ResponseHandlers.handleGenericException` no longer echoes the exception message.** Pass
   `includeExceptionMessage = true` to restore the old behaviour.
+- **Validation rules are typed by the property they apply to.** Each rule declares a receiver such
+  as `PropertyValidator<*, String?>`, so `should be email()` on an `Int` property no longer compiles
+  rather than failing at request time with `should be of type String`. `ValidationRule` is now a
+  final class parameterised by the value type, `supportedTypes()` is gone, and a custom rule is
+  built with the `validationRule` factory instead of by subclassing.
+- **Validation rules no longer take `positiveMessage` / `negativeMessage`.** Override a message with
+  `describedAs`, either on the rule or on the assertion: `should be email() describedAs "…"`.
+- **`ValidationContext.getErrors()` is now the `errors` property,** `validateResult()` is
+  `toValidationResult()`, and `PropertyValidator.propertyValue` is `value`.
+- **`ValidationContext` and `PropertyValidator` are `@DslMarker`-scoped,** so an inner block can no
+  longer reach the enclosing receiver — `property(A::x) { property(A::y) { } }` was legal before.
 - **Temporal validation rules take a `timeZone` parameter,** inserted before the message parameters.
   Callers passing messages positionally must switch to named arguments. `future()` previously
   resolved in UTC while `past()` and `within()` used the system zone; all now default to the system
   zone.
 - **A validation rule no longer reports an error for a `null` property.** Combine with
   `should notBe nil()` to require presence.
+- **`ExpandSpec` fields take a configuration block** in place of their `nested` and `batch`
+  parameters, and their `getter` / `setter` parameters are now `get` / `set`. `optionalField` is
+  gone — `field` accepts a getter that returns null. `polymorphicField` takes `case(…) { }` blocks
+  in place of its `batchers` map.
+- **The two `toResource` overloads taking a required `links` list are gone,** replaced by a default
+  parameter on the remaining two.
 - **`ValidationContext.nested` takes a single `nullMessage`** in place of `positiveMessage` and
   `negativeMessage`.
 - **`PropertyValidator`'s constructor is internal** and `errors` is a read-only `List`.
@@ -53,6 +70,14 @@ for anyone who consumed the library from source.
   chain, so on the ContentNegotiation path a missing field was reported as a generic conversion
   failure. It now walks the chain.
 - `after()` and `before()` disagreed on how to compare a `LocalDate` against a `LocalDateTime`.
+- `min`, `max`, `positive` and `negative` matched only `Int`, `Long`, `Float` and `Double`, so a
+  `Short`, `Byte`, `BigDecimal` or `BigInteger` property passed the type check and was then reported
+  as violating a bound it met. All four now compare every `Number` type.
+- `toResource(call, links)` published every caller-supplied link twice: they were seeded into the
+  resource and then appended again.
+- Two `ExpandSpec` fields could share one `?expand=` key, running two batches for the same request
+  with the second overwriting the first. A duplicate or blank field name is now rejected at build
+  time, as is a field with no `batch` and a polymorphic field with no cases.
 - `Link`'s `require` checks ran in a secondary constructor and never fired on a deserialized link.
 - `InMemoryCache` was an unbounded map keyed by request URL.
 - Cache keys base64-encoded the full path and query, so their length was client-controlled. They are
@@ -60,7 +85,19 @@ for anyone who consumed the library from source.
 
 ### Added
 
-- `StatusPagesConfig.problemDetails { }` registers every handler in one call.
+- Validation rules compose: `and`, `or`, `!` and `describedAs` operate on rules, and `satisfying`
+  builds one from a predicate for a constraint no named rule covers.
+- `ValidationContext.each` and `eachNested` validate collection elements, reporting at `tags[0]` and
+  `authors[0].email`. `whenever` makes a group of rules conditional on the object under validation,
+  which `target` now exposes, and `invariant` states a rule that no single property owns.
+- `ExpandSpec` nested specs can be declared inline with `nested { }`, rather than built separately
+  and held in a `val`.
+- `resource(content) { link(…) }` wraps any content with its links, and `Resource.withLink` takes
+  `rel` / `href` / `method` directly.
+- `Sort` accepts a property reference, and `sortBy { desc(…); asc(…) }` builds an ordering from
+  them, so a rename cannot leave a stale sort key behind.
+- `StatusPagesConfig.problemDetails { }` registers every handler in one call, and `on<E> { }` inside
+  it maps an application's own exceptions to problems.
 - `ProblemDetail` carries the RFC 9457 `type` and `instance` members.
 - `ApplicationCall.pagination` and `ApplicationCall.paginationRequest(...)`.
 - `InMemoryCache` takes `maxSize`, `ttl` and an injectable `Clock`.

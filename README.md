@@ -15,7 +15,7 @@ Requires **Java 21+**, Kotlin 2.3 and Ktor 3.4.
 |---|---|
 | [`ktor-toolkit-paginator`](#paginator) | Parses `?page`/`?pageSize`/`?sortBy`, and shapes the paged response |
 | [`ktor-toolkit-hateoas`](#hateoas) | Wraps a response in a `_links` envelope, with pagination links built for you |
-| [`ktor-toolkit-validator`](#validator) | A `should be` / `should notBe` DSL over Ktor's RequestValidation |
+| [`ktor-toolkit-validator`](#validator) | A type-safe `should be` / `should notBe` DSL over Ktor's RequestValidation |
 | [`ktor-toolkit-mediator`](#mediator) | Turns exceptions into RFC 9457 `application/problem+json` responses |
 | [`ktor-toolkit-expander`](#expander) | Resolves `?expand=author.books` references, batching one query per field |
 | [`ktor-toolkit-cache`](#cache) | Caches a response by request path and query, over any key–value store |
@@ -77,9 +77,19 @@ get("/books") {
 negative page becomes 0, and the page size is clamped to `1..100`. Use
 `call.paginationRequest(defaultPageSize = 20, maxPageSize = 200)` for different bounds.
 
-`?sortBy=name,-createdAt` parses into `[Sort("name", ASC), Sort("createdAt", DESC)]`. Turn it into a
-query with an explicit allow-list of sortable columns — anything outside it raises
-`IllegalArgumentException` rather than reaching the database:
+`?sortBy=name,-createdAt` parses into `[Sort("name", ASC), Sort("createdAt", DESC)]`. Build a
+default ordering from property references instead of strings, so a rename cannot leave a stale sort
+key behind:
+
+```kotlin
+val ordering = sortBy {
+    desc(Book::publishedAt)
+    asc(Book::title)
+}
+```
+
+Turn either into a query with an explicit allow-list of sortable columns — anything outside it
+raises `IllegalArgumentException` rather than reaching the database:
 
 ```kotlin
 Books.selectAll().orderBy(*pagination.sortBy.toExposedQueryExpression(Books.title, Books.createdAt).toTypedArray())
@@ -113,7 +123,18 @@ get("/books") {
 }
 ```
 
-Pass your own links as a second argument to add them alongside the pagination ones.
+Pass your own links as a second argument to publish them after the pagination ones.
+
+For anything that is not a page, `resource` wraps content and declares its links in a block:
+
+```kotlin
+call.respond(
+    resource(book.toResponse()) {
+        link("self", "/books/${book.id}")
+        link("delete", "/books/${book.id}", HttpMethod.Delete)
+    },
+)
+```
 
 ## Validator
 
@@ -143,12 +164,40 @@ install(RequestValidation) {
 For anything beyond a couple of fields, implement `RequestValidator<T>` and pass the instance to
 `withValidationContext(validator)` instead.
 
-Available rules: `blank`, `email`, `pattern`, `uuid`, `size`, `nil`, `min`, `max`, `inRange`,
-`positive`, `negative`, `past`, `future`, `before`, `after`, `within`. Each takes optional
-`positiveMessage` / `negativeMessage` overrides.
+Available rules, and the property types each applies to:
+
+| Rule | Applies to |
+| --- | --- |
+| `blank`, `email`, `pattern` | `String` |
+| `uuid` | `String`, `UUID`, `Uuid` |
+| `size` | `String`, `Collection`, `Map`, `Array` |
+| `min`, `max`, `inRange`, `positive`, `negative` | any `Number` |
+| `past`, `future`, `before`, `after`, `within` | `LocalDate`, `LocalDateTime`, `Instant` |
+| `nil`, `satisfying` | any |
+
+**A rule that does not fit does not compile.** `should be email()` on an `Int` property is an
+unresolved reference, not a runtime error, and completion inside a `property { }` block only offers
+the rules that apply.
+
+**Composition.** Rules are values: combine them with `and`, `or` and `!`, and write a one-off with
+`satisfying`. Note the parentheses — infix calls associate to the left.
+
+```kotlin
+property(CreateBookRequest::isbn) {
+    should be (uuid() or satisfying("should be an ISBN") { it.isValidIsbn() })
+}
+```
+
+**Messages.** Every rule carries a default message. Override it with `describedAs`, which needs no
+parentheses when it follows an assertion:
+
+```kotlin
+should be email() describedAs "should be a work email address"
+```
 
 **Absent values.** A rule stays silent on a `null` property — `should be email()` does not complain
-about an optional field that was not sent. Require presence explicitly:
+about an optional field that was not sent. `nil` is the one rule with an opinion about absence, so
+requiring a field and constraining it are two separate assertions:
 
 ```kotlin
 property(CreateBookRequest::authorEmail) {
@@ -156,6 +205,29 @@ property(CreateBookRequest::authorEmail) {
     should be email()
 }
 ```
+
+**Collections, conditions and invariants.** `each` validates elements as values and `eachNested` as
+objects, reporting at `tags[0]` and `authors[0].email`. `whenever` makes a group of rules
+conditional, and `invariant` states a rule that no single property owns:
+
+```kotlin
+withValidationContext<CreateBookRequest> {
+    each(CreateBookRequest::tags) { should notBe blank() }
+
+    eachNested(CreateBookRequest::authors) {
+        property(Author::email) { should be email() }
+    }
+
+    whenever(!target.draft) {
+        property(CreateBookRequest::publishedAt) { should notBe nil() }
+    }
+
+    invariant("should not be dated before its author was born") { it.publishedAt > it.authorBornAt }
+}
+```
+
+`target` is the object under validation, so a rule can also depend on a sibling field:
+`should be after(target.startsAt)`.
 
 **Time zones.** The temporal rules take an explicit `timeZone`, defaulting to the system zone. Pass
 `timeZone = TimeZone.UTC` when the comparison should not depend on where the server runs, and `now`
@@ -191,6 +263,18 @@ throw HttpStatusException(HttpStatusCode.NotFound, "Book not found", mapOf("id" 
 }
 ```
 
+Map your own exceptions in the same block with `on<E>`. StatusPages resolves by nearest ancestor
+class, so a mapping wins over the catch-all whatever order it was declared in, and the request path
+fills in as the problem's `instance` unless you name one:
+
+```kotlin
+install(StatusPages) {
+    problemDetails {
+        on<BookNotFoundException> { ProblemDetail.fromStatus(HttpStatusCode.NotFound, "No book ${it.id}") }
+    }
+}
+```
+
 An unhandled exception logs its stack trace and answers with a fixed message — the exception text
 routinely names the database. Set `includeExceptionMessage = true` to echo it while developing.
 
@@ -202,12 +286,9 @@ Declare once which fields a response can expand, then let the client ask:
 
 ```kotlin
 val bookSpec = ExpandSpec.build<BookResponse> {
-    field(
-        name = "author",
-        getter = { it.author },
-        setter = { copy(author = it) },
-        batch = { ids, _ -> authorRepository.findAllById(ids).associateBy { it.id } },
-    )
+    field("author", get = { it.author }, set = { copy(author = it) }) {
+        batch { ids, _ -> authorRepository.findAllById(ids).associateBy { it.id } }
+    }
 }
 
 get("/books") {
@@ -217,14 +298,26 @@ get("/books") {
 ```
 
 `?expand=author` resolves the whole page in **one** call to `batch`, not one per row.
-`?expand=author.books` nests, via a `nested` spec on the field. `?expand=author.name` projects: the
-`batch` lambda receives `setOf("name")` so it can issue a narrower query, and only that field is
-serialized.
+`?expand=author.name` projects: the `batch` lambda receives `setOf("name")` so it can issue a
+narrower query, and only that field is serialized.
+
+`?expand=author.books` nests, via a `nested` block on the field — inline, or an existing spec:
+
+```kotlin
+field("author", get = { it.author }, set = { copy(author = it) }) {
+    batch { ids, fields -> authorRepository.findAllById(ids, fields).associateBy { it.id } }
+    nested {
+        listField("books", get = { it.books }, set = { copy(books = it) }) {
+            batch { ids, _ -> bookRepository.findAllById(ids).associateBy { it.id } }
+        }
+    }
+}
+```
 
 An `Expandable<T>` field serializes as a bare `"author-id"` string while unresolved and as a full
-object once expanded, so the wire format tells the client which it got. Register list fields with
-`listField`, nullable ones with `optionalField`, and fields whose type varies per row with
-`polymorphicField`.
+object once expanded, so the wire format tells the client which it got. `field` covers nullable
+fields too; register list fields with `listField`, and fields whose type varies per row with
+`polymorphicField` and one `case` per discriminator.
 
 ## Cache
 
