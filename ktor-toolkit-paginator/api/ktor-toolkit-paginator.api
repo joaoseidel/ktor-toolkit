@@ -1,17 +1,17 @@
-public final class com/luizalabs/ktor/toolkit/paginator/PaginationExtensionsKt {
-	public static final fun getPagination (Lio/ktor/server/application/ApplicationCall;)Lcom/luizalabs/ktor/toolkit/paginator/data/Pagination;
-	public static final fun paginationRequest (Lio/ktor/server/application/ApplicationCall;II)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
-	public static synthetic fun paginationRequest$default (Lio/ktor/server/application/ApplicationCall;IIILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
-	public static final fun toPagination (Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;)Lcom/luizalabs/ktor/toolkit/paginator/data/Pagination;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/PaginationExtensionsKt {
+	public static final fun getPagination (Lio/ktor/server/application/ApplicationCall;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Pagination;
+	public static final fun paginationRequest (Lio/ktor/server/application/ApplicationCall;II)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;
+	public static synthetic fun paginationRequest$default (Lio/ktor/server/application/ApplicationCall;IIILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;
+	public static final fun toPagination (Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Pagination;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/Page {
-	public static final field Companion Lcom/luizalabs/ktor/toolkit/paginator/data/Page$Companion;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/Page {
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page$Companion;
 	public fun <init> (II)V
 	public final fun component1 ()I
 	public final fun component2 ()I
-	public final fun copy (II)Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
-	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;IIILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
+	public final fun copy (II)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;IIILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getPage ()I
 	public final fun getPageSize ()I
@@ -19,178 +19,178 @@ public final class com/luizalabs/ktor/toolkit/paginator/data/Page {
 	public fun toString ()Ljava/lang/String;
 }
 
-public final synthetic class com/luizalabs/ktor/toolkit/paginator/data/Page$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/luizalabs/ktor/toolkit/paginator/data/Page$$serializer;
+public final synthetic class com/github/joaoseidel/ktor/toolkit/paginator/data/Page$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page$$serializer;
 	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;
 	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/luizalabs/ktor/toolkit/paginator/data/Page;)V
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
 	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/Page$Companion {
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/Page$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/Paged {
-	public static final field Companion Lcom/luizalabs/ktor/toolkit/paginator/data/Paged$Companion;
-	public fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;J)V
-	public synthetic fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/Paged {
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged$Companion;
+	public fun <init> (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;J)V
+	public synthetic fun <init> (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;
 	public final fun component2 ()Ljava/util/List;
 	public final fun component3 ()Ljava/util/List;
 	public final fun component4 ()J
-	public final fun copy (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;J)Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;
-	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;JILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;
+	public final fun copy (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;J)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;Ljava/util/List;JILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getContent ()Ljava/util/List;
-	public final fun getPage ()Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
+	public final fun getPage ()Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;
 	public final fun getSortBy ()Ljava/util/List;
 	public final fun getTotalElements ()J
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
-public final synthetic class com/luizalabs/ktor/toolkit/paginator/data/Paged$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+public final synthetic class com/github/joaoseidel/ktor/toolkit/paginator/data/Paged$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
 	public fun <init> (Lkotlinx/serialization/KSerializer;)V
 	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged;
 	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;)V
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
 	public final fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/Paged$Companion {
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/Paged$Companion {
 	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/Pagination {
-	public fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;)V
-	public synthetic fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/Pagination {
+	public fun <init> (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;)V
+	public synthetic fun <init> (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;
 	public final fun component2 ()Ljava/util/List;
-	public final fun copy (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;)Lcom/luizalabs/ktor/toolkit/paginator/data/Pagination;
-	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/paginator/data/Pagination;Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/data/Pagination;
+	public final fun copy (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Pagination;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Pagination;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Pagination;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getPage ()Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
+	public final fun getPage ()Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;
 	public final fun getSortBy ()Ljava/util/List;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
-public abstract interface annotation class com/luizalabs/ktor/toolkit/paginator/data/PaginationDsl : java/lang/annotation/Annotation {
+public abstract interface annotation class com/github/joaoseidel/ktor/toolkit/paginator/data/PaginationDsl : java/lang/annotation/Annotation {
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/Sort {
-	public static final field Companion Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Companion;
-	public fun <init> (Ljava/lang/String;Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;)V
-	public fun <init> (Lkotlin/reflect/KProperty1;Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;)V
-	public synthetic fun <init> (Lkotlin/reflect/KProperty1;Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/Sort {
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Companion;
+	public fun <init> (Ljava/lang/String;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;)V
+	public fun <init> (Lkotlin/reflect/KProperty1;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;)V
+	public synthetic fun <init> (Lkotlin/reflect/KProperty1;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;
-	public final fun copy (Ljava/lang/String;Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;)Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;
-	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;Ljava/lang/String;Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;
+	public final fun component2 ()Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;
+	public final fun copy (Ljava/lang/String;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;Ljava/lang/String;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getDirection ()Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;
+	public final fun getDirection ()Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;
 	public final fun getProperty ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
-public final synthetic class com/luizalabs/ktor/toolkit/paginator/data/Sort$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$$serializer;
+public final synthetic class com/github/joaoseidel/ktor/toolkit/paginator/data/Sort$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$$serializer;
 	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;
 	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;)V
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
 	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/Sort$Companion {
-	public final fun fromString (Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Companion {
+	public final fun fromString (Ljava/lang/String;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/Sort$Direction : java/lang/Enum {
-	public static final field ASC Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;
-	public static final field Companion Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction$Companion;
-	public static final field DESC Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction : java/lang/Enum {
+	public static final field ASC Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction$Companion;
+	public static final field DESC Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;
-	public static fun values ()[Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;
+	public static fun valueOf (Ljava/lang/String;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;
+	public static fun values ()[Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/Sort$Direction$Companion {
-	public final fun fromString (Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/paginator/data/Sort$Direction;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction$Companion {
+	public final fun fromString (Ljava/lang/String;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort$Direction;
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/SortBuilder {
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/SortBuilder {
 	public final fun asc (Ljava/lang/String;)V
 	public final fun asc (Lkotlin/reflect/KProperty1;)V
 	public final fun desc (Ljava/lang/String;)V
 	public final fun desc (Lkotlin/reflect/KProperty1;)V
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/SortExposedExtensionsKt {
-	public static final fun toExposedQueryExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;Ljava/util/List;)Lkotlin/Pair;
-	public static final fun toExposedQueryExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;Lorg/jetbrains/exposed/v1/core/Table;)Lkotlin/Pair;
-	public static final fun toExposedQueryExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;[Lorg/jetbrains/exposed/v1/core/Column;)Lkotlin/Pair;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/SortExposedExtensionsKt {
+	public static final fun toExposedQueryExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;Ljava/util/List;)Lkotlin/Pair;
+	public static final fun toExposedQueryExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;Lorg/jetbrains/exposed/v1/core/Table;)Lkotlin/Pair;
+	public static final fun toExposedQueryExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;[Lorg/jetbrains/exposed/v1/core/Column;)Lkotlin/Pair;
 	public static final fun toExposedQueryExpression (Ljava/util/List;Ljava/util/List;)Ljava/util/List;
 	public static final fun toExposedQueryExpression (Ljava/util/List;Lorg/jetbrains/exposed/v1/core/Table;)Ljava/util/List;
 	public static final fun toExposedQueryExpression (Ljava/util/List;[Lorg/jetbrains/exposed/v1/core/Column;)Ljava/util/List;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/SortKt {
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/SortKt {
 	public static final fun sortBy (Lkotlin/jvm/functions/Function1;)Ljava/util/List;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/data/SortMongoExtensionsKt {
-	public static final fun toMongoSortExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;Ljava/util/List;)Lorg/bson/conversions/Bson;
-	public static final fun toMongoSortExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;[Ljava/lang/String;)Lorg/bson/conversions/Bson;
-	public static final fun toMongoSortExpression (Lcom/luizalabs/ktor/toolkit/paginator/data/Sort;[Lkotlin/reflect/KProperty1;)Lorg/bson/conversions/Bson;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/SortMongoExtensionsKt {
+	public static final fun toMongoSortExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;Ljava/util/List;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;[Ljava/lang/String;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Sort;[Lkotlin/reflect/KProperty1;)Lorg/bson/conversions/Bson;
 	public static final fun toMongoSortExpression (Ljava/util/List;Ljava/util/List;)Lorg/bson/conversions/Bson;
 	public static final fun toMongoSortExpression (Ljava/util/List;[Ljava/lang/String;)Lorg/bson/conversions/Bson;
 	public static final fun toMongoSortExpression (Ljava/util/List;[Lkotlin/reflect/KProperty1;)Lorg/bson/conversions/Bson;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/web/PagedResponse {
-	public static final field Companion Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Companion;
-	public synthetic fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metadata;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metadata;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse {
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Companion;
+	public synthetic fun <init> (Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Metadata;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Metadata;
 	public final fun component2 ()Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getContent ()Ljava/util/List;
-	public final fun getMetadata ()Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metadata;
+	public final fun getMetadata ()Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Metadata;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
-public final synthetic class com/luizalabs/ktor/toolkit/paginator/web/PagedResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+public final synthetic class com/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
 	public fun <init> (Lkotlinx/serialization/KSerializer;)V
 	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse;
 	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse;)V
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
 	public final fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Companion {
-	public final fun from (Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;Lkotlin/jvm/functions/Function1;)Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse;
-	public static synthetic fun from$default (Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Companion;Lcom/luizalabs/ktor/toolkit/paginator/data/Paged;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Companion {
+	public final fun from (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged;Lkotlin/jvm/functions/Function1;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse;
+	public static synthetic fun from$default (Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Companion;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse;
 	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metadata {
-	public static final field Companion Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metadata$Companion;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Metadata {
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Metadata$Companion;
 	public final fun component1 ()I
 	public final fun component2 ()I
 	public final fun component3 ()I
@@ -212,56 +212,56 @@ public final class com/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metada
 	public fun toString ()Ljava/lang/String;
 }
 
-public final synthetic class com/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metadata$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metadata$$serializer;
+public final synthetic class com/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Metadata$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Metadata$$serializer;
 	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metadata;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Metadata;
 	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metadata;)V
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Metadata;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
 	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/web/PagedResponse$Metadata$Companion {
+public final class com/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Metadata$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/web/PaginationRequest {
-	public static final field Companion Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest$Companion;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest {
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest$Companion;
 	public static final field DEFAULT_MAX_PAGE_SIZE I
 	public static final field DEFAULT_PAGE I
 	public static final field DEFAULT_PAGE_SIZE I
 	public fun <init> ()V
-	public fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;)V
-	public synthetic fun <init> (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
+	public fun <init> (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;)V
+	public synthetic fun <init> (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;
 	public final fun component2 ()Ljava/util/List;
-	public final fun copy (Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
-	public static synthetic fun copy$default (Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;Lcom/luizalabs/ktor/toolkit/paginator/data/Page;Ljava/util/List;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
+	public final fun copy (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;Ljava/util/List;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getPage ()Lcom/luizalabs/ktor/toolkit/paginator/data/Page;
+	public final fun getPage ()Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page;
 	public final fun getSortBy ()Ljava/util/List;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
-public final synthetic class com/luizalabs/ktor/toolkit/paginator/web/PaginationRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest$$serializer;
+public final synthetic class com/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest$$serializer;
 	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;
 	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;)V
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
 	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/luizalabs/ktor/toolkit/paginator/web/PaginationRequest$Companion {
-	public final fun from (IILjava/util/List;I)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
-	public final fun from (Lio/ktor/http/Parameters;II)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
-	public static synthetic fun from$default (Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest$Companion;IILjava/util/List;IILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
-	public static synthetic fun from$default (Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest$Companion;Lio/ktor/http/Parameters;IIILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/paginator/web/PaginationRequest;
+public final class com/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest$Companion {
+	public final fun from (IILjava/util/List;I)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;
+	public final fun from (Lio/ktor/http/Parameters;II)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;
+	public static synthetic fun from$default (Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest$Companion;IILjava/util/List;IILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;
+	public static synthetic fun from$default (Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest$Companion;Lio/ktor/http/Parameters;IIILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 

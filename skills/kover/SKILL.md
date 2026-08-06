@@ -144,13 +144,13 @@ filters {
     excludes {
         // The compiler emits a non-inlined copy of a public inline function for the
         // declaration itself; callers inline the body instead, so that copy never runs.
-        annotatedBy("com.luizalabs.ktor.toolkit.cache.UnreachableBytecode")
+        annotatedBy("com.github.joaoseidel.ktor.toolkit.cache.UnreachableBytecode")
 
         // Every property of PaginationRequest is optional, so kotlinx.serialization guards
         // its generated `throwMissingFieldException` with `(0 and seen) != 0` — always
         // false. Named precisely: PaginationRequest$Companion, which holds the parsing this
         // class is really about, stays measured.
-        classes("com.luizalabs.ktor.toolkit.paginator.web.PaginationRequest")
+        classes("com.github.joaoseidel.ktor.toolkit.paginator.web.PaginationRequest")
     }
 }
 ```
