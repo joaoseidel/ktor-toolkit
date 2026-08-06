@@ -5,6 +5,8 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.mockk.every
+import io.mockk.mockk
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -13,12 +15,13 @@ import kotlin.time.Instant
 
 /** A clock the test moves by hand, so expiry can be exercised without sleeping. */
 private class TestClock(
-    var now: Instant = Instant.parse("2024-01-01T00:00:00Z"),
-) : Clock {
-    override fun now(): Instant = now
+    private var instant: Instant = Instant.parse("2024-01-01T00:00:00Z"),
+) {
+    /** What the cache is handed; it answers with wherever [advance] has moved this one to. */
+    val clock: Clock = mockk { every { now() } answers { instant } }
 
     fun advance(by: Duration) {
-        now += by
+        instant += by
     }
 }
 
@@ -104,41 +107,41 @@ class InMemoryCacheTest :
 
         context("expiry") {
             should("keep an entry for the whole ttl") {
-                val clock = TestClock()
-                val cache = InMemoryCache(ttl = 5.minutes, clock = clock)
+                val time = TestClock()
+                val cache = InMemoryCache(ttl = 5.minutes, clock = time.clock)
                 cache.put("a", bytes("1"))
 
-                clock.advance(4.minutes)
+                time.advance(4.minutes)
 
                 cache.get("a")?.decodeToString() shouldBe "1"
             }
 
             should("drop an entry once the ttl elapses") {
-                val clock = TestClock()
-                val cache = InMemoryCache(ttl = 5.minutes, clock = clock)
+                val time = TestClock()
+                val cache = InMemoryCache(ttl = 5.minutes, clock = time.clock)
                 cache.put("a", bytes("1"))
 
-                clock.advance(5.minutes)
+                time.advance(5.minutes)
 
                 cache.get("a").shouldBeNull()
             }
 
             should("leave expired entries out of the key listing") {
-                val clock = TestClock()
-                val cache = InMemoryCache(ttl = 5.minutes, clock = clock)
+                val time = TestClock()
+                val cache = InMemoryCache(ttl = 5.minutes, clock = time.clock)
                 cache.put("a", bytes("1"))
-                clock.advance(6.minutes)
+                time.advance(6.minutes)
                 cache.put("b", bytes("2"))
 
                 cache.keys() shouldContainExactlyInAnyOrder listOf("b")
             }
 
             should("never expire without a ttl") {
-                val clock = TestClock()
-                val cache = InMemoryCache(clock = clock)
+                val time = TestClock()
+                val cache = InMemoryCache(clock = time.clock)
                 cache.put("a", bytes("1"))
 
-                clock.advance((60 * 24 * 365).minutes)
+                time.advance((60 * 24 * 365).minutes)
 
                 cache.get("a")?.decodeToString() shouldBe "1"
             }

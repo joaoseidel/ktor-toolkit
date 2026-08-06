@@ -13,6 +13,8 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
@@ -45,57 +47,59 @@ private fun <T> withRequest(
     return checkNotNull(result) { "the route never ran" }.getOrThrow()
 }
 
-/** A cache whose every operation fails, standing in for a store that is down. */
-private class BrokenCache(
-    private val failure: () -> Throwable,
-) : KeyValueCache {
-    override suspend fun get(key: String): ByteArray? = throw failure()
+/** A cache whose every operation fails with [failure], standing in for a store that is down. */
+private fun brokenCache(failure: Throwable): KeyValueCache {
+    val cache = mockk<KeyValueCache>()
 
-    override suspend fun put(
-        key: String,
-        value: ByteArray,
-    ): Unit = throw failure()
+    coEvery { cache.get(any()) } throws failure
+    coEvery { cache.put(any(), any()) } throws failure
+    coEvery { cache.delete(any()) } throws failure
+    coEvery { cache.keys() } throws failure
 
-    override suspend fun delete(key: String): Unit = throw failure()
-
-    override suspend fun keys(): List<String> = throw failure()
+    return cache
 }
 
 /**
- * A store that lists a key whose entry it cannot hand back — either because it is gone, as a shared
- * cache's can be between the listing and the read, or because that one read fails.
+ * A store that lists [awkwardKey], whose entry it cannot hand back — either because it is gone, as
+ * a shared cache's can be between the listing and the read, or because that one read fails. Every
+ * other operation goes to [delegate].
  */
-private class PartialCache(
-    private val delegate: KeyValueCache,
-    private val awkwardKey: String,
-    private val read: () -> ByteArray?,
-) : KeyValueCache by delegate {
-    override suspend fun keys(): List<String> = delegate.keys() + awkwardKey
+private fun partialCache(
+    delegate: KeyValueCache,
+    awkwardKey: String,
+    read: () -> ByteArray?,
+): KeyValueCache {
+    val cache = mockk<KeyValueCache>()
 
-    override suspend fun get(key: String): ByteArray? = if (key == awkwardKey) read() else delegate.get(key)
+    coEvery { cache.keys() } coAnswers { delegate.keys() + awkwardKey }
+    coEvery { cache.get(awkwardKey) } answers { read() }
+    coEvery { cache.get(neq(awkwardKey)) } coAnswers { delegate.get(firstArg()) }
+    coEvery { cache.put(any(), any()) } coAnswers { delegate.put(firstArg(), secondArg()) }
+    coEvery { cache.delete(any()) } coAnswers { delegate.delete(firstArg()) }
+
+    return cache
 }
 
 /**
- * A store whose reads and writes really suspend, the way a network-backed one does.
+ * A store whose reads and writes really suspend, the way a network-backed one does, before handing
+ * over to [delegate].
  *
  * [InMemoryCache] answers without ever parking the caller, which leaves the suspension paths of
  * [withCache] untried — and those are the paths every remote cache, [LettuceCache] included, takes.
  */
-private class SuspendingCache(
-    private val delegate: KeyValueCache,
-) : KeyValueCache by delegate {
-    override suspend fun get(key: String): ByteArray? {
+private fun suspendingCache(delegate: KeyValueCache): KeyValueCache {
+    val cache = mockk<KeyValueCache>()
+
+    coEvery { cache.get(any()) } coAnswers {
         delay(1)
-        return delegate.get(key)
+        delegate.get(firstArg())
+    }
+    coEvery { cache.put(any(), any()) } coAnswers {
+        delay(1)
+        delegate.put(firstArg(), secondArg())
     }
 
-    override suspend fun put(
-        key: String,
-        value: ByteArray,
-    ) {
-        delay(1)
-        delegate.put(key, value)
-    }
+    return cache
 }
 
 /** Serves one book through [withCache] on its defaults, counting how often the origin was asked. */
@@ -199,7 +203,7 @@ class KtorCacheTest :
             }
 
             should("call the producer on a miss and serve the cache on a hit, through a store that suspends") {
-                val cache = SuspendingCache(InMemoryCache())
+                val cache = suspendingCache(InMemoryCache())
                 val calls = AtomicInteger()
 
                 cachedBook("/books/1", cache, calls) shouldBe Book("1", "Dune")
@@ -209,14 +213,14 @@ class KtorCacheTest :
             }
 
             should("serve from the origin when the cache is down") {
-                val cache = BrokenCache { IllegalStateException("redis is unreachable") }
+                val cache = brokenCache(IllegalStateException("redis is unreachable"))
 
                 cachedBook("/books/1", cache) shouldBe Book("1", "Dune")
             }
 
             should("propagate cancellation instead of swallowing it") {
                 // runCatching would have caught this and quietly broken structured concurrency.
-                val cache = BrokenCache { CancellationException("scope cancelled") }
+                val cache = brokenCache(CancellationException("scope cancelled"))
 
                 shouldThrow<CancellationException> { cachedBook("/books/1", cache) }
             }
@@ -258,7 +262,7 @@ class KtorCacheTest :
             }
 
             should("propagate cancellation instead of swallowing it") {
-                val cache = BrokenCache { CancellationException("scope cancelled") }
+                val cache = brokenCache(CancellationException("scope cancelled"))
 
                 shouldThrow<CancellationException> { cache.invalidateNamespace("books") }
             }
@@ -285,7 +289,7 @@ class KtorCacheTest :
             }
 
             should("report failure rather than throw when the cache is down") {
-                val cache = BrokenCache { IllegalStateException("redis is unreachable") }
+                val cache = brokenCache(IllegalStateException("redis is unreachable"))
 
                 cache.invalidateContaining("42") shouldBe false
             }
@@ -293,7 +297,7 @@ class KtorCacheTest :
             should("skip a listed key whose entry is already gone") {
                 val store = InMemoryCache()
                 store.put("books.one", """{"id":"42"}""".toByteArray())
-                val cache = PartialCache(store, awkwardKey = "books.ghost") { null }
+                val cache = partialCache(store, awkwardKey = "books.ghost") { null }
 
                 cache.invalidateContaining("42") shouldBe true
 
@@ -303,7 +307,7 @@ class KtorCacheTest :
             should("keep going when one entry cannot be read") {
                 val store = InMemoryCache()
                 store.put("books.one", """{"id":"42"}""".toByteArray())
-                val cache = PartialCache(store, awkwardKey = "books.broken") { error("unreadable") }
+                val cache = partialCache(store, awkwardKey = "books.broken") { error("unreadable") }
 
                 cache.invalidateContaining("42") shouldBe true
             }
@@ -311,13 +315,13 @@ class KtorCacheTest :
             should("report that nothing matched when the only readable entry does not mention the id") {
                 val store = InMemoryCache()
                 store.put("books.one", """{"id":"7"}""".toByteArray())
-                val cache = PartialCache(store, awkwardKey = "books.broken") { error("unreadable") }
+                val cache = partialCache(store, awkwardKey = "books.broken") { error("unreadable") }
 
                 cache.invalidateContaining("42") shouldBe false
             }
 
             should("propagate cancellation instead of swallowing it") {
-                val cache = BrokenCache { CancellationException("scope cancelled") }
+                val cache = brokenCache(CancellationException("scope cancelled"))
 
                 shouldThrow<CancellationException> { cache.invalidateContaining("42") }
             }
