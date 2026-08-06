@@ -45,9 +45,9 @@ Two things to say while asking, because they change the answer:
 
 - **`hateoas` brings `paginator` with it** as an `api` dependency. Selecting hateoas alone is fine
   and complete — do not also list paginator.
-- **`problem-details` is the one to default to.** Every service returns errors, and it is the module that
-  decides what a client sees when something goes wrong. A service that skips it answers validation
-  failures with Ktor's default HTML error page.
+- **`problem-details` is the one to default to.** Every service returns errors, and it is the
+  module that decides what a client sees when something goes wrong. A service that skips it answers
+  validation failures with Ktor's default HTML error page.
 
 If the user says "all of them", that is a legitimate answer for a greenfield service — take it.
 
@@ -85,7 +85,7 @@ In a single-module Ktor service, `implementation` is right:
 ```kotlin
 dependencies {
     implementation(libs.ktor.toolkit.paginator)
-    implementation(libs.ktor.toolkit.mediator)
+    implementation(libs.ktor.toolkit.problem.details)
 }
 ```
 
@@ -128,7 +128,7 @@ fun Application.module() {
         json()
     }
 
-    // ktor-toolkit-mediator
+    // ktor-toolkit-problem-details
     install(StatusPages) {
         problemDetails {
             namingStrategy = JsonNamingStrategy.SnakeCase

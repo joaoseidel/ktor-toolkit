@@ -2,7 +2,7 @@
 name: start
 description: >-
   Entry point for every task in a service built with Ktor Toolkit (com.luizalabs.ktor-toolkit —
-  paginator, hateoas, validator, mediator, expander, cache). Run this FIRST, before writing or
+  paginator, hateoas, validator, problem-details, expander, cache). Run this FIRST, before writing or
   changing any Kotlin, to work out which toolkit modules a task touches and which
   ktor-toolkit skills to load. Use it whenever the request involves a Ktor route, endpoint, use
   case, repository, adapter, request or response DTO, paging, sorting, filtering, links, error
