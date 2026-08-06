@@ -15,7 +15,7 @@ plugins {
 val javaVersion = 21
 
 allprojects {
-    group = "com.luizalabs.ktor-toolkit"
+    group = "com.github.joaoseidel.ktor-toolkit"
     version = providers.gradleProperty("version").get()
 
     repositories {
