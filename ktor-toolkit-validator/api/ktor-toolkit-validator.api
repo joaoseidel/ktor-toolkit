@@ -1,40 +1,58 @@
 public final class com/luizalabs/ktor/toolkit/validator/PropertyValidator {
 	public final fun getErrors ()Ljava/util/List;
-	public final fun getProperty ()Lkotlin/reflect/KProperty1;
+	public final fun getPath ()Ljava/lang/String;
 	public final fun getShould ()Lcom/luizalabs/ktor/toolkit/validator/ShouldScope;
 	public final fun getTarget ()Ljava/lang/Object;
+	public final fun getValue ()Ljava/lang/Object;
 }
 
 public abstract interface class com/luizalabs/ktor/toolkit/validator/RequestValidator {
 	public abstract fun validate (Lcom/luizalabs/ktor/toolkit/validator/ValidationContext;)V
 }
 
+public final class com/luizalabs/ktor/toolkit/validator/RuleOutcome {
+	public final fun describedAs (Ljava/lang/String;)V
+}
+
 public final class com/luizalabs/ktor/toolkit/validator/ShouldScope {
-	public fun <init> (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;)V
-	public final fun be (Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;)Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;
-	public final fun notBe (Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;)Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;
+	public final fun be (Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;)Lcom/luizalabs/ktor/toolkit/validator/RuleOutcome;
+	public final fun notBe (Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;)Lcom/luizalabs/ktor/toolkit/validator/RuleOutcome;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/ValidationContext {
 	public fun <init> (Ljava/lang/Object;)V
+	public final fun each (Lkotlin/reflect/KProperty1;Lkotlin/jvm/functions/Function1;)V
+	public final fun eachNested (Lkotlin/reflect/KProperty1;Lkotlin/jvm/functions/Function1;)V
 	public final fun getErrors ()Ljava/util/List;
 	public final fun getHasErrors ()Z
+	public final fun getTarget ()Ljava/lang/Object;
+	public final fun invariant (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun invariant$default (Lcom/luizalabs/ktor/toolkit/validator/ValidationContext;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public final fun nested (Lkotlin/reflect/KProperty1;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
 	public static synthetic fun nested$default (Lcom/luizalabs/ktor/toolkit/validator/ValidationContext;Lkotlin/reflect/KProperty1;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public final fun property (Lkotlin/reflect/KProperty1;Lkotlin/jvm/functions/Function1;)Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;
-	public final fun validateResult ()Lio/ktor/server/plugins/requestvalidation/ValidationResult;
+	public final fun toValidationResult ()Lio/ktor/server/plugins/requestvalidation/ValidationResult;
+	public final fun whenever (ZLkotlin/jvm/functions/Function1;)V
 }
 
-public abstract class com/luizalabs/ktor/toolkit/validator/ValidationRule {
-	public fun <init> ()V
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun apply (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Z)Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;
-	protected fun getAppliesToNull ()Z
-	public fun getNegativeMessage ()Ljava/lang/String;
-	public fun getPositiveMessage ()Ljava/lang/String;
-	public abstract fun supportedTypes ()Ljava/util/List;
-	public abstract fun validate (Ljava/lang/Object;)Z
+public abstract interface annotation class com/luizalabs/ktor/toolkit/validator/ValidationDsl : java/lang/annotation/Annotation {
+}
+
+public final class com/luizalabs/ktor/toolkit/validator/ValidationRule {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getAppliesToNull ()Z
+	public final fun getNegativeMessage ()Ljava/lang/String;
+	public final fun getPositiveMessage ()Ljava/lang/String;
+	public final fun getTest ()Lkotlin/jvm/functions/Function1;
+}
+
+public final class com/luizalabs/ktor/toolkit/validator/ValidationRuleKt {
+	public static final fun and (Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun describedAs (Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun not (Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun or (Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun validationRule (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/data/ValidationError {
@@ -67,82 +85,104 @@ public final class com/luizalabs/ktor/toolkit/validator/data/ValidationError$Com
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/AfterKt {
-	public static final fun after (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun after$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun afterInstant (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun afterInstant$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun afterLocalDate (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun afterLocalDate$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun afterLocalDateTime (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun afterLocalDateTime$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/BeforeKt {
-	public static final fun before (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun before$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun beforeInstant (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun beforeInstant$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun beforeLocalDate (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun beforeLocalDate$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun beforeLocalDateTime (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun beforeLocalDateTime$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Object;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/BlankKt {
-	public static final fun blank (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun blank$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun blank (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/EmailKt {
-	public static final fun email (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun email$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun email (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/FutureKt {
-	public static final fun future-i8z2VEo (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun future-i8z2VEo$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun futureInstant (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun futureInstant$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun futureLocalDate (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun futureLocalDate$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun futureLocalDateTime (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun futureLocalDateTime$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/InRangeKt {
-	public static final fun inRange (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Number;Ljava/lang/Number;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun inRange$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Number;Ljava/lang/Number;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun inRange (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Number;Ljava/lang/Number;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/MaxKt {
-	public static final fun max (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Number;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun max$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Number;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun max (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Number;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/MinKt {
-	public static final fun min (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Number;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun min$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Number;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun min (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/Number;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/NegativeKt {
-	public static final fun negative (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun negative$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun negative (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/NilKt {
-	public static final fun nil (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun nil$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun nil (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/PastKt {
-	public static final fun past-i8z2VEo (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun past-i8z2VEo$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun pastInstant (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun pastInstant$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun pastLocalDate (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun pastLocalDate$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun pastLocalDateTime (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun pastLocalDateTime$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/time/Duration;Lkotlin/time/Instant;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/PatternKt {
-	public static final fun pattern (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/text/Regex;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun pattern$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/text/Regex;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun pattern (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Lkotlin/text/Regex;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/PositiveKt {
-	public static final fun positive (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun positive$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun positive (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+}
+
+public final class com/luizalabs/ktor/toolkit/validator/validators/SatisfyingKt {
+	public static final fun satisfying (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/SizeKt {
-	public static final fun size (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;IILjava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun size$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;IILjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun sizeOfArray (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;II)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun sizeOfArray$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;IIILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun sizeOfCollection (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;II)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun sizeOfCollection$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;IIILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun sizeOfMap (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;II)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun sizeOfMap$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;IIILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun sizeOfString (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;II)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun sizeOfString$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;IIILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/UuidKt {
-	public static final fun uuid (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun uuid$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun uuidOfJavaUuid (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun uuidOfKotlinUuid (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun uuidOfString (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 
 public final class com/luizalabs/ktor/toolkit/validator/validators/WithinKt {
-	public static final fun within-NcHsxvU (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;JLkotlin/time/Instant;Lkotlinx/datetime/TimeZone;Ljava/lang/String;Ljava/lang/String;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
-	public static synthetic fun within-NcHsxvU$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;JLkotlin/time/Instant;Lkotlinx/datetime/TimeZone;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun withinInstant (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;JLkotlin/time/Instant;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun withinInstant$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;JLkotlin/time/Instant;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun withinLocalDate (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;JLkotlin/time/Instant;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun withinLocalDate$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;JLkotlin/time/Instant;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static final fun withinLocalDateTime (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;JLkotlin/time/Instant;Lkotlinx/datetime/TimeZone;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
+	public static synthetic fun withinLocalDateTime$default (Lcom/luizalabs/ktor/toolkit/validator/PropertyValidator;JLkotlin/time/Instant;Lkotlinx/datetime/TimeZone;ILjava/lang/Object;)Lcom/luizalabs/ktor/toolkit/validator/ValidationRule;
 }
 

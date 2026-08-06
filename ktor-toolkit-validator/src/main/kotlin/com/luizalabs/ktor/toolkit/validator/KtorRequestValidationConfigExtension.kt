@@ -19,7 +19,7 @@ inline fun <reified T : Any> RequestValidationConfig.withValidationContext(noinl
     validate<T> { request ->
         val context = ValidationContext(target = request)
         context.block()
-        return@validate context.validateResult()
+        return@validate context.toValidationResult()
     }
 
 /**
@@ -38,5 +38,5 @@ inline fun <reified T : Any> RequestValidationConfig.withValidationContext(valid
     validate<T> { request ->
         val context = ValidationContext(target = request)
         with(receiver = validator) { context.validate() }
-        return@validate context.validateResult()
+        return@validate context.toValidationResult()
     }

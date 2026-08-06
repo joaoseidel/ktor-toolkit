@@ -1,45 +1,52 @@
 package com.luizalabs.ktor.toolkit.validator
 
 import com.luizalabs.ktor.toolkit.validator.data.ValidationError
-import kotlin.reflect.KProperty1
 
 /**
- * Validates a property of a target object and tracks validation errors.
+ * The receiver of every validation rule: one value, at one path, within the object being validated.
  *
- * This class encapsulates the logic for validating a specific property of a target
- * object. It provides a mechanism to associate validation errors with the property
- * when certain conditions fail. The validation process can be customized using the
- * [should] property, which holds a scoped mechanism for applying validation rules.
+ * Instances are created by [ValidationContext.property] and [ValidationContext.each]; the type
+ * itself is public because rules are declared as extensions on it. A rule states the property types
+ * it accepts through its receiver — `fun PropertyValidator<*, String?>.email()` — and [V] is
+ * covariant, so `PropertyValidator<Book, String>` matches that receiver while
+ * `PropertyValidator<Book, Int>` does not. Asserting a rule on a property it cannot apply to is
+ * therefore an unresolved reference rather than a runtime type error.
  *
- * Instances are created by [ValidationContext.property]; the type itself is public because it is
- * the receiver of every validation rule.
- *
- * @param T The type of the target object being validated.
- * @param V The type of the property being validated.
- * @property target The target object containing the property to validate.
- * @property property A reference to the property being validated.
+ * @param T The type of the object that owns the value.
+ * @param V The type of the value being validated.
+ * @property target The object that owns the value. Exposed so a rule can be made conditional on a
+ * sibling field, as in `should be after(target.startsAt)`.
+ * @property path The property path errors are recorded under, such as `title`, `publisher.name` or
+ * `tags[0]`.
+ * @property value The value being validated.
  */
-class PropertyValidator<T, V> internal constructor(
+@ValidationDsl
+class PropertyValidator<T, out V> internal constructor(
     val target: T,
-    val property: KProperty1<T, V>,
+    val path: String,
+    val value: V,
     private val collected: MutableList<ValidationError>,
 ) {
     /** The errors recorded so far, shared with the owning [ValidationContext]. */
     val errors: List<ValidationError> get() = collected
 
-    internal val propertyPath = property.name
-    internal val propertyValue: V = property.get(target)
+    /**
+     * The entry point for validation rules, letting them read as `should be email()` or
+     * `should notBe nil()`. Any violation is recorded on this validator.
+     */
+    val should: ShouldScope<T, V> = ShouldScope(this)
 
-    internal fun addError(message: String) {
-        collected.add(ValidationError(propertyPath, message))
+    /** Records [message] against this property and returns the index it landed at. */
+    internal fun addError(message: String): Int {
+        collected += ValidationError(path, message)
+        return collected.lastIndex
     }
 
-    /**
-     * Provides a fluent API for specifying validation rules on a property.
-     *
-     * This property serves as an entry point to the [ShouldScope] for the current
-     * property being validated, allowing rules to be expressed as `should be email()`
-     * or `should notBe nil()`. Any violation is recorded on this validator.
-     */
-    val should = ShouldScope(this)
+    /** Rewords an already recorded error, backing `describedAs` on a [RuleOutcome]. */
+    internal fun replaceError(
+        index: Int,
+        message: String,
+    ) {
+        collected[index] = collected[index].copy(message = message)
+    }
 }

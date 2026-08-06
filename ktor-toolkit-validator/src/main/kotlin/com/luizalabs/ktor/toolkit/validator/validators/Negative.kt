@@ -2,32 +2,16 @@ package com.luizalabs.ktor.toolkit.validator.validators
 
 import com.luizalabs.ktor.toolkit.validator.PropertyValidator
 import com.luizalabs.ktor.toolkit.validator.ValidationRule
+import com.luizalabs.ktor.toolkit.validator.validationRule
 
 /**
- * Adds a validation rule to ensure a property is negative.
+ * Asserts that a number is less than zero.
  *
- * This method validates whether the property value is a negative number (less than zero) and
- * can also check its negated condition (not negative). It supports various numeric types,
- * such as Int, Long, Float, and Double.
- *
- * @param positiveMessage The error message to be used if the property fails the validation when the rule is not negated.
- *                        Defaults to "should be negative".
- * @param negativeMessage The error message to be used if the property fails the validation when the rule is negated.
- *                        Defaults to "should not be negative".
+ * Applies to a property of any [Number] type. Zero is neither negative nor positive, so
+ * `should notBe negative()` is not the same as `should be positive()`.
  */
-fun PropertyValidator<*, *>.negative(
-    positiveMessage: String = "should be negative",
-    negativeMessage: String = "should not be negative",
-): ValidationRule =
-    object : ValidationRule(positiveMessage, negativeMessage) {
-        override fun supportedTypes(): List<Class<*>> = listOf(Number::class.java)
-
-        override fun validate(value: Any?) =
-            when (value) {
-                is Int -> value < 0
-                is Long -> value < 0
-                is Float -> value < 0
-                is Double -> value < 0
-                else -> false
-            }
-    }
+fun PropertyValidator<*, Number?>.negative(): ValidationRule<Number?> =
+    validationRule(
+        positiveMessage = "should be negative",
+        negativeMessage = "should not be negative",
+    ) { value -> value.compareWith(0) < 0 }

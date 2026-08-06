@@ -2,46 +2,73 @@ package com.luizalabs.ktor.toolkit.validator.validators
 
 import com.luizalabs.ktor.toolkit.validator.PropertyValidator
 import com.luizalabs.ktor.toolkit.validator.ValidationRule
+import com.luizalabs.ktor.toolkit.validator.validationRule
 
 /**
- * Adds a validation rule to ensure the size of a property value is within a specified range.
+ * Asserts that a string's length falls in `min..max`, both inclusive.
  *
- * This method validates whether the size of the property value falls between the specified
- * minimum and maximum boundaries (inclusive). It supports property types such as String,
- * Collection, Array, and Map.
- *
- * @param min The minimum allowed size for the property. Defaults to 0.
- * @param max The maximum allowed size for the property. Defaults to [Int.MAX_VALUE].
- * @param positiveMessage The error message to be used if the property fails the validation
- *                        when the rule is not negated. Defaults to "size should be between $min and $max".
- * @param negativeMessage The error message to be used if the property fails the validation
- *                        when the rule is negated. Defaults to "size should not be between $min and $max".
+ * @param min The smallest accepted size.
+ * @param max The largest accepted size.
  */
-fun PropertyValidator<*, *>.size(
+@JvmName("sizeOfString")
+fun PropertyValidator<*, String?>.size(
     min: Int = 0,
     max: Int = Int.MAX_VALUE,
-    positiveMessage: String = "size should be between $min and $max",
-    negativeMessage: String = "size should not be between $min and $max",
-): ValidationRule =
-    object : ValidationRule(positiveMessage, negativeMessage) {
-        override fun supportedTypes(): List<Class<*>> =
-            listOf(
-                String::class.java,
-                Collection::class.java,
-                Array::class.java,
-                Map::class.java,
-            )
+): ValidationRule<String?> = sizeRule(min, max)
 
-        override fun validate(value: Any?): Boolean {
-            val size =
-                when (value) {
-                    is String -> value.length
-                    is Collection<*> -> value.size
-                    is Array<*> -> value.size
-                    is Map<*, *> -> value.size
-                    else -> return false
-                }
+/**
+ * Asserts that a collection's size falls in `min..max`, both inclusive.
+ *
+ * @param min The smallest accepted size.
+ * @param max The largest accepted size.
+ */
+@JvmName("sizeOfCollection")
+fun PropertyValidator<*, Collection<*>?>.size(
+    min: Int = 0,
+    max: Int = Int.MAX_VALUE,
+): ValidationRule<Collection<*>?> = sizeRule(min, max)
 
-            return size in min..max
-        }
+/**
+ * Asserts that a map's size falls in `min..max`, both inclusive.
+ *
+ * @param min The smallest accepted size.
+ * @param max The largest accepted size.
+ */
+@JvmName("sizeOfMap")
+fun PropertyValidator<*, Map<*, *>?>.size(
+    min: Int = 0,
+    max: Int = Int.MAX_VALUE,
+): ValidationRule<Map<*, *>?> = sizeRule(min, max)
+
+/**
+ * Asserts that an array's size falls in `min..max`, both inclusive.
+ *
+ * @param min The smallest accepted size.
+ * @param max The largest accepted size.
+ */
+@JvmName("sizeOfArray")
+fun PropertyValidator<*, Array<*>?>.size(
+    min: Int = 0,
+    max: Int = Int.MAX_VALUE,
+): ValidationRule<Array<*>?> = sizeRule(min, max)
+
+private fun sizeRule(
+    min: Int,
+    max: Int,
+): ValidationRule<Any?> =
+    validationRule(
+        positiveMessage = "size should be between $min and $max",
+        negativeMessage = "size should not be between $min and $max",
+    ) { value ->
+        val size =
+            when (value) {
+                is String -> value.length
+                is Collection<*> -> value.size
+                is Map<*, *> -> value.size
+                is Array<*> -> value.size
+                // Unreachable: the receiver of every `size` overload pins the type.
+                else -> return@validationRule false
+            }
+
+        size in min..max
     }

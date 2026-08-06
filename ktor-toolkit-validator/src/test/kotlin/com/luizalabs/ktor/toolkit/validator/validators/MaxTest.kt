@@ -1,268 +1,79 @@
 package com.luizalabs.ktor.toolkit.validator.validators
 
-import com.luizalabs.ktor.toolkit.validator.PropertyValidator
-import com.luizalabs.ktor.toolkit.validator.data.ValidationError
+import com.luizalabs.ktor.toolkit.validator.support.messagesOf
 import io.kotest.core.spec.style.ShouldSpec
-import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
-import io.mockk.every
-import io.mockk.mockk
-import kotlin.reflect.KProperty1
+import java.math.BigDecimal
+import java.math.BigInteger
 
 class MaxTest :
     ShouldSpec({
-        context("max validator") {
-            val maxValue = 100
-
-            context("type compatibility") {
-                should("support Number type") {
-                    val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                    val rule = validator.max(maxValue)
-
-                    rule.supportedTypes() shouldContainExactly listOf(Number::class.java)
-                }
-
-                should("reject non-Number types") {
-                    val property = mockk<KProperty1<Any, String>>()
-                    val target = mockk<Any>()
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.name } returns "text"
-                    every { property.get(target) } returns "not a number"
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(validator.max(maxValue))
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should be of type Number"
-                }
+        context("be max") {
+            should("accept a value below the bound") {
+                messagesOf(9) { should be max(10) } shouldBe emptyList()
             }
 
-            context("validation") {
-                context("be context") {
-                    context("Integer type") {
-                        val property = mockk<KProperty1<Any, Int>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept value equal to maximum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns maxValue
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.max(maxValue))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("accept value below maximum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns maxValue - 10
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.max(maxValue))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject value above maximum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns maxValue + 10
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.max(maxValue))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be less than or equal to $maxValue"
-                        }
-                    }
-
-                    context("Float type") {
-                        val property = mockk<KProperty1<Any, Float>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept value below maximum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns maxValue - 10.5f
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.max(maxValue))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject value above maximum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns maxValue + 10.5f
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.max(maxValue))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be less than or equal to $maxValue"
-                        }
-                    }
-
-                    context("Double type") {
-                        val property = mockk<KProperty1<Any, Double>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept value below maximum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns maxValue - 10.5
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.max(maxValue))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject value above maximum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns maxValue + 10.5
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.max(maxValue))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be less than or equal to $maxValue"
-                        }
-                    }
-
-                    context("Long type") {
-                        val property = mockk<KProperty1<Any, Long>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept value below maximum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns maxValue - 10L
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.max(maxValue))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject value above maximum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns maxValue + 10L
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.max(maxValue))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be less than or equal to $maxValue"
-                        }
-                    }
-                }
-
-                context("notBe context") {
-                    val property = mockk<KProperty1<Any, Int>>()
-                    val target = mockk<Any>()
-                    every { property.name } returns "value"
-
-                    should("reject value below maximum") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns maxValue - 10
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.max(maxValue))
-
-                        errors.size shouldBe 1
-                        errors[0].message shouldBe "should not be less than or equal to $maxValue"
-                    }
-
-                    should("reject value equal to maximum") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns maxValue
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.max(maxValue))
-
-                        errors.size shouldBe 1
-                        errors[0].message shouldBe "should not be less than or equal to $maxValue"
-                    }
-
-                    should("accept value above maximum") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns maxValue + 10
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.max(maxValue))
-
-                        errors shouldBe emptyList()
-                    }
-                }
+            should("accept the bound itself") {
+                messagesOf(10) { should be max(10) } shouldBe emptyList()
             }
 
-            context("default error messages") {
-                val property = mockk<KProperty1<Any, Int>>()
-                val target = mockk<Any>()
-                every { property.name } returns "value"
+            should("reject a value above it") {
+                messagesOf(11) { should be max(10) } shouldBe listOf("should be less than or equal to 10")
+            }
+        }
 
-                should("use default positive message") {
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.get(target) } returns maxValue + 10
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(validator.max(maxValue))
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should be less than or equal to $maxValue"
-                }
-
-                should("use default negative message") {
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.get(target) } returns maxValue - 10
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.notBe(validator.max(maxValue))
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should not be less than or equal to $maxValue"
-                }
+        context("notBe max") {
+            should("accept a value above the bound") {
+                messagesOf(11) { should notBe max(10) } shouldBe emptyList()
             }
 
-            context("custom error messages") {
-                val property = mockk<KProperty1<Any, Int>>()
-                val target = mockk<Any>()
-                every { property.name } returns "value"
-
-                should("use custom positive message") {
-                    val errors = mutableListOf<ValidationError>()
-                    val customMessage = "custom positive message"
-                    every { property.get(target) } returns maxValue + 10
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(
-                        validator.max(
-                            maxValue = maxValue,
-                            positiveMessage = customMessage,
-                        ),
-                    )
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe customMessage
-                }
-
-                should("use custom negative message") {
-                    val errors = mutableListOf<ValidationError>()
-                    val customMessage = "custom negative message"
-                    every { property.get(target) } returns maxValue - 10
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.notBe(
-                        validator.max(
-                            maxValue = maxValue,
-                            negativeMessage = customMessage,
-                        ),
-                    )
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe customMessage
-                }
+            should("reject a value at or below it") {
+                messagesOf(10) { should notBe max(10) } shouldBe listOf("should not be less than or equal to 10")
             }
+        }
+
+        context("across numeric types") {
+            should("compare a Long") {
+                messagesOf(10L) { should be max(10) } shouldBe emptyList()
+                messagesOf(11L) { should be max(10) }.size shouldBe 1
+            }
+
+            should("compare a Double") {
+                messagesOf(9.5) { should be max(10) } shouldBe emptyList()
+                messagesOf(10.5) { should be max(10) }.size shouldBe 1
+            }
+
+            should("compare a Float") {
+                messagesOf(9.5f) { should be max(10) } shouldBe emptyList()
+            }
+
+            should("compare a Short") {
+                messagesOf(10.toShort()) { should be max(10) } shouldBe emptyList()
+                messagesOf(11.toShort()) { should be max(10) }.size shouldBe 1
+            }
+
+            should("compare a Byte") {
+                messagesOf(10.toByte()) { should be max(10) } shouldBe emptyList()
+                messagesOf(11.toByte()) { should be max(10) }.size shouldBe 1
+            }
+
+            should("compare a BigDecimal") {
+                messagesOf(BigDecimal("9.99")) { should be max(10) } shouldBe emptyList()
+                messagesOf(BigDecimal("10.01")) { should be max(10) }.size shouldBe 1
+            }
+
+            should("compare a BigInteger") {
+                messagesOf(BigInteger("9")) { should be max(10) } shouldBe emptyList()
+                messagesOf(BigInteger("11")) { should be max(10) }.size shouldBe 1
+            }
+
+            should("compare against a bound of a different type") {
+                messagesOf(10) { should be max(10.5) } shouldBe emptyList()
+                messagesOf(10) { should be max(9.5) }.size shouldBe 1
+            }
+        }
+
+        should("stay silent on an absent value") {
+            messagesOf<Int?>(null) { should be max(10) } shouldBe emptyList()
         }
     })

@@ -1,268 +1,79 @@
 package com.luizalabs.ktor.toolkit.validator.validators
 
-import com.luizalabs.ktor.toolkit.validator.PropertyValidator
-import com.luizalabs.ktor.toolkit.validator.data.ValidationError
+import com.luizalabs.ktor.toolkit.validator.support.messagesOf
 import io.kotest.core.spec.style.ShouldSpec
-import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
-import io.mockk.every
-import io.mockk.mockk
-import kotlin.reflect.KProperty1
+import java.math.BigDecimal
+import java.math.BigInteger
 
 class MinTest :
     ShouldSpec({
-        context("min validator") {
-            val minValue = 10
-
-            context("type compatibility") {
-                should("support Number type") {
-                    val validator = mockk<PropertyValidator<*, *>>(relaxed = true)
-                    val rule = validator.min(minValue)
-
-                    rule.supportedTypes() shouldContainExactly listOf(Number::class.java)
-                }
-
-                should("reject non-Number types") {
-                    val property = mockk<KProperty1<Any, String>>()
-                    val target = mockk<Any>()
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.name } returns "text"
-                    every { property.get(target) } returns "not a number"
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(validator.min(minValue))
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should be of type Number"
-                }
+        context("be min") {
+            should("accept a value above the bound") {
+                messagesOf(11) { should be min(10) } shouldBe emptyList()
             }
 
-            context("validation") {
-                context("be context") {
-                    context("Integer type") {
-                        val property = mockk<KProperty1<Any, Int>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept value equal to minimum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns minValue
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.min(minValue))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("accept value above minimum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns minValue + 5
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.min(minValue))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject value below minimum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns minValue - 1
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.min(minValue))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be greater than or equal to $minValue"
-                        }
-                    }
-
-                    context("Float type") {
-                        val property = mockk<KProperty1<Any, Float>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept value above minimum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns minValue + 0.5f
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.min(minValue))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject value below minimum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns minValue - 0.5f
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.min(minValue))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be greater than or equal to $minValue"
-                        }
-                    }
-
-                    context("Double type") {
-                        val property = mockk<KProperty1<Any, Double>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept value above minimum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns minValue + 0.5
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.min(minValue))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject value below minimum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns minValue - 0.5
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.min(minValue))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be greater than or equal to $minValue"
-                        }
-                    }
-
-                    context("Long type") {
-                        val property = mockk<KProperty1<Any, Long>>()
-                        val target = mockk<Any>()
-                        every { property.name } returns "value"
-
-                        should("accept value above minimum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns minValue + 5L
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.min(minValue))
-
-                            errors shouldBe emptyList()
-                        }
-
-                        should("reject value below minimum") {
-                            val errors = mutableListOf<ValidationError>()
-                            every { property.get(target) } returns minValue - 1L
-
-                            val validator = PropertyValidator(target, property, errors)
-                            validator.should.be(validator.min(minValue))
-
-                            errors.size shouldBe 1
-                            errors[0].message shouldBe "should be greater than or equal to $minValue"
-                        }
-                    }
-                }
-
-                context("notBe context") {
-                    val property = mockk<KProperty1<Any, Int>>()
-                    val target = mockk<Any>()
-                    every { property.name } returns "value"
-
-                    should("reject value above minimum") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns minValue + 5
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.min(minValue))
-
-                        errors.size shouldBe 1
-                        errors[0].message shouldBe "should not be greater than or equal to $minValue"
-                    }
-
-                    should("reject value equal to minimum") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns minValue
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.min(minValue))
-
-                        errors.size shouldBe 1
-                        errors[0].message shouldBe "should not be greater than or equal to $minValue"
-                    }
-
-                    should("accept value below minimum") {
-                        val errors = mutableListOf<ValidationError>()
-                        every { property.get(target) } returns minValue - 1
-
-                        val validator = PropertyValidator(target, property, errors)
-                        validator.should.notBe(validator.min(minValue))
-
-                        errors shouldBe emptyList()
-                    }
-                }
+            should("accept the bound itself") {
+                messagesOf(10) { should be min(10) } shouldBe emptyList()
             }
 
-            context("default error messages") {
-                val property = mockk<KProperty1<Any, Int>>()
-                val target = mockk<Any>()
-                every { property.name } returns "value"
+            should("reject a value below it") {
+                messagesOf(9) { should be min(10) } shouldBe listOf("should be greater than or equal to 10")
+            }
+        }
 
-                should("use default positive message") {
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.get(target) } returns minValue - 1
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(validator.min(minValue))
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should be greater than or equal to $minValue"
-                }
-
-                should("use default negative message") {
-                    val errors = mutableListOf<ValidationError>()
-                    every { property.get(target) } returns minValue + 5
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.notBe(validator.min(minValue))
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe "should not be greater than or equal to $minValue"
-                }
+        context("notBe min") {
+            should("accept a value below the bound") {
+                messagesOf(9) { should notBe min(10) } shouldBe emptyList()
             }
 
-            context("custom error messages") {
-                val property = mockk<KProperty1<Any, Int>>()
-                val target = mockk<Any>()
-                every { property.name } returns "value"
-
-                should("use custom positive message") {
-                    val errors = mutableListOf<ValidationError>()
-                    val customMessage = "custom positive message"
-                    every { property.get(target) } returns minValue - 1
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.be(
-                        validator.min(
-                            minValue = minValue,
-                            positiveMessage = customMessage,
-                        ),
-                    )
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe customMessage
-                }
-
-                should("use custom negative message") {
-                    val errors = mutableListOf<ValidationError>()
-                    val customMessage = "custom negative message"
-                    every { property.get(target) } returns minValue + 5
-
-                    val validator = PropertyValidator(target, property, errors)
-                    validator.should.notBe(
-                        validator.min(
-                            minValue = minValue,
-                            negativeMessage = customMessage,
-                        ),
-                    )
-
-                    errors.size shouldBe 1
-                    errors[0].message shouldBe customMessage
-                }
+            should("reject a value at or above it") {
+                messagesOf(10) { should notBe min(10) } shouldBe listOf("should not be greater than or equal to 10")
             }
+        }
+
+        context("across numeric types") {
+            should("compare a Long") {
+                messagesOf(10L) { should be min(10) } shouldBe emptyList()
+                messagesOf(9L) { should be min(10) }.size shouldBe 1
+            }
+
+            should("compare a Double") {
+                messagesOf(10.5) { should be min(10) } shouldBe emptyList()
+                messagesOf(9.5) { should be min(10) }.size shouldBe 1
+            }
+
+            should("compare a Float") {
+                messagesOf(10.5f) { should be min(10) } shouldBe emptyList()
+            }
+
+            should("compare a Short") {
+                messagesOf(10.toShort()) { should be min(10) } shouldBe emptyList()
+                messagesOf(9.toShort()) { should be min(10) }.size shouldBe 1
+            }
+
+            should("compare a Byte") {
+                messagesOf(10.toByte()) { should be min(10) } shouldBe emptyList()
+                messagesOf(9.toByte()) { should be min(10) }.size shouldBe 1
+            }
+
+            should("compare a BigDecimal") {
+                messagesOf(BigDecimal("10.01")) { should be min(10) } shouldBe emptyList()
+                messagesOf(BigDecimal("9.99")) { should be min(10) }.size shouldBe 1
+            }
+
+            should("compare a BigInteger") {
+                messagesOf(BigInteger("11")) { should be min(10) } shouldBe emptyList()
+                messagesOf(BigInteger("9")) { should be min(10) }.size shouldBe 1
+            }
+
+            should("compare against a bound of a different type") {
+                messagesOf(10) { should be min(9.5) } shouldBe emptyList()
+                messagesOf(10) { should be min(10.5) }.size shouldBe 1
+            }
+        }
+
+        should("stay silent on an absent value") {
+            messagesOf<Int?>(null) { should be min(10) } shouldBe emptyList()
         }
     })

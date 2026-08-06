@@ -16,6 +16,11 @@ class ValidationErrorTest :
 
                     result shouldBe "`$propertyPath` $message"
                 }
+
+                should("drop the backticks when the error belongs to the object itself") {
+                    ValidationError("", "should not end before it starts").toString() shouldBe
+                        "should not end before it starts"
+                }
             }
         }
     })
