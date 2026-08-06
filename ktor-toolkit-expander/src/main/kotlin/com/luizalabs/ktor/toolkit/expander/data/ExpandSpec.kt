@@ -12,15 +12,26 @@ private typealias Batch<F> = suspend (ids: Set<String>, fields: Set<String>) -> 
  *   `spec.apply(item, expand)`        — single item
  *   `spec.apply(items, expand)`       — list, one batch call per registered field
  *
+ * ```kotlin
+ * val reviewSpec = ExpandSpec.build<Review> {
+ *     field("author", get = { it.author }, set = { copy(author = it) }) {
+ *         batch { ids, fields -> userRepository.findAll(ids, fields) }
+ *         nested {
+ *             listField("books", get = { it.books }, set = { copy(books = it) }) {
+ *                 batch { ids, _ -> bookRepository.findAll(ids) }
+ *             }
+ *         }
+ *     }
+ * }
+ * ```
+ *
  * Field kinds:
- *   [Builder.field]            — single [Expandable] field (e.g. `author`)
- *   [Builder.optionalField]    — nullable single field (e.g. `mergedInto`)
+ *   [Builder.field]            — single [Expandable] field, nullable or not (e.g. `author`)
  *   [Builder.listField]        — list field (e.g. `chapters`)
  *   [Builder.polymorphicField] — single field resolved by a per-item type discriminator
  *
- * Supports arbitrary nesting via the `nested` parameter on any field kind:
- *   `?expand=author.books` resolves `author` first, then applies a nested
- *   [ExpandSpec] to each resolved value using `expand.child("author")`.
+ * Nesting is arbitrary: `?expand=author.books` resolves `author` first, then applies the nested
+ * spec to each resolved value using `expand.child("author")`.
  *
  * The batch lambda receives the **union** of all unresolved ref IDs — one query covers a whole
  * page, for every field kind.
@@ -52,97 +63,162 @@ class ExpandSpec<T> private constructor(
         return result
     }
 
-    class Builder<T> {
+    /** Registers the expandable fields of [T]. Obtained through [build]. */
+    @ExpandDsl
+    class Builder<T> internal constructor() {
         private val fields = mutableListOf<ExpandFieldSpec<T>>()
 
         /**
-         * Registers a single [Expandable] field (e.g. `author: Expandable<UserResponse>`).
+         * Registers a single [Expandable] field, such as `author: Expandable<UserResponse>`.
          *
-         * @param name   The `?expand=` key (case-insensitive).
-         * @param getter Extracts the [Expandable] field from the item.
-         * @param setter Returns a copy of the item with the field replaced (data-class `copy`).
-         * @param nested Optional spec applied to the resolved value (enables `author.books`).
-         * @param batch  Resolves a set of ref IDs → `id to value` map in a single call.
-         *               Its second parameter is the set of JSON field names requested by the
-         *               client (lowercased). When non-empty the caller may issue a selective query;
-         *               when empty the caller should return all fields.
+         * A nullable field works the same way: when [get] returns null the item is left untouched,
+         * so `mergedInto: Expandable<TagResponse>?` needs no separate registration.
+         *
+         * @param name The `?expand=` key (case-insensitive).
+         * @param get Extracts the [Expandable] field from the item.
+         * @param set Returns a copy of the item with the field replaced (data-class `copy`).
+         * @param configure Declares how to resolve the field — see [FieldBuilder].
          */
         fun <F> field(
             name: String,
-            getter: (T) -> Expandable<F>,
-            setter: T.(Expandable<F>) -> T,
-            nested: ExpandSpec<F>? = null,
-            batch: Batch<F>,
+            get: (T) -> Expandable<F>?,
+            set: T.(Expandable<F>) -> T,
+            configure: FieldBuilder<F>.() -> Unit,
         ) {
-            fields += SingleFieldSpec(name, getter, setter, batch, nested)
+            val (batch, nested) = FieldBuilder<F>().apply(configure).build(name)
+            fields += SingleFieldSpec(name, get, set, batch, nested)
         }
 
         /**
-         * Registers an optional (nullable) single [Expandable] field
-         * (e.g. `mergedInto: Expandable<TagResponse>?`).
+         * Registers a list [Expandable] field, such as `chapters: List<Expandable<ChapterResponse>>?`.
          *
-         * Behaves like [field] but leaves the item untouched when the getter returns null.
-         *
-         * @param name   The `?expand=` key (case-insensitive).
-         * @param getter Extracts the nullable [Expandable] field from the item.
-         * @param setter Returns a copy of the item with the field replaced.
-         * @param nested Optional spec applied to the resolved value.
-         * @param batch  Resolves a set of ref IDs → `id to value` map in a single call.
-         */
-        fun <F> optionalField(
-            name: String,
-            getter: (T) -> Expandable<F>?,
-            setter: T.(Expandable<F>) -> T,
-            nested: ExpandSpec<F>? = null,
-            batch: Batch<F>,
-        ) {
-            fields += SingleFieldSpec(name, getter, setter, batch, nested)
-        }
-
-        /**
-         * Registers a list [Expandable] field (e.g. `chapters: List<Expandable<ChapterResponse>>?`).
-         *
-         * @param name   The `?expand=` key (case-insensitive).
-         * @param getter Extracts the nullable list field from the item.
-         * @param setter Returns a copy of the item with the list replaced.
-         * @param nested Optional spec applied to each resolved value.
-         * @param batch  Resolves a set of ref IDs → `id to value` map in a single call.
-         *               Its second parameter mirrors the same contract as in [field].
+         * @param name The `?expand=` key (case-insensitive).
+         * @param get Extracts the list from the item. A null list leaves the item untouched.
+         * @param set Returns a copy of the item with the list replaced.
+         * @param configure Declares how to resolve the field — see [FieldBuilder].
          */
         fun <F> listField(
             name: String,
-            getter: (T) -> List<Expandable<F>>?,
-            setter: T.(List<Expandable<F>>) -> T,
-            nested: ExpandSpec<F>? = null,
-            batch: Batch<F>,
+            get: (T) -> List<Expandable<F>>?,
+            set: T.(List<Expandable<F>>) -> T,
+            configure: FieldBuilder<F>.() -> Unit,
         ) {
-            fields += ListFieldSpec(name, getter, setter, batch, nested)
+            val (batch, nested) = FieldBuilder<F>().apply(configure).build(name)
+            fields += ListFieldSpec(name, get, set, batch, nested)
         }
 
         /**
-         * Registers a polymorphic [Expandable] field, where the concrete type — and therefore the
-         * data source to resolve it against — is decided per item.
+         * Registers an [Expandable] field whose concrete type — and therefore the data source to
+         * resolve it against — is decided per item.
          *
-         * @param name      The `?expand=` key.
-         * @param getter    Extracts the [Expandable] field from the item.
-         * @param setter    Returns a copy of the item with the field replaced.
-         * @param type      Extracts a type discriminator from the item (e.g. `it.organizerType`).
-         * @param batchers  A map of type discriminator to its specific [ExpandSpec] and batcher.
+         * ```kotlin
+         * polymorphicField("organizer", get = { it.organizer }, set = { copy(organizer = it) },
+         *                  type = { it.organizerType }) {
+         *     case("user") { batch { ids, fields -> userRepository.findAll(ids, fields) } }
+         *     case("team") { batch { ids, fields -> teamRepository.findAll(ids, fields) } }
+         * }
+         * ```
+         *
+         * An item whose discriminator has no registered case is left untouched.
+         *
+         * @param name The `?expand=` key.
+         * @param get Extracts the [Expandable] field from the item.
+         * @param set Returns a copy of the item with the field replaced.
+         * @param type Extracts the type discriminator from the item (e.g. `it.organizerType`).
+         * @param configure Declares one [PolymorphicBuilder.case] per discriminator.
          */
         fun <F> polymorphicField(
             name: String,
-            getter: (T) -> Expandable<F>,
-            setter: T.(Expandable<F>) -> T,
+            get: (T) -> Expandable<F>,
+            set: T.(Expandable<F>) -> T,
             type: (T) -> String,
-            batchers: Map<String, Pair<ExpandSpec<out F>?, Batch<F>>>,
+            configure: PolymorphicBuilder<F>.() -> Unit,
         ) {
-            fields += PolymorphicFieldSpec(name, getter, setter, type, batchers)
+            fields += PolymorphicFieldSpec(name, get, set, type, PolymorphicBuilder<F>().apply(configure).build(name))
         }
 
-        internal fun build(): ExpandSpec<T> = ExpandSpec(fields.toList())
+        internal fun build(): ExpandSpec<T> {
+            fields.forEach { require(it.name.isNotBlank()) { "An expandable field needs a name" } }
+
+            // Two fields under one key would run two batches for the same `?expand=` request, the
+            // second silently overwriting the first.
+            val duplicates =
+                fields
+                    .groupingBy { it.name }
+                    .eachCount()
+                    .filterValues { it > 1 }
+                    .keys
+            require(duplicates.isEmpty()) { "Duplicate expandable fields: ${duplicates.joinToString()}" }
+
+            return ExpandSpec(fields.toList())
+        }
+    }
+
+    /** Declares how one field resolves its refs, and what to expand within the result. */
+    @ExpandDsl
+    class FieldBuilder<F> internal constructor() {
+        private var batch: Batch<F>? = null
+        private var nested: ExpandSpec<*>? = null
+
+        /**
+         * Resolves a set of ref IDs into `id to value`, in a single call for the whole page.
+         *
+         * The second parameter is the set of JSON field names the client asked for (lowercased).
+         * When it is non-empty the source may issue a selective query; when empty it should return
+         * all fields. IDs absent from the returned map stay unresolved refs.
+         */
+        fun batch(resolve: Batch<F>) {
+            batch = resolve
+        }
+
+        /** Applies an existing spec to each resolved value, enabling `?expand=author.books`. */
+        fun nested(spec: ExpandSpec<out F>) {
+            nested = spec
+        }
+
+        /** Declares the nested spec inline, for one that is not shared with another field. */
+        fun nested(configure: Builder<F>.() -> Unit) {
+            nested = Builder<F>().apply(configure).build()
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        internal fun build(name: String): Pair<Batch<F>, ExpandSpec<F>?> {
+            val resolve =
+                requireNotNull(batch) { "Expandable field \"$name\" needs a batch { } block to resolve its refs" }
+
+            // Safe: a spec declared for a subtype of F is only ever applied to values the batcher
+            // of that same declaration produced.
+            return resolve to nested as ExpandSpec<F>?
+        }
+    }
+
+    /** Declares one resolution strategy per type discriminator, for [Builder.polymorphicField]. */
+    @ExpandDsl
+    class PolymorphicBuilder<F> internal constructor() {
+        private val cases = mutableMapOf<String, Pair<Batch<F>, ExpandSpec<F>?>>()
+
+        /**
+         * Declares how items carrying [discriminator] resolve their refs.
+         *
+         * @param discriminator The value the field's `type` extractor returns for these items.
+         * @param configure Declares the batch, and optionally a nested spec — see [FieldBuilder].
+         */
+        fun case(
+            discriminator: String,
+            configure: FieldBuilder<F>.() -> Unit,
+        ) {
+            require(discriminator !in cases) { "Duplicate case \"$discriminator\"" }
+            cases[discriminator] = FieldBuilder<F>().apply(configure).build(discriminator)
+        }
+
+        internal fun build(name: String): Map<String, Pair<Batch<F>, ExpandSpec<F>?>> {
+            require(cases.isNotEmpty()) { "Polymorphic field \"$name\" needs at least one case { } block" }
+            return cases.toMap()
+        }
     }
 
     companion object {
+        /** Builds a spec for [T] from the fields [block] registers. */
         fun <T> build(block: Builder<T>.() -> Unit): ExpandSpec<T> = Builder<T>().apply(block).build()
     }
 }
@@ -158,7 +234,7 @@ private sealed interface ExpandFieldSpec<T> {
     ): List<T>
 }
 
-/** Handles both `field` and `optionalField`: a null getter result simply leaves the item alone. */
+/** A single field, nullable or not: a null getter result simply leaves the item alone. */
 private class SingleFieldSpec<T, F>(
     override val name: String,
     private val getter: (T) -> Expandable<F>?,
@@ -212,7 +288,7 @@ private class PolymorphicFieldSpec<T, F>(
     private val getter: (T) -> Expandable<F>,
     private val setter: T.(Expandable<F>) -> T,
     private val type: (T) -> String,
-    private val batchers: Map<String, Pair<ExpandSpec<out F>?, Batch<F>>>,
+    private val cases: Map<String, Pair<Batch<F>, ExpandSpec<F>?>>,
 ) : ExpandFieldSpec<T> {
     override suspend fun applyTo(
         items: List<T>,
@@ -225,18 +301,15 @@ private class PolymorphicFieldSpec<T, F>(
         // One batch call per discriminator, not per item.
         val resolved = mutableMapOf<String, F>()
         for ((discriminator, group) in items.groupBy(type)) {
-            val (nested, batch) = batchers[discriminator] ?: continue
+            val (batch, nested) = cases[discriminator] ?: continue
             resolved += batch.forRefs(group.map(getter).refIds(), projectionFields(childExpand, nested))
         }
 
         return items.map { item ->
-            val (nested, _) = batchers[type(item)] ?: return@map item
-
-            @Suppress("UNCHECKED_CAST")
-            val nestedSpec = nested as ExpandSpec<F>?
+            val (_, nested) = cases[type(item)] ?: return@map item
             val projection = projectionFields(childExpand, nested)
 
-            item.setter(getter(item).resolveWith(resolved).finish(nestedSpec, projection, childExpand))
+            item.setter(getter(item).resolveWith(resolved).finish(nested, projection, childExpand))
         }
     }
 }
