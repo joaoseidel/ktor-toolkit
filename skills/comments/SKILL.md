@@ -12,21 +12,17 @@ description: >-
 
 ## Comments are exceptional
 
-The main source of this toolkit carries **22 inline comments across 3,571 lines** — under one line
-in a hundred. That is not neglect; it is the target. Every one of those 22 says something the code
-cannot.
+The main source of this toolkit carries **22 inline comments across 3,571 lines** — under one line in a hundred. That is not neglect; it is the
+target. Every one of those 22 says something the code cannot.
 
-The reason to be strict is that comments rot. Code is executed and tested, so it stays true. A
-comment is checked by nobody, and a wrong comment is worse than no comment because it is believed.
-The fewer you have, the likelier each is still accurate.
+The reason to be strict is that comments rot. Code is executed and tested, so it stays true. A comment is checked by nobody, and a wrong comment is
+worse than no comment because it is believed. The fewer you have, the likelier each is still accurate.
 
-So: **a comment must say something the code cannot say.** If it restates the code, delete it. If the
-code needs explaining, change the code.
+So: **a comment must say something the code cannot say.** If it restates the code, delete it. If the code needs explaining, change the code.
 
 ## When a comment earns its place
 
-Every real comment in this codebase falls into one of these. Each answers *why*; none describes
-*what*.
+Every real comment in this codebase falls into one of these. Each answers *why*; none describes *what*.
 
 **Why this shape, and not the obvious one.** Otherwise the next reader "simplifies" it back.
 
@@ -97,34 +93,31 @@ val repository = ExposedBookRepository()
 
 These add reading work and nothing else. The signature, the name and the expression already said it.
 
-Also delete on sight: commented-out code (git remembers it), `// TODO` with no owner or issue,
-change-log comments (`// modified by … 2024-03-11` — that is `git blame`), and section banners
-inside a file (`// ───── helpers ─────` usually means the file should be two files).
+Also delete on sight: commented-out code (git remembers it), `// TODO` with no owner or issue, change-log comments (`// modified by … 2024-03-11` —
+that is `git blame`), and section banners inside a file (`// ───── helpers ─────` usually means the file should be two files).
 
 ## Prefer changing the code
 
 Most comments are a symptom. Reach for the fix first.
 
-| Tempted to write | Do instead |
-|---|---|
-| `// check if the user can edit` | Extract `fun canEdit(user, book): Boolean` |
-| `// p = page, s = size` | Rename `p` and `s` |
-| `// this is the total including tax` | Rename to `totalWithTax`, or a `Money` value object |
-| `// step 3: map to response` | Extract a function per step |
-| `// must be called after init()` | Make it impossible — take the initialised thing as a parameter |
-| `// title must not be blank` | A validation rule (`ktor-toolkit:validation`) |
+| Tempted to write                     | Do instead                                                     |
+|--------------------------------------|----------------------------------------------------------------|
+| `// check if the user can edit`      | Extract `fun canEdit(user, book): Boolean`                     |
+| `// p = page, s = size`              | Rename `p` and `s`                                             |
+| `// this is the total including tax` | Rename to `totalWithTax`, or a `Money` value object            |
+| `// step 3: map to response`         | Extract a function per step                                    |
+| `// must be called after init()`     | Make it impossible — take the initialised thing as a parameter |
+| `// title must not be blank`         | A validation rule (`ktor-toolkit:validation`)                  |
 
-A comment explaining a name is a naming bug. A comment explaining a sequence is a decomposition bug.
-A comment explaining a constraint is usually a type that has not been introduced yet — see the value
-object argument in `ktor-toolkit:architecture`.
+A comment explaining a name is a naming bug. A comment explaining a sequence is a decomposition bug. A comment explaining a constraint is usually a
+type that has not been introduced yet — see the value object argument in `ktor-toolkit:architecture`.
 
 ## KDoc
 
-**Public declarations carry KDoc. Nothing else needs it.** `internal` and `private` declarations get
-a comment only when they would have earned an inline one.
+**Public declarations carry KDoc. Nothing else needs it.** `internal` and `private` declarations get a comment only when they would have earned an
+inline one.
 
-The rule for what to write: **say what the thing is for, and what it does when the input is absent or
-wrong — not what the signature already says.**
+The rule for what to write: **say what the thing is for, and what it does when the input is absent or wrong — not what the signature already says.**
 
 ```kotlin
 /**
@@ -148,10 +141,9 @@ interface KeyValueCache {
 }
 ```
 
-Look at what each line adds beyond the signature. `get` names the two absent cases. `put` promises
-replacement rather than failure. `keys` says *why it exists*, which is what tells an implementer how
-expensive it is allowed to be. The interface block says what to implement and what implementers must
-guarantee.
+Look at what each line adds beyond the signature. `get` names the two absent cases. `put` promises replacement rather than failure. `keys` says *why
+it exists*, which is what tells an implementer how expensive it is allowed to be. The interface block says what to implement and what implementers
+must guarantee.
 
 Compare the version that says nothing:
 
@@ -164,8 +156,7 @@ Compare the version that says nothing:
 suspend fun get(key: String): ByteArray?
 ```
 
-**Document the contract, not the mechanism.** The things worth stating, because a caller cannot see
-them:
+**Document the contract, not the mechanism.** The things worth stating, because a caller cannot see them:
 
 - What happens for absent, empty or invalid input — returns `null`, throws, clamps, ignores.
 - What it throws, and when.
@@ -178,36 +169,34 @@ them:
 **`@param` only when the name does not carry it.** A `@param key the key` is noise. A
 `@param excludeQueryKeys Query parameters that must not take part in the cache key` is the contract.
 
-**Show the API when the shape is not obvious.** A short code block in the KDoc of a DSL entry point
-saves every caller a trip to the tests.
+**Show the API when the shape is not obvious.** A short code block in the KDoc of a DSL entry point saves every caller a trip to the tests.
 
-**For an extension point — an interface others implement — say what an implementer must guarantee**,
-not just what the methods do. That is the difference between documentation and a signature dump.
+**For an extension point — an interface others implement — say what an implementer must guarantee**, not just what the methods do. That is the
+difference between documentation and a signature dump.
 
 ## In tests
 
-The same rule, with one addition worth naming: a shared test helper gets one line saying why it
-exists, because its purpose is rarely obvious from its shape.
+The same rule, with one addition worth naming: a shared test helper gets one line saying why it exists, because its purpose is rarely obvious from its
+shape.
 
 ```kotlin
 /** A clock the test moves by hand, so expiry can be exercised without sleeping. */
 private class TestClock(…)
 ```
 
-Test names carry the rest — see `ktor-toolkit:tests`. A comment above a `should` block is a sign the
-name is not doing its job.
+Test names carry the rest — see `ktor-toolkit:tests`. A comment above a `should` block is a sign the name is not doing its job.
 
 ## Common mistakes
 
-| Mistake | Why it hurts |
-|---|---|
-| A comment restating the line below it | Two things to keep in step; one is unchecked |
-| `/** Gets the name. */` on `getName()` | Fills the KDoc slot without adding anything |
-| `@param`/`@return` that repeat the names | Noise that trains readers to skip KDoc entirely |
-| A `@Suppress` with no reason | An unexplained risk that nobody can safely remove |
-| Commented-out code | Git remembers; the file just gets harder to read |
-| `// TODO` with no owner or issue | Never actioned, never removed |
-| A comment explaining a variable name | Rename the variable |
-| A comment listing the steps of a function | Extract the steps |
-| KDoc on a private helper that needed none | Volume that dilutes the blocks that matter |
-| A comment left after the code changed | Actively misleading — worse than none |
+| Mistake                                   | Why it hurts                                      |
+|-------------------------------------------|---------------------------------------------------|
+| A comment restating the line below it     | Two things to keep in step; one is unchecked      |
+| `/** Gets the name. */` on `getName()`    | Fills the KDoc slot without adding anything       |
+| `@param`/`@return` that repeat the names  | Noise that trains readers to skip KDoc entirely   |
+| A `@Suppress` with no reason              | An unexplained risk that nobody can safely remove |
+| Commented-out code                        | Git remembers; the file just gets harder to read  |
+| `// TODO` with no owner or issue          | Never actioned, never removed                     |
+| A comment explaining a variable name      | Rename the variable                               |
+| A comment listing the steps of a function | Extract the steps                                 |
+| KDoc on a private helper that needed none | Volume that dilutes the blocks that matter        |
+| A comment left after the code changed     | Actively misleading — worse than none             |

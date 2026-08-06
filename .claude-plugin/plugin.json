@@ -9,5 +9,12 @@
   "homepage": "https://github.com/joaoseidel/ktor-toolkit",
   "repository": "https://github.com/joaoseidel/ktor-toolkit",
   "license": "MIT",
-  "keywords": ["ktor", "kotlin", "hexagonal", "ports-and-adapters", "rest", "hateoas"]
+  "keywords": [
+    "ktor",
+    "kotlin",
+    "hexagonal",
+    "ports-and-adapters",
+    "rest",
+    "hateoas"
+  ]
 }

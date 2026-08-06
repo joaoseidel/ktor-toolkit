@@ -1,24 +1,22 @@
 # Ktor Toolkit
 
-A set of small, independent libraries for building JSON APIs with [Ktor](https://ktor.io) — the
-pieces most services end up writing themselves: pagination, HATEOAS links, request validation,
-RFC 9457 error responses, sparse field expansion and response caching.
+A set of small, independent libraries for building JSON APIs with [Ktor](https://ktor.io) — the pieces most services end up writing themselves:
+pagination, HATEOAS links, request validation, RFC 9457 error responses, sparse field expansion and response caching.
 
-Every module stands alone. Take the one you need; nothing pulls in the others except `hateoas`,
-which builds on `paginator`.
+Every module stands alone. Take the one you need; nothing pulls in the others except `hateoas`, which builds on `paginator`.
 
 Requires **Java 21+**, Kotlin 2.3 and Ktor 3.4.
 
 ## Modules
 
-| Module | What it does |
-|---|---|
-| [`ktor-toolkit-paginator`](#paginator) | Parses `?page`/`?pageSize`/`?sortBy`, and shapes the paged response |
-| [`ktor-toolkit-hateoas`](#hateoas) | Wraps a response in a `_links` envelope, with pagination links built for you |
-| [`ktor-toolkit-validator`](#validator) | A type-safe `should be` / `should notBe` DSL over Ktor's RequestValidation |
-| [`ktor-toolkit-problem-details`](#problem-details) | Turns exceptions into RFC 9457 `application/problem+json` responses |
-| [`ktor-toolkit-expander`](#expander) | Resolves `?expand=author.books` references, batching one query per field |
-| [`ktor-toolkit-cache`](#cache) | Caches a response by request path and query, over any key–value store |
+| Module                                             | What it does                                                                 |
+|----------------------------------------------------|------------------------------------------------------------------------------|
+| [`ktor-toolkit-paginator`](#paginator)             | Parses `?page`/`?pageSize`/`?sortBy`, and shapes the paged response          |
+| [`ktor-toolkit-hateoas`](#hateoas)                 | Wraps a response in a `_links` envelope, with pagination links built for you |
+| [`ktor-toolkit-validator`](#validator)             | A type-safe `should be` / `should notBe` DSL over Ktor's RequestValidation   |
+| [`ktor-toolkit-problem-details`](#problem-details) | Turns exceptions into RFC 9457 `application/problem+json` responses          |
+| [`ktor-toolkit-expander`](#expander)               | Resolves `?expand=author.books` references, batching one query per field     |
+| [`ktor-toolkit-cache`](#cache)                     | Caches a response by request path and query, over any key–value store        |
 
 ## Installation
 
@@ -41,19 +39,17 @@ dependencies {
 }
 ```
 
-Ktor and kotlinx-serialization come along transitively — they appear in these modules' public
-signatures, so they are declared as `api` dependencies.
+Ktor and kotlinx-serialization come along transitively — they appear in these modules' public signatures, so they are declared as `api` dependencies.
 
 ### Optional dependencies
 
-A few features are compiled against libraries their module does **not** bring with it. If you use
-them, add the dependency yourself:
+A few features are compiled against libraries their module does **not** bring with it. If you use them, add the dependency yourself:
 
-| Feature | You must add |
-|---|---|
-| `Sort.toExposedQueryExpression(...)` | `org.jetbrains.exposed:exposed-core` |
-| `Sort.toMongoSortExpression(...)` | `org.mongodb:mongodb-driver-core` (comes with any MongoDB driver) |
-| `LettuceCache` | `io.lettuce:lettuce-core` |
+| Feature                              | You must add                                                      |
+|--------------------------------------|-------------------------------------------------------------------|
+| `Sort.toExposedQueryExpression(...)` | `org.jetbrains.exposed:exposed-core`                              |
+| `Sort.toMongoSortExpression(...)`    | `org.mongodb:mongodb-driver-core` (comes with any MongoDB driver) |
+| `LettuceCache`                       | `io.lettuce:lettuce-core`                                         |
 
 Everything else in the toolkit works without them.
 
@@ -73,13 +69,12 @@ get("/books") {
 }
 ```
 
-`call.pagination` never fails the request: an unparseable `?page=abc` falls back to the default, a
-negative page becomes 0, and the page size is clamped to `1..100`. Use
+`call.pagination` never fails the request: an unparseable `?page=abc` falls back to the default, a negative page becomes 0, and the page size is
+clamped to `1..100`. Use
 `call.paginationRequest(defaultPageSize = 20, maxPageSize = 200)` for different bounds.
 
-`?sortBy=name,-createdAt` parses into `[Sort("name", ASC), Sort("createdAt", DESC)]`. Build a
-default ordering from property references instead of strings, so a rename cannot leave a stale sort
-key behind:
+`?sortBy=name,-createdAt` parses into `[Sort("name", ASC), Sort("createdAt", DESC)]`. Build a default ordering from property references instead of
+strings, so a rename cannot leave a stale sort key behind:
 
 ```kotlin
 val ordering = sortBy {
@@ -88,28 +83,27 @@ val ordering = sortBy {
 }
 ```
 
-Turn either into a query with an explicit allow-list of sortable columns — anything outside it
-raises `IllegalArgumentException` rather than reaching the database:
+Turn either into a query with an explicit allow-list of sortable columns — anything outside it raises `IllegalArgumentException` rather than reaching
+the database:
 
 ```kotlin
 Books.selectAll().orderBy(*pagination.sortBy.toExposedQueryExpression(Books.title, Books.createdAt).toTypedArray())
 ```
 
-MongoDB works the same way, except the criteria collapse into the single sort document `find` takes.
-The allow-list is field names, or property references of the document class:
+MongoDB works the same way, except the criteria collapse into the single sort document `find` takes. The allow-list is field names, or property
+references of the document class:
 
 ```kotlin
 collection.find().sort(pagination.sortBy.toMongoSortExpression(BookDocument::title, BookDocument::createdAt))
 ```
 
-The response carries a `metadata` block: `page`, `pageSize`, `totalPages` (a count — the last page
-index is `totalPages - 1`), `totalElements`, `hasNext`, `hasPrevious`, `isSorted` and `sortCriteria`.
+The response carries a `metadata` block: `page`, `pageSize`, `totalPages` (a count — the last page index is `totalPages - 1`), `totalElements`,
+`hasNext`, `hasPrevious`, `isSorted` and `sortCriteria`.
 
 ## HATEOAS
 
-`toResource(call)` wraps a paged response and attaches `self`, `next`, `prev`, `first` and `last` —
-only the ones that point at a page that exists. Every other query parameter of the current request
-is carried over, correctly percent-encoded.
+`toResource(call)` wraps a paged response and attaches `self`, `next`, `prev`, `first` and `last` — only the ones that point at a page that exists.
+Every other query parameter of the current request is carried over, correctly percent-encoded.
 
 ```kotlin
 get("/books") {
@@ -145,8 +139,7 @@ call.respond(
 
 ## Validator
 
-Validation rules read as sentences and attach to properties by reference, so a rename is a compile
-error rather than a silently dead rule:
+Validation rules read as sentences and attach to properties by reference, so a rename is a compile error rather than a silently dead rule:
 
 ```kotlin
 install(RequestValidation) {
@@ -173,18 +166,17 @@ For anything beyond a couple of fields, implement `RequestValidator<T>` and pass
 
 Available rules, and the property types each applies to:
 
-| Rule | Applies to |
-| --- | --- |
-| `blank`, `email`, `pattern` | `String` |
-| `uuid` | `String`, `UUID`, `Uuid` |
-| `size` | `String`, `Collection`, `Map`, `Array` |
-| `min`, `max`, `inRange`, `positive`, `negative` | any `Number` |
-| `past`, `future`, `before`, `after`, `within` | `LocalDate`, `LocalDateTime`, `Instant` |
-| `nil`, `satisfying` | any |
+| Rule                                            | Applies to                              |
+|-------------------------------------------------|-----------------------------------------|
+| `blank`, `email`, `pattern`                     | `String`                                |
+| `uuid`                                          | `String`, `UUID`, `Uuid`                |
+| `size`                                          | `String`, `Collection`, `Map`, `Array`  |
+| `min`, `max`, `inRange`, `positive`, `negative` | any `Number`                            |
+| `past`, `future`, `before`, `after`, `within`   | `LocalDate`, `LocalDateTime`, `Instant` |
+| `nil`, `satisfying`                             | any                                     |
 
-**A rule that does not fit does not compile.** `should be email()` on an `Int` property is an
-unresolved reference, not a runtime error, and completion inside a `property { }` block only offers
-the rules that apply.
+**A rule that does not fit does not compile.** `should be email()` on an `Int` property is an unresolved reference, not a runtime error, and
+completion inside a `property { }` block only offers the rules that apply.
 
 **Composition.** Rules are values: combine them with `and`, `or` and `!`, and write a one-off with
 `satisfying`. Note the parentheses — infix calls associate to the left.
@@ -195,16 +187,14 @@ property(CreateBookRequest::isbn) {
 }
 ```
 
-**Messages.** Every rule carries a default message. Override it with `describedAs`, which needs no
-parentheses when it follows an assertion:
+**Messages.** Every rule carries a default message. Override it with `describedAs`, which needs no parentheses when it follows an assertion:
 
 ```kotlin
 should be email() describedAs "should be a work email address"
 ```
 
-**Absent values.** A rule stays silent on a `null` property — `should be email()` does not complain
-about an optional field that was not sent. `nil` is the one rule with an opinion about absence, so
-requiring a field and constraining it are two separate assertions:
+**Absent values.** A rule stays silent on a `null` property — `should be email()` does not complain about an optional field that was not sent. `nil`
+is the one rule with an opinion about absence, so requiring a field and constraining it are two separate assertions:
 
 ```kotlin
 property(CreateBookRequest::authorEmail) {
@@ -213,9 +203,8 @@ property(CreateBookRequest::authorEmail) {
 }
 ```
 
-**Collections, conditions and invariants.** `each` validates elements as values and `eachNested` as
-objects, reporting at `tags[0]` and `authors[0].email`. `whenever` makes a group of rules
-conditional, and `invariant` states a rule that no single property owns:
+**Collections, conditions and invariants.** `each` validates elements as values and `eachNested` as objects, reporting at `tags[0]` and
+`authors[0].email`. `whenever` makes a group of rules conditional, and `invariant` states a rule that no single property owns:
 
 ```kotlin
 rulesFor<CreateBookRequest> {
@@ -242,8 +231,8 @@ to make a test deterministic.
 
 ## Problem Details
 
-One installer turns validation failures, malformed bodies, deliberate status exceptions and
-anything otherwise unhandled into `application/problem+json`:
+One installer turns validation failures, malformed bodies, deliberate status exceptions and anything otherwise unhandled into
+`application/problem+json`:
 
 ```kotlin
 install(StatusPages) {
@@ -270,9 +259,8 @@ throw HttpStatusException(HttpStatusCode.NotFound, "Book not found", mapOf("id" 
 }
 ```
 
-Map your own exceptions in the same block with `on<E>`. StatusPages resolves by nearest ancestor
-class, so a mapping wins over the catch-all whatever order it was declared in, and the request path
-fills in as the problem's `instance` unless you name one:
+Map your own exceptions in the same block with `on<E>`. StatusPages resolves by nearest ancestor class, so a mapping wins over the catch-all whatever
+order it was declared in, and the request path fills in as the problem's `instance` unless you name one:
 
 ```kotlin
 install(StatusPages) {
@@ -282,8 +270,8 @@ install(StatusPages) {
 }
 ```
 
-An unhandled exception logs its stack trace and answers with a fixed message — the exception text
-routinely names the database. Set `includeExceptionMessage = true` to echo it while developing.
+An unhandled exception logs its stack trace and answers with a fixed message — the exception text routinely names the database. Set
+`includeExceptionMessage = true` to echo it while developing.
 
 Register your own `exception<T>` handlers after `problemDetails()` to override any of them.
 
@@ -305,8 +293,7 @@ get("/books") {
 ```
 
 `?expand=author` resolves the whole page in **one** call to `batch`, not one per row.
-`?expand=author.name` projects: the `batch` lambda receives `setOf("name")` so it can issue a
-narrower query, and only that field is serialized.
+`?expand=author.name` projects: the `batch` lambda receives `setOf("name")` so it can issue a narrower query, and only that field is serialized.
 
 `?expand=author.books` nests, via a `nested` block on the field — inline, or an existing spec:
 
@@ -321,9 +308,8 @@ field("author", get = { it.author }, set = { copy(author = it) }) {
 }
 ```
 
-An `Expandable<T>` field serializes as a bare `"author-id"` string while unresolved and as a full
-object once expanded, so the wire format tells the client which it got. `field` covers nullable
-fields too; register list fields with `listField`, and fields whose type varies per row with
+An `Expandable<T>` field serializes as a bare `"author-id"` string while unresolved and as a full object once expanded, so the wire format tells the
+client which it got. `field` covers nullable fields too; register list fields with `listField`, and fields whose type varies per row with
 `polymorphicField` and one `case` per discriminator.
 
 ## Cache
@@ -339,9 +325,8 @@ get("/books") {
 }
 ```
 
-The key is the request path plus its query parameters, sorted so parameter order does not matter,
-then hashed. A cache failure is logged and the request is served from the origin — but a coroutine
-cancellation still propagates.
+The key is the request path plus its query parameters, sorted so parameter order does not matter, then hashed. A cache failure is logged and the
+request is served from the origin — but a coroutine cancellation still propagates.
 
 Invalidate on write:
 
@@ -350,9 +335,8 @@ cache.invalidateNamespace("books")   // everything under the namespace
 cache.invalidateContaining(bookId)   // entries whose payload mentions this id
 ```
 
-`InMemoryCache` is LRU-bounded with an optional TTL, which suits a single node. Reach for a shared
-store once more than one instance serves the same traffic — otherwise each holds, and invalidates,
-its own copy.
+`InMemoryCache` is LRU-bounded with an optional TTL, which suits a single node. Reach for a shared store once more than one instance serves the same
+traffic — otherwise each holds, and invalidates, its own copy.
 
 ### Redis
 
@@ -365,12 +349,11 @@ val connection = client.connect(LettuceCache.Codec)   // keys are text, values r
 val cache = LettuceCache(connection.async(), ttl = 5.minutes)
 ```
 
-Nothing else changes: `withCache` and both invalidation helpers work the same, and Redis applies
-the TTL itself. The connection belongs to you — share it (it is thread-safe and multiplexes) and
-close it on shutdown. `connection.async()` from a cluster client fits too.
+Nothing else changes: `withCache` and both invalidation helpers work the same, and Redis applies the TTL itself. The connection belongs to you — share
+it (it is thread-safe and multiplexes) and close it on shutdown. `connection.async()` from a cluster client fits too.
 
-Every key is stored under `keyPrefix`, `"ktor-toolkit:"` by default, which keeps the cache in its
-own corner of a shared instance and bounds what `invalidateNamespace` and `invalidateContaining`
+Every key is stored under `keyPrefix`, `"ktor-toolkit:"` by default, which keeps the cache in its own corner of a shared instance and bounds what
+`invalidateNamespace` and `invalidateContaining`
 have to scan — they walk the keyspace with `SCAN`, so keep them to writes, not requests.
 
 ## Development

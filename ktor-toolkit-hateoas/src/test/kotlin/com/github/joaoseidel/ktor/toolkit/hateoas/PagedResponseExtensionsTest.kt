@@ -11,11 +11,9 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -46,28 +44,30 @@ private suspend fun relsOf(route: suspend (io.ktor.server.routing.RoutingCall) -
 }
 
 class PagedResponseExtensionsTest :
-    ShouldSpec({
-        context("toResource") {
-            should("publish the pagination links for the call") {
-                relsOf { call -> call.respond(page.toResource(call)) } shouldContainExactly listOf("self", "next", "last")
-            }
+    ShouldSpec(
+        {
+            context("toResource") {
+                should("publish the pagination links for the call") {
+                    relsOf { call -> call.respond(page.toResource(call)) } shouldContainExactly listOf("self", "next", "last")
+                }
 
-            should("publish the same links from the request") {
-                relsOf { call -> call.respond(page.toResource(call.request)) } shouldContainExactly
-                    listOf("self", "next", "last")
-            }
+                should("publish the same links from the request") {
+                    relsOf { call -> call.respond(page.toResource(call.request)) } shouldContainExactly
+                        listOf("self", "next", "last")
+                }
 
-            should("append custom links after the pagination ones") {
-                relsOf { call -> call.respond(page.toResource(call, custom)) } shouldContainExactly
-                    listOf("self", "next", "last", "create")
-            }
+                should("append custom links after the pagination ones") {
+                    relsOf { call -> call.respond(page.toResource(call, custom)) } shouldContainExactly
+                        listOf("self", "next", "last", "create")
+                }
 
-            should("publish a custom link exactly once") {
-                // It used to be seeded into the resource and then appended again, so every
-                // caller-supplied link was emitted twice.
-                val rels = relsOf { call -> call.respond(page.toResource(call, custom)) }
+                should("publish a custom link exactly once") {
+                    // It used to be seeded into the resource and then appended again, so every
+                    // caller-supplied link was emitted twice.
+                    val rels = relsOf { call -> call.respond(page.toResource(call, custom)) }
 
-                rels.count { it == "create" } shouldBe 1
+                    rels.count { it == "create" } shouldBe 1
+                }
             }
-        }
-    })
+        },
+    )

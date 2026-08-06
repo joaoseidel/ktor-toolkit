@@ -32,13 +32,17 @@ private fun uuidRule(): ValidationRule<Any?> =
         negativeMessage = "should not be a valid UUID",
     ) { value ->
         when (value) {
-            is UUID, is Uuid -> true
-            else ->
+            is UUID, is Uuid -> {
+                true
+            }
+
+            else -> {
                 try {
                     UUID.fromString(value.toString())
                     true
                 } catch (_: IllegalArgumentException) {
                     false
                 }
+            }
         }
     }

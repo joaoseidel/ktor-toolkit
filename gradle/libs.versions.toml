@@ -66,8 +66,8 @@ kotlinx = ["kotlinx-coroutines", "kotlinx-serialization", "kotlinx-datetime"]
 exposed = ["exposed-core", "exposed-jdbc", "exposed-json", "exposed-crypt", "exposed-kotlin-datetime"]
 logging = ["kotlin-logging", "logback-classic", "slf4j-api"]
 testing = [
-    "kotest-runner-junit5", "kotest-assertions-core", "kotest-property",
-    "kotlinx-coroutines-test", "ktor-server-testhost", "mockk"
+  "kotest-runner-junit5", "kotest-assertions-core", "kotest-property",
+  "kotlinx-coroutines-test", "ktor-server-testhost", "mockk"
 ]
 
 [plugins]

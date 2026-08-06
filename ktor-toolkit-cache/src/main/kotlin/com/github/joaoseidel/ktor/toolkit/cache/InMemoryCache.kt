@@ -1,5 +1,6 @@
 package com.github.joaoseidel.ktor.toolkit.cache
 
+import com.github.joaoseidel.ktor.toolkit.cache.InMemoryCache.Entry
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock

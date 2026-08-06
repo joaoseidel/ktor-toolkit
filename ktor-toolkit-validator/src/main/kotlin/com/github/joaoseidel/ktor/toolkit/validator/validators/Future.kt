@@ -70,10 +70,14 @@ private fun futureRule(
                 value > current && (latest == null || value <= latest)
             }
 
-            is Instant -> value > now && (upperBound == null || value <= upperBound)
+            is Instant -> {
+                value > now && (upperBound == null || value <= upperBound)
+            }
 
             // Unreachable: the receiver of every `future` overload pins the type.
-            else -> false
+            else -> {
+                false
+            }
         }
     }
 }
