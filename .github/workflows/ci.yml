@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes an in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Java 21 is the floor declared in build.gradle.kts. Installing it here means the
+      # foojay toolchain resolver never has to download a JDK mid-build.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Split into the same targets a contributor runs, so a failure names itself in the
+      # step list instead of hiding inside one long Gradle log.
+      - name: Lint
+        run: make lint
+
+      - name: Public API
+        run: make api_check
+
+      - name: Build and test
+        run: make build
+
+      - name: Coverage
+        run: make coverage
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            **/build/reports/tests/test
+            report/build/reports/kover
+          if-no-files-found: ignore
+          retention-days: 7

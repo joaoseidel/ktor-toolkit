@@ -9,7 +9,7 @@ else
   gradle_cmd := ./gradlew
 endif
 
-.PHONY: setup clean build test coverage lint format api publish
+.PHONY: setup clean build test coverage lint format api api_check dist publish_local
 
 setup:
 	chmod +x ./gradlew
@@ -36,6 +36,16 @@ format: setup
 # Refresh the public API dumps after an intentional API change.
 api: setup
 	$(gradle_cmd) apiDump
+
+# Fails when a public signature drifts from the dumps committed under */api.
+api_check: setup
+	$(gradle_cmd) apiCheck
+
+# Collects every module's jars (main, sources, javadoc) into build/dist for a release upload.
+dist: build
+	mkdir -p build/dist
+	cp ktor-toolkit-*/build/libs/*.jar build/dist/
+	ls -1 build/dist
 
 publish_local: setup
 	$(gradle_cmd) publishToMavenLocal

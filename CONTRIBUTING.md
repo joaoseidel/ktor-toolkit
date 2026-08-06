@@ -31,7 +31,7 @@ make coverage
 **ktlint.** Style is pinned in `.editorconfig` (`ktlint_official`, 150 columns). `make format` fixes
 almost everything; the rest the check will name.
 
-**Coverage.** Kover gates the aggregate at 85% line and 65% branch. `make coverage` writes
+**Coverage.** Kover gates the aggregate at 100% line and 100% branch. `make coverage` writes
 `report/build/reports/kover/html/index.html`. A new module must be registered in
 `report/build.gradle.kts` or its code will not be counted.
 
@@ -40,6 +40,7 @@ signature fails `apiCheck` until you refresh it:
 
 ```bash
 make api
+make api_check
 ```
 
 Review that diff before committing — it is the clearest statement of what a change does to consumers,
@@ -64,13 +65,24 @@ Optional integrations (Exposed, gel-query-dsl) are `compileOnly`, so consumers w
 do not pay for them. Add the matching `testImplementation` so the code is still compiled and tested
 here, and document the requirement in the README.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`. It calls the same
+targets you do — `make lint`, `make api_check`, `make build`, `make coverage` — so a green local
+build is a green CI build. Test and coverage reports are attached to the run as artifacts.
+
 ## Releasing
 
-No remote repository is configured. `make publish` installs into your local `~/.m2` repository:
+No remote Maven repository is configured. `make publish_local` installs into your local `~/.m2`
+repository:
 
 ```bash
-make publish
+make publish_local
 ```
 
 Before releasing: update `version` in `gradle.properties`, move the `unreleased` heading in
 `CHANGELOG.md`, and make sure `make build` and `make api` are both clean.
+
+Pushing a `v*` tag then runs `.github/workflows/release.yml`, which refuses the tag unless it
+matches `version` in `gradle.properties`, runs the full build, and publishes a GitHub Release with
+every module's main, sources and javadoc jars attached (`make dist`).
