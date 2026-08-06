@@ -1,7 +1,7 @@
 ---
 name: problem-details
 description: >-
-  RFC 9457 application/problem+json error responses with ktor-toolkit-mediator — installing
+  RFC 9457 application/problem+json error responses with ktor-toolkit-problem-details — installing
   problemDetails { } inside StatusPages, throwing HttpStatusException for a deliberate status,
   mapping your own exceptions with on<E>, and the snake_case naming strategy. Use whenever an
   endpoint can fail, when deciding what a client sees for a 404 / 409 / 500, when a domain
