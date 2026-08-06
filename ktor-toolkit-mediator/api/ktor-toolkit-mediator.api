@@ -1,11 +1,20 @@
+public final class com/luizalabs/ktor/toolkit/mediator/ExceptionMapping {
+	public fun <init> (Lkotlin/reflect/KClass;Lkotlin/jvm/functions/Function3;)V
+	public final fun getToProblem ()Lkotlin/jvm/functions/Function3;
+	public final fun getType ()Lkotlin/reflect/KClass;
+}
+
 public final class com/luizalabs/ktor/toolkit/mediator/ProblemDetailsConfig {
-	public fun <init> ()V
 	public final fun getIncludeExceptionMessage ()Z
 	public final fun getJson ()Lkotlinx/serialization/json/Json;
+	public final fun getMappings ()Ljava/util/List;
 	public final fun getNamingStrategy ()Lkotlinx/serialization/json/JsonNamingStrategy;
 	public final fun setIncludeExceptionMessage (Z)V
 	public final fun setJson (Lkotlinx/serialization/json/Json;)V
 	public final fun setNamingStrategy (Lkotlinx/serialization/json/JsonNamingStrategy;)V
+}
+
+public abstract interface annotation class com/luizalabs/ktor/toolkit/mediator/ProblemDetailsDsl : java/lang/annotation/Annotation {
 }
 
 public final class com/luizalabs/ktor/toolkit/mediator/ProblemResponsesKt {

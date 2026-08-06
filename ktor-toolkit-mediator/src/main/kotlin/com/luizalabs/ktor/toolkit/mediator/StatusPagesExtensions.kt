@@ -1,11 +1,18 @@
 package com.luizalabs.ktor.toolkit.mediator
 
+import com.luizalabs.ktor.toolkit.mediator.data.ProblemDetail
 import com.luizalabs.ktor.toolkit.mediator.exception.HttpStatusException
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.requestvalidation.RequestValidationException
 import io.ktor.server.plugins.statuspages.StatusPagesConfig
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
+import kotlin.reflect.KClass
+
+@DslMarker
+@Target(AnnotationTarget.CLASS)
+annotation class ProblemDetailsDsl
 
 /**
  * Options for [problemDetails].
@@ -16,11 +23,50 @@ import kotlinx.serialization.json.JsonNamingStrategy
  * Handy locally; leave it off in production, where the message tends to describe the database.
  * @property json The serializer used for problem bodies.
  */
-class ProblemDetailsConfig {
+@ProblemDetailsDsl
+class ProblemDetailsConfig internal constructor() {
     var namingStrategy: JsonNamingStrategy? = null
     var includeExceptionMessage: Boolean = false
     var json: Json = ProblemJson
+
+    @PublishedApi
+    internal val mappings: MutableList<ExceptionMapping<*>> = mutableListOf()
+
+    /**
+     * Turns an application's own exception into a problem, rather than letting it fall through to
+     * the catch-all as a 500.
+     *
+     * ```kotlin
+     * problemDetails {
+     *     on<BookNotFoundException> { ProblemDetail.fromStatus(HttpStatusCode.NotFound, it.message) }
+     * }
+     * ```
+     *
+     * A mapping covers its exception type and every subtype of it, and the closest one to the
+     * exception thrown wins — so this never has to out-run the catch-all, and mappings can be
+     * declared in any order.
+     *
+     * The problem's `instance` is filled in with the request path unless [toProblem] set one.
+     *
+     * @param E The exception type to map.
+     * @param toProblem Builds the problem to respond with, on the call that failed.
+     */
+    inline fun <reified E : Throwable> on(noinline toProblem: suspend ApplicationCall.(E) -> ProblemDetail) {
+        mappings += ExceptionMapping(E::class, toProblem)
+    }
 }
+
+/**
+ * One `on<E>` declaration, held until [problemDetails] registers it with the plugin.
+ *
+ * @property type The exception class to catch.
+ * @property toProblem Builds the problem to respond with.
+ */
+@PublishedApi
+internal class ExceptionMapping<E : Throwable>(
+    val type: KClass<E>,
+    val toProblem: suspend ApplicationCall.(E) -> ProblemDetail,
+)
 
 /**
  * Registers every handler in [ResponseHandlers], so the application answers with
@@ -31,6 +77,8 @@ class ProblemDetailsConfig {
  * install(StatusPages) {
  *     problemDetails {
  *         namingStrategy = JsonNamingStrategy.SnakeCase
+ *
+ *         on<BookNotFoundException> { ProblemDetail.fromStatus(HttpStatusCode.NotFound, it.message) }
  *     }
  * }
  * ```
@@ -39,6 +87,8 @@ class ProblemDetailsConfig {
  */
 fun StatusPagesConfig.problemDetails(configure: ProblemDetailsConfig.() -> Unit = {}) {
     val config = ProblemDetailsConfig().apply(configure)
+
+    config.mappings.forEach { mapping -> register(mapping, config.json) }
 
     exception<HttpStatusException> { call, cause ->
         ResponseHandlers.handleHttpStatusException(call, cause, config.json)
@@ -54,5 +104,15 @@ fun StatusPagesConfig.problemDetails(configure: ProblemDetailsConfig.() -> Unit 
 
     exception<Throwable> { call, cause ->
         ResponseHandlers.handleGenericException(call, cause, config.includeExceptionMessage, config.json)
+    }
+}
+
+/** Wires one mapping into the plugin, recovering the exception type the reified `on` captured. */
+private fun <E : Throwable> StatusPagesConfig.register(
+    mapping: ExceptionMapping<E>,
+    json: Json,
+) {
+    exception(mapping.type) { call, cause ->
+        call.respondProblem(mapping.toProblem(call, cause).orInstance(call.problemInstance), json)
     }
 }

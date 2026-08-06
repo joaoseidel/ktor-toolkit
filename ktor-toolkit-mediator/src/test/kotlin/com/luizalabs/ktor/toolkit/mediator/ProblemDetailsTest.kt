@@ -1,5 +1,6 @@
 package com.luizalabs.ktor.toolkit.mediator
 
+import com.luizalabs.ktor.toolkit.mediator.data.ProblemDetail
 import com.luizalabs.ktor.toolkit.mediator.exception.HttpStatusException
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.maps.shouldContainKey
@@ -40,6 +41,11 @@ private data class CreateBook(
     val title: String,
     val authorName: String,
 )
+
+/** An application's own exception, of the kind `on<E>` exists to map. */
+private class BookNotFoundException(
+    val id: String,
+) : IllegalStateException("Book $id not found")
 
 private suspend fun HttpResponse.problemBody(): JsonObject = Json.parseToJsonElement(bodyAsText()).jsonObject
 
@@ -230,6 +236,102 @@ class ProblemDetailsTest :
                     },
                 ) {
                     client.get("/boom").bodyAsText() shouldContain "something specific"
+                }
+            }
+        }
+
+        context("an application's own exception") {
+            should("be mapped to the problem its handler builds") {
+                problemApp(
+                    configure = {
+                        on<BookNotFoundException> {
+                            ProblemDetail.fromStatus(HttpStatusCode.NotFound, "No book with id ${it.id}")
+                        }
+                    },
+                    routes = {
+                        routing { get("/books/{id}") { throw BookNotFoundException("42") } }
+                    },
+                ) {
+                    val response = client.get("/books/42")
+
+                    response.status shouldBe HttpStatusCode.NotFound
+                    response.contentType()?.withoutParameters() shouldBe ProblemJsonContentType
+
+                    val problem = response.problemBody()
+                    problem.string("title") shouldBe "Not Found"
+                    problem.string("detail") shouldBe "No book with id 42"
+                }
+            }
+
+            should("take the request path as its instance") {
+                problemApp(
+                    configure = {
+                        on<BookNotFoundException> { ProblemDetail.fromStatus(HttpStatusCode.NotFound) }
+                    },
+                    routes = {
+                        routing { get("/books/{id}") { throw BookNotFoundException("42") } }
+                    },
+                ) {
+                    client.get("/books/42").problemBody().string("instance") shouldBe "/books/42"
+                }
+            }
+
+            should("keep an instance the handler named itself") {
+                problemApp(
+                    configure = {
+                        on<BookNotFoundException> {
+                            ProblemDetail.fromStatus(HttpStatusCode.NotFound, instance = "urn:book:${it.id}")
+                        }
+                    },
+                    routes = {
+                        routing { get("/books/{id}") { throw BookNotFoundException("42") } }
+                    },
+                ) {
+                    client.get("/books/42").problemBody().string("instance") shouldBe "urn:book:42"
+                }
+            }
+
+            should("win over the catch-all, whatever order they were declared in") {
+                problemApp(
+                    configure = {
+                        on<BookNotFoundException> { ProblemDetail.fromStatus(HttpStatusCode.NotFound) }
+                    },
+                    routes = {
+                        routing { get("/books/{id}") { throw BookNotFoundException("42") } }
+                    },
+                ) {
+                    client.get("/books/42").status shouldBe HttpStatusCode.NotFound
+                }
+            }
+
+            should("let a more specific mapping win over a broader one") {
+                problemApp(
+                    configure = {
+                        on<IllegalStateException> { ProblemDetail.fromStatus(HttpStatusCode.Conflict) }
+                        on<BookNotFoundException> { ProblemDetail.fromStatus(HttpStatusCode.NotFound) }
+                    },
+                    routes = {
+                        routing {
+                            get("/books/{id}") { throw BookNotFoundException("42") }
+                            get("/broken") { throw IllegalStateException("nope") }
+                        }
+                    },
+                ) {
+                    client.get("/books/42").status shouldBe HttpStatusCode.NotFound
+                    client.get("/broken").status shouldBe HttpStatusCode.Conflict
+                }
+            }
+
+            should("leave an unmapped exception to the catch-all") {
+                problemApp(
+                    configure = {
+                        on<BookNotFoundException> { ProblemDetail.fromStatus(HttpStatusCode.NotFound) }
+                    },
+                    routes = {
+                        routing { get("/broken") { throw RuntimeException("boom") } }
+                    },
+                ) {
+                    client.get("/broken").status shouldBe HttpStatusCode.InternalServerError
                 }
             }
         }
