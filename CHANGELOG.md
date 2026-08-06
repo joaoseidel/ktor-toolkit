@@ -64,6 +64,10 @@ for anyone who consumed the library from source.
 - `ProblemDetail` carries the RFC 9457 `type` and `instance` members.
 - `ApplicationCall.pagination` and `ApplicationCall.paginationRequest(...)`.
 - `InMemoryCache` takes `maxSize`, `ttl` and an injectable `Clock`.
+- `LettuceCache`, a `KeyValueCache` over Redis, so instances behind the same store share entries and
+  see each other's invalidations. Lettuce is an optional dependency — add `io.lettuce:lettuce-core`
+  yourself. Redis applies the TTL, keys are namespaced by `keyPrefix`, and key listing goes through
+  `SCAN` rather than `KEYS`.
 - `PaginationRequest.from` accepts `defaultPageSize` and `maxPageSize`.
 - Public API dumps under `*/api/`, enforced by `apiCheck`.
 
