@@ -56,6 +56,12 @@ class SortExposedExtensionsTest :
                     )
             }
 
+            should("resolve against an explicit column allow-list") {
+                val expressions = listOf(Sort("id", DESC)).toExposedQueryExpression(Books.id, Books.title)
+
+                expressions shouldBe listOf(Books.id to SortOrder.DESC)
+            }
+
             should("produce nothing for an empty sort") {
                 emptyList<Sort>().toExposedQueryExpression(Books) shouldBe emptyList()
             }

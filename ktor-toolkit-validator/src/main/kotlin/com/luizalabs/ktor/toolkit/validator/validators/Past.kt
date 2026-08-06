@@ -51,7 +51,7 @@ private fun pastRule(
     now: Instant,
     timeZone: TimeZone,
 ): ValidationRule<Any?> {
-    val described = duration?.let { "a past date of at most $it" } ?: "a past date"
+    val described = if (duration != null) "a past date of at most $duration" else "a past date"
 
     return validationRule(
         positiveMessage = "should be $described",

@@ -82,12 +82,8 @@ object ResponseHandlers {
                 val regex = Regex("`(.*?)`\\s(.*)")
                 val match = regex.find(it)
 
-                val pathGroup =
-                    match
-                        ?.groupValues
-                        ?.get(1)
-                        ?.split(".")
-                        .orEmpty()
+                // One `let` rather than a chain of safe calls: past the first, nothing can be null.
+                val pathGroup = match?.let { it.groupValues[1].split(".") }.orEmpty()
 
                 val realPath =
                     pathGroup
@@ -97,7 +93,7 @@ object ResponseHandlers {
                 val field = pathGroup.lastOrNull()?.applyNamingStrategy(namingStrategy).orEmpty()
 
                 val path = "$" + if (realPath != "root") ".$realPath" else ""
-                val message = match?.groupValues?.get(2).orEmpty()
+                val message = match?.let { it.groupValues[2] }.orEmpty()
 
                 "$path.$field" to "Property `$field` at `$.$realPath` $message"
             }

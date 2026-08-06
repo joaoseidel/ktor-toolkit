@@ -1,7 +1,10 @@
 package com.luizalabs.ktor.toolkit.validator.validators
 
+import com.luizalabs.ktor.toolkit.validator.support.appliedTo
 import com.luizalabs.ktor.toolkit.validator.support.messagesOf
+import com.luizalabs.ktor.toolkit.validator.support.validatorFor
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -82,6 +85,29 @@ class BeforeTest :
                 }
 
             failure.message shouldContain "LocalDate, LocalDateTime or Instant"
+        }
+
+        context("without a zone") {
+            // Each value sits days away from the reference, so no zone can move it across.
+            should("resolve a date against the system zone") {
+                messagesOf(LocalDate(2026, 6, 1)) { should be before(reference) } shouldBe emptyList()
+            }
+
+            should("resolve a date and time against the system zone") {
+                messagesOf(LocalDateTime(2026, 6, 1, 12, 0)) { should be before(reference) } shouldBe emptyList()
+            }
+
+            should("resolve an instant against the system zone") {
+                messagesOf(Instant.parse("2026-06-01T00:00:00Z")) { should be before(reference) } shouldBe emptyList()
+            }
+        }
+
+        should("answer false for a value of a type it cannot compare against a point in time, rather than throw") {
+            val rule = validatorFor<LocalDate?>(null).before(reference, utc)
+
+            listOf(42, "2026-06-15", true, Unit).forEach { value ->
+                withClue("$value") { rule appliedTo value shouldBe false }
+            }
         }
 
         should("stay silent on an absent value") {

@@ -125,6 +125,20 @@ class ExpandableSerializerTest :
                 called shouldBe false
                 resolved shouldBe original
             }
+
+            should("skip the block for a value already narrowed to a projection") {
+                var called = false
+                val original = Expandable.Partial(SerializedAuthor("a1", "Herbert"), setOf("name"))
+
+                val resolved =
+                    original.resolve {
+                        called = true
+                        SerializedAuthor("x", "y")
+                    }
+
+                called shouldBe false
+                resolved shouldBe original
+            }
         }
 
         context("resolveAll") {
@@ -155,6 +169,37 @@ class ExpandableSerializerTest :
                 }
 
                 called shouldBe false
+            }
+
+            should("pass an already-resolved or already-projected entry through untouched") {
+                val resolved = Expandable.Resolved(SerializedAuthor("a2", "Austen"))
+                val partial = Expandable.Partial(SerializedAuthor("a3", "Eliot"), setOf("name"))
+
+                val out =
+                    listOf(Expandable.Ref("a1"), resolved, partial).resolveAll { ids ->
+                        ids.associateWith { SerializedAuthor(it, "Herbert") }
+                    }
+
+                out[1] shouldBe resolved
+                out[2] shouldBe partial
+            }
+
+            should("keep a ref the block returned nothing for") {
+                val out = listOf(Expandable.Ref("a1")).resolveAll<SerializedAuthor> { emptyMap() }
+
+                out.single() shouldBe Expandable.Ref("a1")
+            }
+        }
+
+        context("the serializer itself") {
+            should("describe the field it stands in for") {
+                ExpandableSerializer(SerializedAuthor.serializer()).descriptor.serialName shouldBe "Expandable"
+            }
+
+            should("be reachable through the generated companion") {
+                val serializer = Expandable.serializer(SerializedAuthor.serializer())
+
+                json.encodeToString(serializer, Expandable.Ref("a1")) shouldBe "\"a1\""
             }
         }
     })

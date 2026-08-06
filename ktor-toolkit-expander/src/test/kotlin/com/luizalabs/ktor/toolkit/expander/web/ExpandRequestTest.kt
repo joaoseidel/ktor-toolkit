@@ -1,9 +1,14 @@
 package com.luizalabs.ktor.toolkit.expander.web
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import io.ktor.http.parametersOf
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 
 private fun expand(value: String) = ExpandRequest.from(parametersOf("expand", value))
 
@@ -76,4 +81,53 @@ class ExpandRequestTest :
                 ExpandRequest.NONE.toFetchPaths() shouldBe emptyList()
             }
         }
+
+        context("comparing two requests") {
+            val request = expand("author.books")
+
+            should("consider a request equal to itself") {
+                request.equals(request) shouldBe true
+            }
+
+            should("consider two requests for the same fields equal") {
+                request shouldBe expand("author.books")
+                request.hashCode() shouldBe expand("author.books").hashCode()
+            }
+
+            should("consider a request different from anything that is not one") {
+                request.equals("author.books") shouldBe false
+            }
+
+            should("consider requests for different fields different") {
+                request shouldNotBe expand("author.posts")
+                request shouldNotBe ExpandRequest.NONE
+            }
+
+            should("hand its tree back") {
+                val (fields) = request
+
+                fields.keys shouldBe setOf("author")
+            }
+
+            should("name the fields it carries in its string form") {
+                request.toString() shouldContain "author"
+            }
+
+            should("report whether it asks for anything at all") {
+                request.isEmpty shouldBe false
+                ExpandRequest.NONE.isEmpty shouldBe true
+            }
+        }
+
+        context("serializing a request") {
+            should("survive a round trip") {
+                Json.decodeFromString<ExpandRequest>(Json.encodeToString(request)) shouldBe request
+            }
+
+            should("refuse a payload that carries no tree") {
+                shouldThrow<SerializationException> { Json.decodeFromString<ExpandRequest>("{}") }
+            }
+        }
     })
+
+private val request = ExpandRequest.from(parametersOf("expand", "author.books"))

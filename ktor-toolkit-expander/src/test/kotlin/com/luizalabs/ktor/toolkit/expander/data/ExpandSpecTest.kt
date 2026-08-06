@@ -274,6 +274,12 @@ class ExpandSpecTest :
                 result[1].organiser.shouldBeInstanceOf<Expandable.Resolved<Any>>().value shouldBe books["b1"]
             }
 
+            should("leave the ref alone when expansion was not requested") {
+                val result = organiserSpec.apply(Report("p1", "author", Expandable.Ref("a1")), ExpandRequest.NONE)
+
+                result.organiser.shouldBeInstanceOf<Expandable.Ref>().id shouldBe "a1"
+            }
+
             should("leave an item whose discriminator has no case untouched") {
                 val result = organiserSpec.apply(Report("p3", "publisher", Expandable.Ref("a1")), expand("organiser"))
 
