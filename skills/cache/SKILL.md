@@ -1,13 +1,13 @@
 ---
 name: cache
 description: >-
-  Response caching with ktor-toolkit-cache — serving a route through withCache(namespace, cache),
-  choosing between InMemoryCache and LettuceCache (Redis), and invalidating with
-  invalidateNamespace / invalidateContaining after a write. Use when an endpoint is slow or its
-  result is reusable across clients, when deciding where a cache belongs and who invalidates it,
-  when picking a TTL, and whenever you see a ConcurrentHashMap used as a cache or a memoised
-  repository. Covers cache keys, TTL, read-through, write-through, warming, cache boundaries and
-  the KeyValueCache interface for a custom store.
+    Response caching with ktor-toolkit-cache — serving a route through withCache(namespace, cache),
+    choosing between InMemoryCache and LettuceCache (Redis), and invalidating with
+    invalidateNamespace / invalidateContaining after a write. Use when an endpoint is slow or its
+    result is reusable across clients, when deciding where a cache belongs and who invalidates it,
+    when picking a TTL, and whenever you see a ConcurrentHashMap used as a cache or a memoised
+    repository. Covers cache keys, TTL, read-through, write-through, warming, cache boundaries and
+    the KeyValueCache interface for a custom store.
 ---
 
 # Caching
@@ -99,6 +99,17 @@ InMemoryCache(maxSize = 1_000, ttl = 5.minutes)
 LettuceCache(connection.async(), ttl = 5.minutes)
 ```
 
+**Open the Redis connection with `LettuceCache.Codec`.** The cache stores raw bytes, so its constructor takes
+`RedisClusterAsyncCommands<String, ByteArray>`. A plain `connect()` gives you a `<String, String>` connection that does not fit, and the compile error
+names two Lettuce generics rather than the mistake:
+
+```kotlin
+val connection = RedisClient.create("redis://localhost:6379").connect(LettuceCache.Codec)
+val cache = LettuceCache(connection.async(), ttl = 5.minutes)
+```
+
+Both objects are built once in `-app` and registered with a `cleanup` so the connection closes on shutdown — see `ktor-toolkit:di`.
+
 `InMemoryCache` defaults to `maxSize = 1_000` and no expiry; it is LRU-bounded, so entries leave when the bound is hit. `LettuceCache` lets Redis
 apply the expiry itself.
 
@@ -174,6 +185,7 @@ is a reason to cache at the data layer.
 | Mistake                                                    | Why it hurts                                                                                                 |
 |------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
 | `ConcurrentHashMap` as a cache                             | No bound, no TTL, no invalidation across nodes; grows until the heap does                                    |
+| `RedisClient.connect()` without `LettuceCache.Codec`       | The connection is `<String, String>` and will not fit the constructor                                        |
 | `InMemoryCache` with several instances running             | Each node caches and invalidates its own copy; stale reads that only appear in production                    |
 | Caching a response that varies by header or caller         | Headers are not in the key — one client's data is served to another                                          |
 | Trace ids left in the key                                  | Every request is a miss, and the cache is pure overhead                                                      |
