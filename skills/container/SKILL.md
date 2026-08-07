@@ -234,6 +234,9 @@ readiness — which is the distinction that matters:
 - **Readiness** — can it serve right now? This one may check dependencies, and failing it removes the instance from the load balancer without killing
   it.
 
+The endpoints themselves are Cohort's, and which check belongs on which probe is the whole subject of the `ktor-toolkit:healthcheck` skill — load it
+before writing either probe.
+
 Where a `HEALTHCHECK` is genuinely required, remember a jlink or distroless image has no `curl`. Use the JDK's own client rather than adding a package
 for it:
 

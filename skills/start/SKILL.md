@@ -64,6 +64,7 @@ Match the request against the table. Most real tasks hit two or three rows — t
 | Coverage numbers, thresholds, exclusions                                   | `ktor-toolkit:kover`           |
 | API documentation, Swagger, OpenAPI                                        | `ktor-toolkit:openapi`         |
 | Log statements, correlation IDs, what to log                               | `ktor-toolkit:logging`         |
+| Health, readiness or liveness endpoints, probes, Cohort, actuator          | `ktor-toolkit:healthcheck`     |
 | `build.gradle.kts`, `libs.versions.toml`, dependency scopes, new module    | `ktor-toolkit:gradle`          |
 | Dockerfile, image size, JVM flags in containers, graceful shutdown         | `ktor-toolkit:container`       |
 | Make targets, "how do I run this"                                          | `ktor-toolkit:makefile`        |
@@ -112,6 +113,7 @@ whether you are writing the code or reading someone else's.
 | `SchemaUtils.create(…)` anywhere but a test                                    | `ktor-toolkit:migrations`      |
 | An edit to a migration file that has already run                               | `ktor-toolkit:migrations`      |
 | A version number literal in `build.gradle.kts`                                 | `ktor-toolkit:gradle`          |
+| `get("/health") { call.respond(HttpStatusCode.OK) }`                           | `ktor-toolkit:healthcheck`     |
 
 ## When nothing matches
 

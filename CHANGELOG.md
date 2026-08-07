@@ -112,6 +112,9 @@ First public release. Nothing was published before this, so the breaking changes
   `SCAN` rather than `KEYS`.
 - `PaginationRequest.from` accepts `defaultPageSize` and `maxPageSize`.
 - Public API dumps under `*/api/`, enforced by `apiCheck`.
+- A `healthcheck` skill, covering health endpoints with Cohort: separate liveness and readiness registries, which dependencies may fail a probe,
+  writing a `HealthCheck` that reports a failure instead of throwing it, and keeping the heapdump, sysprops and logging endpoints off the public
+  internet.
 
 ### Changed
 
