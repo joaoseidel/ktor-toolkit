@@ -31,10 +31,6 @@ allprojects {
 
     // `-Pversion=` lets the snapshot workflow stamp a build without touching gradle.properties.
     version = providers.gradleProperty("version").get()
-
-    repositories {
-        mavenCentral()
-    }
 }
 
 // Neither the umbrella project nor the coverage aggregator ships a public API.
