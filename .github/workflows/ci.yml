@@ -29,7 +29,11 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # validate-wrappers rejects a gradle-wrapper.jar whose checksum is not a published
+      # Gradle release — the cheapest defence against a tampered wrapper in a fork's PR.
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          validate-wrappers: true
 
       # Split into the same targets a contributor runs, so a failure names itself in the
       # step list instead of hiding inside one long Gradle log.
@@ -55,3 +59,45 @@ jobs:
             report/build/reports/kover
           if-no-files-found: ignore
           retention-days: 7
+
+  # A release is the worst place to discover that a POM is incomplete or that Dokka cannot render
+  # a module. This runs the same publication path unsigned, so those break at PR time instead.
+  publication:
+    name: Publication
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          validate-wrappers: true
+
+      - name: Publish to Maven local
+        run: make publish_local
+
+      # Central rejects a deployment missing any of these, and it does so after the upload.
+      - name: Check the expected artifacts exist
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version=//p' gradle.properties)
+          failed=0
+          for module in ktor-toolkit-*/; do
+            module=${module%/}
+            dir="$HOME/.m2/repository/io/github/joaoseidel/$module/$version"
+            for suffix in .jar -sources.jar -javadoc.jar .pom; do
+              file="$dir/$module-$version$suffix"
+              if [ -s "$file" ]; then
+                echo "ok   $module-$version$suffix"
+              else
+                echo "::error::missing or empty: $file"
+                failed=1
+              fi
+            done
+          done
+          exit $failed

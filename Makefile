@@ -9,7 +9,12 @@ else
   gradle_cmd := ./gradlew
 endif
 
-.PHONY: setup clean build test coverage lint format api api_check dist publish_local
+.PHONY: setup clean build test coverage lint format api api_check verify docs dist \
+	publish_local publish
+
+# The publishing tasks upload over the network and are not compatible with the configuration cache,
+# so every target that reaches Maven Central has to opt out of it.
+publish_flags := --no-configuration-cache
 
 setup:
 	chmod +x ./gradlew
@@ -41,11 +46,29 @@ api: setup
 api_check: setup
 	$(gradle_cmd) apiCheck
 
+# Everything a release must pass, in the order a failure is cheapest to read.
+verify: lint api_check build coverage
+
+# Dokka HTML per module, at <module>/build/dokka/html/index.html. Also the input for the javadoc
+# jars, so a docs failure surfaces here rather than mid-publish.
+docs: setup
+	$(gradle_cmd) dokkaGenerate
+
 # Collects every module's jars (main, sources, javadoc) into build/dist for a release upload.
+# The javadoc jar is registered by the publishing plugin and is not part of `assemble`, so `build`
+# alone would leave it out of the release.
 dist: build
+	$(gradle_cmd) dokkaJavadocJar
 	mkdir -p build/dist
 	cp ktor-toolkit-*/build/libs/*.jar build/dist/
 	ls -1 build/dist
 
+# Unsigned, so this works without a GPG key. Resolves as io.github.joaoseidel:ktor-toolkit-* from
+# mavenLocal().
 publish_local: setup
-	$(gradle_cmd) publishToMavenLocal
+	$(gradle_cmd) publishToMavenLocal -PsignAllPublications=false $(publish_flags)
+
+# Signs and uploads to Maven Central. Needs mavenCentralUsername/Password and the signingInMemory*
+# properties — see RELEASING.md. Normally invoked by the release workflow, not by hand.
+publish: setup
+	$(gradle_cmd) publishToMavenCentral $(publish_flags)
