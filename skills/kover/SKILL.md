@@ -40,7 +40,8 @@ tasks.withType<KoverReport>().configureEach {
 ```
 
 **A new production module must be added to that list.** Nothing warns you: the build stays green, the report is generated, and the new module's code
-is simply invisible. That silence is why this is worth checking whenever a module appears — and why `ktor-toolkit:architecture` names it too.
+is simply invisible. That silence is why this is worth checking whenever a module appears — and why the `ktor-toolkit:architecture` skill names it
+too.
 
 **The `dependsOn` matters more than it looks.** Without it a report can be produced from whatever execution data happens to be on disk — stale from a
 previous run, or absent — and the number is fiction. Wiring the report to the tests makes `make coverage` honest on a clean checkout.
@@ -117,7 +118,7 @@ constraint: nothing new can arrive uncovered, and the existing gap closes as cod
 more than declaring 90 and disabling it in week three.
 
 **Never lower a threshold to make a build pass.** Lowering it is a decision to accept less, and it should look like one: its own commit, with a body
-explaining what changed (`ktor-toolkit:commit`). The reflex to reach for when the gate fails is a test.
+explaining what changed (load the `ktor-toolkit:commit` skill). The reflex to reach for when the gate fails is a test.
 
 ## Exclusions
 
@@ -187,7 +188,8 @@ Coverage is its own step, calling the same target a contributor runs:
 `if: always()` is the important line. The run you most want the report from is the one that failed, and a plain `upload-artifact` step is skipped when
 a previous step fails — leaving you with a number and no way to see which lines it came from.
 
-`make coverage` runs `koverHtmlReport` and `koverVerify`, so the report is produced and the bound enforced in one step (`ktor-toolkit:makefile`).
+`make coverage` runs `koverHtmlReport` and `koverVerify`, so the report is produced and the bound enforced in one step (load the
+`ktor-toolkit:makefile` skill).
 
 ## What coverage does and does not tell you
 
@@ -202,7 +204,7 @@ So treat the gate as a floor and the report as a tool:
 - **Do not chase the last percent with tests that assert nothing.** That converts a real signal into a decoration, and the next person cannot tell
   which tests mean anything.
 
-`ktor-toolkit:tests` covers what makes a test worth having in the first place.
+Load the `ktor-toolkit:tests` skill for what makes a test worth having in the first place.
 
 ## Common mistakes
 

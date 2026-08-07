@@ -86,7 +86,7 @@ different messages — which reads like three failures. Either handle it and log
 
 The one place that already logs is the toolkit's catch-all: an unmapped exception is logged with its full stack trace by `problemDetails { }`, and the
 client is told nothing. That means **an exception mapped with `on<E>` is deliberately not logged** — if a mapped case also deserves a log line, log it
-where you throw it. See `ktor-toolkit:problem-details`.
+where you throw it. Load the `ktor-toolkit:problem-details` skill.
 
 ## Writing the message
 
@@ -191,7 +191,7 @@ Logs are read by a machine first. Configure Logback to emit JSON rather than par
 `<mdc/>` is what publishes `call-id` and anything from `withLoggingContext` as queryable fields — without that provider the context is collected and
 then thrown away. `rootCauseFirst` puts the actual cause at the top, where the useful line in a twelve-frame wrapped exception usually is.
 
-This needs `net.logstash.logback:logstash-logback-encoder`, which is **not** in the version catalog yet — see `ktor-toolkit:gradle`.
+This needs `net.logstash.logback:logstash-logback-encoder`, which is **not** in the version catalog yet — load the `ktor-toolkit:gradle` skill.
 
 A line then arrives as an object you can query, with the MDC flattened alongside the message:
 

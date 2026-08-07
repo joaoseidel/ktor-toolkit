@@ -80,7 +80,7 @@ throw HttpStatusException(
 regex on the other side.
 
 **This belongs in `-adapters/web`, never in `-core`.** An HTTP status is a transport decision. A domain that throws `HttpStatusException` cannot be
-tested without deciding what a 404 means, and it has become a web layer — see `ktor-toolkit:architecture`.
+tested without deciding what a 404 means, and it has become a web layer — load the `ktor-toolkit:architecture` skill.
 
 ## Mapping your own exceptions
 
@@ -118,7 +118,7 @@ The lambda receives the exception and runs with the `ApplicationCall` as receive
 
 **Mapping an exception also stops it being logged.** Only the catch-all writes a stack trace; a mapped exception is answered and forgotten, which is
 right for a 404 and wrong for a 409 you are trying to measure. If a mapped case deserves a log line, log it where you throw it rather than inside the
-mapping — `ktor-toolkit:logging` covers the level to pick and what must never go in the message.
+mapping — load the `ktor-toolkit:logging` skill for the level to pick and what must never go in the message.
 
 **Declaration order does not matter.** StatusPages resolves by nearest ancestor class, so a mapping for `BookNotFoundException` always beats the
 `Throwable` catch-all, wherever it appears. You do not have to out-run the default, and a mapping on a base exception type covers every subtype that
@@ -192,7 +192,8 @@ reason better than taste.
 ## Two exceptions worth mapping early
 
 **`IllegalArgumentException` → 400.** This is not mapped by default, so it lands on the catch-all as a 500. It is what `Sort.toExposedQueryExpression`
-throws for a sort key outside the allow-list, which makes `?sortBy=titel` — a client typo — answer 500. `ktor-toolkit:pagination` covers this.
+throws for a sort key outside the allow-list, which makes `?sortBy=titel` — a client typo — answer 500. Load the `ktor-toolkit:pagination` skill,
+which covers this.
 
 Map it deliberately rather than reflexively: `IllegalArgumentException` is also what a `require` in your own value objects throws, and those genuinely
 are server faults when they fire after validation. If both cases exist, give the sort failure its own exception type instead of widening the mapping.

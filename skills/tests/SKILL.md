@@ -37,7 +37,7 @@ wired together.
 | `acceptance-tests/src/test`   | Whole features                               | The assembled application, over HTTP, as a client sees it.                            |
 
 There is no `-core` test that starts a server and no `-adapters` test of a domain rule. If you find yourself writing one, the code is in the wrong
-module — see `ktor-toolkit:architecture`.
+module — load the `ktor-toolkit:architecture` skill.
 
 `acceptance-tests` is a separate Gradle module precisely so it *cannot* reach into internals. It depends on the app the way a client does, which is
 what makes it the test that would have caught the wiring bug.
@@ -273,7 +273,7 @@ class BookRoutesTest :
 ```
 
 Register only the mock the route resolves, and install only the plugins it uses. Nothing else in the graph is stood up, so a failure here is the
-adapter's — see `ktor-toolkit:di` for overriding a registration when the real module is booted.
+adapter's — load the `ktor-toolkit:di` skill for overriding a registration when the real module is booted.
 
 **Assert on the JSON, not on a deserialized object.** Deserializing with your own `@Serializable`
 class asserts that your class round-trips with itself and would not notice a renamed field, a naming-strategy change, or a null where the client
@@ -325,14 +325,14 @@ private val postgres = PostgreSQLContainer("postgres:17-alpine")
 ```
 
 Testcontainers is **not** in the version catalog yet — add it there rather than inline, and give
-`acceptance-tests` and `-adapters` the dependency they need (`ktor-toolkit:gradle` covers both). It needs a working Docker daemon, so the CI runner
-must provide one.
+`acceptance-tests` and `-adapters` the dependency they need (load the `ktor-toolkit:gradle` skill, which covers both). It needs a working Docker
+daemon, so the CI runner must provide one.
 
 Start the container once for the spec rather than per test, and let each test own its data — insert what it needs, assert, and rely on a transaction
 rollback or a truncate between cases. Shared mutable fixtures across tests are the usual cause of a suite that passes alone and fails in parallel.
 
 **Build the container's schema with the real migrations**, not `SchemaUtils.create`. A query tested against a table the migrations never produced
-proves nothing about production, and the two drift silently — `ktor-toolkit:migrations`.
+proves nothing about production, and the two drift silently — load the `ktor-toolkit:migrations` skill.
 
 ## Determinism
 

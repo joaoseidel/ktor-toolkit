@@ -107,10 +107,10 @@ Most comments are a symptom. Reach for the fix first.
 | `// this is the total including tax` | Rename to `totalWithTax`, or a `Money` value object            |
 | `// step 3: map to response`         | Extract a function per step                                    |
 | `// must be called after init()`     | Make it impossible — take the initialised thing as a parameter |
-| `// title must not be blank`         | A validation rule (`ktor-toolkit:validation`)                  |
+| `// title must not be blank`         | A validation rule — load the `ktor-toolkit:validation` skill   |
 
 A comment explaining a name is a naming bug. A comment explaining a sequence is a decomposition bug. A comment explaining a constraint is usually a
-type that has not been introduced yet — see the value object argument in `ktor-toolkit:architecture`.
+type that has not been introduced yet — load the `ktor-toolkit:architecture` skill for the value object argument.
 
 ## KDoc
 
@@ -184,7 +184,7 @@ shape.
 private class TestClock(…)
 ```
 
-Test names carry the rest — see `ktor-toolkit:tests`. A comment above a `should` block is a sign the name is not doing its job.
+Test names carry the rest — load the `ktor-toolkit:tests` skill. A comment above a `should` block is a sign the name is not doing its job.
 
 ## Common mistakes
 

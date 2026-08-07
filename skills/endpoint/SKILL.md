@@ -1,14 +1,14 @@
 ---
 name: endpoint
 description: >-
-  Implements a new HTTP endpoint in a Ktor Toolkit service, end to end across -core, -adapters and
-  -app. Use this for ANY route-shaped request — "add an endpoint", "expose X over HTTP", "GET
-  /orders should return…", "let clients create a Y", "add a search route", or changing an existing
-  route's contract. It interrogates the endpoint for pagination, sorting, filtering, HATEOAS links,
-  field expansion, validation, caching, error shape, auth, idempotency, uploads, streaming and rate
-  limiting, then loads the toolkit skill that owns each one before any code is written. Route to
-  this skill rather than composing the feature skills yourself; it asks the questions in the order
-  that keeps answers consistent.
+    Implements a new HTTP endpoint in a Ktor Toolkit service, end to end across -core, -adapters and
+    -app. Use this for ANY route-shaped request — "add an endpoint", "expose X over HTTP", "GET
+    /orders should return…", "let clients create a Y", "add a search route", or changing an existing
+    route's contract. It interrogates the endpoint for pagination, sorting, filtering, HATEOAS links,
+    field expansion, validation, caching, error shape, auth, idempotency, uploads, streaming and rate
+    limiting, then loads the toolkit skill that owns each one before any code is written. Route to
+    this skill rather than composing the feature skills yourself; it asks the questions in the order
+    that keeps answers consistent.
 ---
 
 # Implementing an endpoint
@@ -22,8 +22,8 @@ the use case, the mapping.
 So the work is not "write an endpoint". It is: settle the contract, find out which decided problems this endpoint has, load those skills, and then
 write the small remainder. An endpoint that took three hours usually spent them re-deciding something.
 
-Read `ktor-toolkit:architecture` first if you have not this session. Every file below lands in a specific module, and getting that wrong is the
-expensive kind of mistake.
+Load the `ktor-toolkit:architecture` skill first if you have not this session. Every file below lands in a specific module, and getting that wrong is
+the expensive kind of mistake.
 
 ## Step 1 — Settle the contract
 
@@ -46,7 +46,7 @@ safely default is worse than being explicit about the assumption.
 Go down this list for the endpoint at hand. Each **yes** means loading that skill *before* writing code, because each one changes types that other
 layers depend on — discovering pagination after the port is written means rewriting the port.
 
-| Ask                                                       | If yes                                           |
+| Ask                                                       | If yes, load this skill                          |
 |-----------------------------------------------------------|--------------------------------------------------|
 | Does it return more than one of something?                | `ktor-toolkit:pagination`                        |
 | Can the client choose the order?                          | `ktor-toolkit:pagination` — `Sort` is part of it |
@@ -56,8 +56,8 @@ layers depend on — discovering pagination after the port is written means rewr
 | Is the result expensive and reusable across clients?      | `ktor-toolkit:cache`                             |
 | Can it fail in a way the client should understand?        | `ktor-toolkit:problem-details`                   |
 
-That last row is not really a question. Every endpoint can fail, so `problem-details` is in scope for every endpoint — the only variable is whether
-this one adds a new exception mapping.
+That last row is not really a question. Every endpoint can fail, so the `ktor-toolkit:problem-details` skill is in scope for every endpoint — the only
+variable is whether this one adds a new exception mapping.
 
 A collection endpoint typically answers yes to the first three. That is normal: pagination, sorting and links are one feature wearing three hats, and
 the skills expect to be used together.
@@ -76,7 +76,7 @@ never write a DTO for a use case that turned out not to need it.
 is a collection. Nothing in this step mentions HTTP.
 
 **2. `-adapters/persistence` — satisfy the port.** The Exposed table and the repository implementation. Sorting arrives here as an allow-list of
-sortable columns. A new table or column is also a migration, written in the same step — `ktor-toolkit:migrations`.
+sortable columns. A new table or column is also a migration, written in the same step — load the `ktor-toolkit:migrations` skill.
 
 **3. `-adapters/web` — the route and its DTOs.** Request DTO, response DTO, mappers, validation rules, problem mappings, links.
 
@@ -138,7 +138,7 @@ fun Application.configureRouting() {
 }
 ```
 
-A test overrides the registration rather than passing arguments; `ktor-toolkit:di` covers how.
+A test overrides the registration rather than passing arguments; load the `ktor-toolkit:di` skill for how.
 
 **`call.pagination` never fails.** An unparseable `?page=abc` falls back to the default rather than 400-ing, so there is no error path to write. Use
 `call.paginationRequest(defaultPageSize, maxPageSize)`
@@ -169,28 +169,28 @@ in `-core`. Never accept a client-supplied field name or operator — that is an
 **Authorization.** Coarse checks (is this caller an admin?) belong in the route. Rules that depend on the data (may this caller edit *this* book?)
 belong in `-core`, because they are business rules and need testing without a server.
 
-**Idempotency.** Require an `Idempotency-Key` header on non-idempotent writes and store the outcome under it — `ktor-toolkit:cache` is a reasonable
-backing store. Say so in the response when you replay a stored result rather than performing the write again.
+**Idempotency.** Require an `Idempotency-Key` header on non-idempotent writes and store the outcome under it — the `ktor-toolkit:cache` skill covers a
+reasonable backing store. Say so in the response when you replay a stored result rather than performing the write again.
 
 **Multipart uploads.** `call.receiveMultipart()` in the route, streaming straight to the storage adapter. Do not buffer a whole upload into memory to
 hand a `ByteArray` to a use case; the port should take a stream.
 
-**Streaming.** `call.respondBytesWriter { }` or `respondOutputStream`. Note that this is incompatible with `ktor-toolkit:cache`, which serializes the
-whole value — do not wrap a streaming route in `withCache`.
+**Streaming.** `call.respondBytesWriter { }` or `respondOutputStream`. Note that this is incompatible with the caching in the `ktor-toolkit:cache`
+skill, which serializes the whole value — do not wrap a streaming route in `withCache`.
 
 **Rate limiting.** Ktor's `RateLimit` plugin, configured in `-app`. Keep the limits in
 `application.yaml` so they are environment-specific.
 
 ## Before you call it done
 
-- The use case has a test that does not start a server (`ktor-toolkit:tests`).
+- The use case has a test that does not start a server (load the `ktor-toolkit:tests` skill).
 - The endpoint has an acceptance test in `acceptance-tests` covering the success path and the interesting failure.
 - New exceptions have a `problemDetails` mapping, or deliberately fall through to the catch-all. A mapped one is no longer logged by the catch-all, so
-  anything worth a log line has one where it is thrown (`ktor-toolkit:logging`).
+  anything worth a log line has one where it is thrown (load the `ktor-toolkit:logging` skill).
 - Sortable columns are an explicit allow-list, not whatever the client sent.
-- The route is documented (`ktor-toolkit:openapi`) and the DI registration exists — an endpoint that compiles but was never wired into
+- The route is documented (load the `ktor-toolkit:openapi` skill) and the DI registration exists — an endpoint that compiles but was never wired into
   `configureRouting()` is the quietest possible bug.
-- The commit is scoped (`ktor-toolkit:commit`).
+- The commit is scoped (load the `ktor-toolkit:commit` skill).
 
 ## Common mistakes
 

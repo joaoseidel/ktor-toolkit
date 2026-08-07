@@ -34,8 +34,8 @@ val pagination = call.paginationRequest(defaultPageSize = 20, maxPageSize = 200)
 
 ## The five types, and where each lives
 
-Getting these confused is the usual source of a layering mistake, so it is worth knowing which is which before writing any of them.
-`ktor-toolkit:architecture` has the full rationale.
+Getting these confused is the usual source of a layering mistake, so it is worth knowing which is which before writing any of them. The
+`ktor-toolkit:architecture` skill has the full rationale — load it.
 
 | Type                | Module          | What it is                                                        |
 |---------------------|-----------------|-------------------------------------------------------------------|
@@ -149,7 +149,7 @@ get {
 `PagedResponse.from` takes the mapper from entity to DTO, so the entity never reaches the wire. If the content is already the response type, the
 mapper is optional: `PagedResponse.from(paged)`.
 
-To attach `self`/`next`/`prev` links, one more call — `ktor-toolkit:hateoas` owns it:
+To attach `self`/`next`/`prev` links, one more call — the `ktor-toolkit:hateoas` skill owns it, so load that too:
 
 ```kotlin
 call.respond(PagedResponse.from(paged) { it.toResponse() }.toResource(call))
@@ -157,7 +157,7 @@ call.respond(PagedResponse.from(paged) { it.toResponse() }.toResource(call))
 
 ### 5. Wiring — `-app`
 
-Nothing pagination-specific. The use case is registered like any other; see `ktor-toolkit:di`.
+Nothing pagination-specific. The use case is registered like any other; load the `ktor-toolkit:di` skill.
 
 ## Sorting
 
@@ -193,7 +193,8 @@ on<IllegalArgumentException> {
 }
 ```
 
-Do this the first time an endpoint becomes sortable. See `ktor-toolkit:problem-details` for where that block lives and how mappings resolve.
+Do this the first time an endpoint becomes sortable. Load the `ktor-toolkit:problem-details` skill for where that block lives and how mappings
+resolve.
 
 ## The metadata block
 
@@ -213,7 +214,7 @@ Do this the first time an endpoint becomes sortable. See `ktor-toolkit:problem-d
 ```
 
 **`totalPages` is a count, not an index.** With `totalPages: 3`, the last page is `?page=2`. This is the field clients most often get wrong, and it is
-worth stating in the API documentation (`ktor-toolkit:openapi`) rather than leaving them to discover it.
+worth stating in the API documentation (load the `ktor-toolkit:openapi` skill) rather than leaving them to discover it.
 
 `from` requires `pageSize > 0`. It cannot be violated through `call.pagination`, which clamps, but it can be if you construct a `Page` yourself in a
 test or a background job.
@@ -223,9 +224,9 @@ test or a background job.
 `totalElements` costs a second query, and on a large table `COUNT(*)` is not free. It is the right default: clients need `totalPages` to render a
 pager, and one count per page request is cheap compared to getting it wrong.
 
-When it genuinely hurts — a feed, an admin export, a table in the tens of millions of rows — the honest options are to cache the count
-(`ktor-toolkit:cache`, keyed on the filter, with a short TTL), or to change the contract to cursor pagination. The toolkit does not do cursors; that
-is a real gap worth naming rather than faking with a wrong `totalElements`.
+When it genuinely hurts — a feed, an admin export, a table in the tens of millions of rows — the honest options are to cache the count (load the
+`ktor-toolkit:cache` skill; key on the filter, with a short TTL), or to change the contract to cursor pagination. The toolkit does not do cursors;
+that is a real gap worth naming rather than faking with a wrong `totalElements`.
 
 Do not pass a fabricated total. Every downstream number in `metadata` is derived from it, so one guess corrupts the whole block.
 
