@@ -92,8 +92,8 @@ and verifies the result compiles before reporting back.
 /ktor-toolkit:install
 ```
 
-Use it to add another module to a project already on the toolkit, and when `Could not find io.github.joaoseidel:...` or an error
-response arrives as HTML instead of `problem+json`.
+Use it to add another module to a project already on the toolkit, and when `Could not find io.github.joaoseidel:...` or an error response arrives as
+HTML instead of `problem+json`.
 
 ---
 
@@ -148,13 +148,32 @@ get("/books") {
 
 ```json
 {
-  "metadata": { "page": 0, "pageSize": 10, "totalPages": 3, "hasNext": true },
-  "content": [ … ],
-  "_links": [
-    { "rel": "self", "href": "/books?page=0&pageSize=10", "method": "GET" },
-    { "rel": "next", "href": "/books?page=1&pageSize=10", "method": "GET" },
-    { "rel": "last", "href": "/books?page=2&pageSize=10", "method": "GET" }
-  ]
+    "metadata": {
+        "page": 0,
+        "pageSize": 10,
+        "totalPages": 3,
+        "hasNext": true
+    },
+    "content": [
+        …
+    ],
+    "_links": [
+        {
+            "rel": "self",
+            "href": "/books?page=0&pageSize=10",
+            "method": "GET"
+        },
+        {
+            "rel": "next",
+            "href": "/books?page=1&pageSize=10",
+            "method": "GET"
+        },
+        {
+            "rel": "last",
+            "href": "/books?page=2&pageSize=10",
+            "method": "GET"
+        }
+    ]
 }
 ```
 
@@ -213,7 +232,7 @@ property(CreateBookRequest::authorEmail) {
 ```
 
 A rule stays silent on a `null` property, so requiring a field and constraining it are two separate assertions (`should notBe nil()`, then
-`should be email()`). `each` validates collection elements as values and `eachNested` as objects, `whenever` makes a group conditional, and `invariant`
+`should be email()`). `each` validates collection elements as values and `eachNested` as objects, `whenever` makes a group conditional, and`invariant`
 states a rule no single property owns:
 
 ```kotlin
@@ -250,12 +269,14 @@ throw HttpStatusException(HttpStatusCode.NotFound, "Book not found", mapOf("id" 
 
 ```json
 {
-  "type": "about:blank",
-  "title": "Not Found",
-  "status": 404,
-  "detail": "Book not found",
-  "instance": "/books/42",
-  "properties": { "id": "42" }
+    "type": "about:blank",
+    "title": "Not Found",
+    "status": 404,
+    "detail": "Book not found",
+    "instance": "/books/42",
+    "properties": {
+        "id": "42"
+    }
 }
 ```
 
@@ -321,7 +342,7 @@ cache.invalidateNamespace("books")   // everything under the namespace
 cache.invalidateContaining(bookId)   // entries whose payload mentions this id
 ```
 
-`InMemoryCache` is LRU-bounded with an optional TTL, which suits a single node. Once more than one instance serves the same traffic, use `LettuceCache`
+`InMemoryCache` is LRU-bounded with an optional TTL, which suits a single node. Once more than one instance serves the same traffic, use`LettuceCache`
 over [Lettuce](https://lettuce.io). Otherwise each node holds, and invalidates, its own copy:
 
 ```kotlin
@@ -341,7 +362,7 @@ The libraries leave the surrounding decisions open, and contributors resolve the
 error envelope, another puts the repository call in the route body. The skills record the intended answer to each of those decisions, so an agent
 working in the project follows the same conventions a maintainer would.
 
-There are 20 of them, installed with the commands under [Install](#let-the-agent-do-it).
+There are 21 of them, installed with the commands under [Install](#let-the-agent-do-it).
 
 ### The entrypoint
 
@@ -361,6 +382,7 @@ is written is too late to be useful.
 | `problem-details` | `problemDetails { }`, status codes, mapping domain exceptions                           |
 | `expand`          | `ExpandSpec`, batched resolution, the `Expandable` wire contract                        |
 | `cache`           | `withCache`, choosing a store, TTLs, who invalidates and when                           |
+| `migrations`      | Versioned SQL under Flyway, where it lives, and expand/contract schema changes          |
 | `di`              | Ktor's native DI: `provide<Port> { Impl(resolve()) }`, lifetimes, test overrides        |
 | `tests`           | Kotest ShouldSpec naming, MockK, `testApplication`, Testcontainers, acceptance tests    |
 | `kover`           | The `report` aggregation module, thresholds, and the strict rule for exclusions         |
