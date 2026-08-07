@@ -88,7 +88,7 @@ The functions are `internal`: they are wiring for this deployable, not API. A si
 
 **Configuration enters as a parameter, not through the graph.** `registerSearchDependencies(settings)`
 is clearer than resolving a settings object inside each provider, and it keeps the read of
-`application.yaml` in one place. See `ktor-toolkit:architecture`.
+`application.yaml` in one place. Load the `ktor-toolkit:architecture` skill.
 
 ## Consume
 
@@ -164,8 +164,8 @@ dependencies {
 ```
 
 Without it, a redeploy can drop in-flight work and leak connections for as long as the old process lingers. It also matters for graceful shutdown
-behind a load balancer — see
-`ktor-toolkit:container`.
+behind a load balancer — load the
+`ktor-toolkit:container` skill.
 
 ## Overriding in a test
 
@@ -187,8 +187,8 @@ testApplication {
 }
 ```
 
-For an `-adapters` route test, do not boot `module()` at all — register only the mock the route needs and install only the plugins it uses.
-`ktor-toolkit:tests` covers the split between that and an acceptance test.
+For an `-adapters` route test, do not boot `module()` at all — register only the mock the route needs and install only the plugins it uses. Load the
+`ktor-toolkit:tests` skill for the split between that and an acceptance test.
 
 ## When resolution fails
 
@@ -202,7 +202,7 @@ The failures are distinct, and each says something different about the wiring:
 | Conflict on registration       | The same type registered twice; intentional in a test, a mistake in `module()`                          |
 
 Resolution is lazy, so a missing registration surfaces on **first use**, not at startup. An endpoint nobody exercised can be broken in a build that is
-otherwise green — which is one more reason for the acceptance test in `ktor-toolkit:tests`.
+otherwise green — which is one more reason for the acceptance test in the `ktor-toolkit:tests` skill.
 
 A circular dependency is worth reading as a message about the design. Two use cases that need each other usually share a third thing that has not been
 named yet.

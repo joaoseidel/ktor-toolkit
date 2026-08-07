@@ -30,8 +30,8 @@ instead of assembled.
 
 Before routing, establish two facts. Both change the answer.
 
-**Which modules are on the classpath.** A skill for a module the project does not depend on is premature; the honest move is to say so and offer
-`ktor-toolkit:install`.
+**Which modules are on the classpath.** A skill for a module the project does not depend on is premature; the honest move is to say so and offer to
+load the `ktor-toolkit:install` skill.
 
 ```bash
 grep -rn "ktor-toolkit" --include="*.gradle.kts" --include="*.toml" . | grep -v "^\./build"
@@ -39,9 +39,8 @@ grep -rn "ktor-toolkit" --include="*.gradle.kts" --include="*.toml" . | grep -v 
 
 **Whether this is the toolkit repo or a service that uses it.** In the toolkit repo (`rootProject.name = "ktor-toolkit"`, modules named
 `ktor-toolkit-*`) the rules are stricter: public API dumps under `api/`, 100% Kover coverage, KDoc on every public declaration. Check
-`settings.gradle.kts`.
-`ktor-toolkit:gradle`, `ktor-toolkit:tests`, `ktor-toolkit:kover` and `ktor-toolkit:comments` all behave differently in the two cases, and they say
-how.
+`settings.gradle.kts`. The `ktor-toolkit:gradle`, `ktor-toolkit:tests`, `ktor-toolkit:kover` and `ktor-toolkit:comments` skills all behave differently
+in the two cases, and they say how — load whichever of them the task touches.
 
 Keep this quick. Two commands, not an audit.
 
@@ -49,7 +48,7 @@ Keep this quick. Two commands, not an audit.
 
 Match the request against the table. Most real tasks hit two or three rows — that is normal and expected, not a sign you have over-matched.
 
-| The request involves                                                       | Load                           |
+| The request involves                                                       | Load this skill                |
 |----------------------------------------------------------------------------|--------------------------------|
 | A new or changed HTTP route, of any kind                                   | `ktor-toolkit:endpoint`        |
 | Where a file goes, layering, ports, adapters, "is this the right place?"   | `ktor-toolkit:architecture`    |
@@ -75,17 +74,17 @@ Match the request against the table. Most real tasks hit two or three rows — t
 **When in doubt, load it.** Reading a skill costs a few thousand tokens. Shipping an endpoint that hand-rolls something a module already does costs a
 review cycle and leaves the codebase less uniform than it was.
 
-**`ktor-toolkit:endpoint` is a second-level router.** For anything route-shaped, load it and follow it — it asks the feature questions (does this
-page? does it need links? does it cache?) in the order that keeps the answers consistent, and pulls in the feature skills itself. Do not pre-empt it
-by guessing the feature set yourself.
+**The `ktor-toolkit:endpoint` skill is a second-level router.** For anything route-shaped, load it and follow it — it asks the feature questions (does
+this page? does it need links? does it cache?) in the order that keeps the answers consistent, and pulls in the feature skills itself. Do not pre-empt
+it by guessing the feature set yourself.
 
 ## Step 3 — Implement
 
 Read the SKILL.md of each routed skill, then build. Two things to hold onto while you do:
 
-**A skill you loaded is the decision, not a suggestion.** If `ktor-toolkit:pagination` says the allow-list of sortable columns lives at the adapter
-boundary, it lives there — even if a different placement would be shorter in this one endpoint. Local optimizations are exactly what erode a shared
-style.
+**A skill you loaded is the decision, not a suggestion.** If the `ktor-toolkit:pagination` skill says the allow-list of sortable columns lives at the
+adapter boundary, it lives there — even if a different placement would be shorter in this one endpoint. Local optimizations are exactly what erode a
+shared style.
 
 **Skills do not contradict each other.** If two seem to, you have misread one; re-read before inventing a compromise. If they genuinely conflict, that
 is a bug in the collection worth naming to the user rather than papering over.
@@ -98,7 +97,7 @@ parts of the skill you merely followed. The user wants an endpoint, not a lectur
 These are the shapes hand-written code takes when someone builds past the toolkit instead of with it. Treat each as a prompt to go back to Step 2 —
 whether you are writing the code or reading someone else's.
 
-| You are about to write                                                         | Stop and load                  |
+| You are about to write                                                         | Stop and load this skill       |
 |--------------------------------------------------------------------------------|--------------------------------|
 | `call.request.queryParameters["page"]?.toIntOrNull() ?: 0`                     | `ktor-toolkit:pagination`      |
 | A `data class` with `page`, `total`, `items` fields                            | `ktor-toolkit:pagination`      |

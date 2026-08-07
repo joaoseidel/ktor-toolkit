@@ -130,8 +130,8 @@ call.respond(
 
 **The condition reads domain state; the adapter owns the URL.** `book.isDraft` is a property of the entity and belongs in `-core`. The path
 `/books/{id}/publish` is a routing decision and belongs in
-`-adapters/web`. Never invert that: a domain that knows its own URLs has become a web layer, and
-`ktor-toolkit:architecture` explains what that costs.
+`-adapters/web`. Never invert that: a domain that knows its own URLs has become a web layer, and the `ktor-toolkit:architecture` skill explains what
+that costs — load it.
 
 Keep link building in its own file next to the response DTO — `BookLinks.kt` beside
 `BookResponse.kt`. Route bodies stay readable, and the rules for a resource stay in one place instead of being re-derived in each of the three
@@ -157,8 +157,8 @@ and the links stop being worth their bytes.
 Nothing in `problemDetails { }` maps that type by default, so a link built from an id that turned out to be empty answers **500**.
 
 That is usually correct — it is a server bug, not a client one. But it is the same unmapped
-`IllegalArgumentException` that `ktor-toolkit:pagination` maps to 400 for bad sort keys. If you add that mapping, be aware it will also catch this,
-and turn a genuine server fault into a 400. Prefer mapping a narrower exception, or keep the two concerns apart.
+`IllegalArgumentException` that the `ktor-toolkit:pagination` skill maps to 400 for bad sort keys. If you add that mapping, be aware it will also
+catch this, and turn a genuine server fault into a 400. Prefer mapping a narrower exception, or keep the two concerns apart.
 
 ## Common mistakes
 

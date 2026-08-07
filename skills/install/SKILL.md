@@ -1,14 +1,14 @@
 ---
 name: install
 description: >-
-  Adds Ktor Toolkit to a project — picks the modules, wires the Gradle dependencies and version
-  catalog entries, installs the required Ktor plugins (ContentNegotiation, StatusPages,
-  RequestValidation), installs the ktor-toolkit skill collection itself, and verifies the whole
-  thing compiles. Use whenever someone wants to start using the toolkit, add another of its modules
-  to a project already using it, install or update these skills, or is stuck on
-  "Could not find io.github.joaoseidel:...". Also use when a task routed to a feature skill
-  (pagination, hateoas, validation, problem-details, expand, cache) but that module turns out not
-  to be on the classpath yet.
+    Adds Ktor Toolkit to a project — picks the modules, wires the Gradle dependencies and version
+    catalog entries, installs the required Ktor plugins (ContentNegotiation, StatusPages,
+    RequestValidation), installs the ktor-toolkit skill collection itself, and verifies the whole
+    thing compiles. Use whenever someone wants to start using the toolkit, add another of its modules
+    to a project already using it, install or update these skills, or is stuck on
+    "Could not find io.github.joaoseidel:...". Also use when a task routed to a feature skill
+    (pagination, hateoas, validation, problem-details, expand, cache) but that module turns out not
+    to be on the classpath yet.
 ---
 
 # Installing Ktor Toolkit
@@ -51,20 +51,20 @@ If the user says "all of them", that is a legitimate answer for a greenfield ser
 The modules are published to Maven Central, so a project that already resolves anything else needs no repository changes. If the build declares
 repositories explicitly, `mavenCentral()` is all this requires.
 
-Versions belong in `gradle/libs.versions.toml`, never inline in a build script — see
-`ktor-toolkit:gradle` for why this is not negotiable. Add one version key and one library alias per selected module:
+Versions belong in `gradle/libs.versions.toml`, never inline in a build script — load the
+`ktor-toolkit:gradle` skill for why this is not negotiable. Add one version key and one library alias per selected module:
 
 ```toml
 [versions]
 ktor-toolkit = "1.0.0"
 
 [libraries]
-ktor-toolkit-paginator       = { module = "io.github.joaoseidel:ktor-toolkit-paginator",       version.ref = "ktor-toolkit" }
-ktor-toolkit-hateoas         = { module = "io.github.joaoseidel:ktor-toolkit-hateoas",         version.ref = "ktor-toolkit" }
-ktor-toolkit-validator       = { module = "io.github.joaoseidel:ktor-toolkit-validator",       version.ref = "ktor-toolkit" }
+ktor-toolkit-paginator = { module = "io.github.joaoseidel:ktor-toolkit-paginator", version.ref = "ktor-toolkit" }
+ktor-toolkit-hateoas = { module = "io.github.joaoseidel:ktor-toolkit-hateoas", version.ref = "ktor-toolkit" }
+ktor-toolkit-validator = { module = "io.github.joaoseidel:ktor-toolkit-validator", version.ref = "ktor-toolkit" }
 ktor-toolkit-problem-details = { module = "io.github.joaoseidel:ktor-toolkit-problem-details", version.ref = "ktor-toolkit" }
-ktor-toolkit-expander        = { module = "io.github.joaoseidel:ktor-toolkit-expander",        version.ref = "ktor-toolkit" }
-ktor-toolkit-cache           = { module = "io.github.joaoseidel:ktor-toolkit-cache",           version.ref = "ktor-toolkit" }
+ktor-toolkit-expander = { module = "io.github.joaoseidel:ktor-toolkit-expander", version.ref = "ktor-toolkit" }
+ktor-toolkit-cache = { module = "io.github.joaoseidel:ktor-toolkit-cache", version.ref = "ktor-toolkit" }
 ```
 
 One shared `ktor-toolkit` version key rather than one per module: the modules are released together and mixing versions across them is a bug, not a
@@ -82,8 +82,7 @@ dependencies {
 ```
 
 In a multi-module service it depends on whether toolkit types cross the module's own boundary — a `web` module whose public functions return
-`PagedResponse` needs `api`, not `implementation`.
-`ktor-toolkit:gradle` covers that decision; ask it rather than guessing.
+`PagedResponse` needs `api`, not `implementation`. Load the `ktor-toolkit:gradle` skill for that decision rather than guessing.
 
 **What does not come along transitively.** The modules declare Ktor and kotlinx-serialization as
 `api` dependencies, so those arrive for free. Content negotiation does not — it is what actually turns the responses into JSON, and every module needs
@@ -193,12 +192,12 @@ For any other agent, or to vendor the files into the repository, use the skills 
 npx skills add joaoseidel/ktor-toolkit --skill '*'
 ```
 
-Install the whole collection rather than a subset. The skills route to each other — `endpoint`
-loads `pagination`, `pagination` refers to `architecture` — and a partial install turns those into dead references at the exact moment they were
-needed.
+Install the whole collection rather than a subset. The skills route to each other — the `ktor-toolkit:endpoint` skill tells you to load the
+`ktor-toolkit:pagination` skill, which in turn tells you to load the `ktor-toolkit:architecture` skill — and a partial install turns those into dead
+references at the exact moment they were needed.
 
-Finally, make the entry point fire. `ktor-toolkit:start` triggers off its description, which is reliable but not certain; a line in the project's
-`CLAUDE.md` makes it explicit:
+Finally, make the entry point fire. The `ktor-toolkit:start` skill triggers off its description, which is reliable but not certain; a line in the
+project's `CLAUDE.md` makes it explicit:
 
 ```markdown
 This service is built with Ktor Toolkit. Run `/ktor-toolkit:start` before implementing anything.
@@ -221,7 +220,7 @@ Then report, in this order:
 1. **Modules installed**, and the one-line reason each was chosen.
 2. **Files changed** — catalog, build script, `Application.kt`, `CLAUDE.md`.
 3. **Skills installed**, and that `/ktor-toolkit:start` now runs first.
-4. **What to do next** — normally `/ktor-toolkit:endpoint` for the first route.
+4. **What to do next** — normally load the `ktor-toolkit:endpoint` skill for the first route.
 
 Keep it to a short list. The user asked for a working project, and the evidence that they have one is the compile, not the prose.
 

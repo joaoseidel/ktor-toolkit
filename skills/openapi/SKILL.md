@@ -51,7 +51,7 @@ endpoint becomes a deliberate act.
 There is **no generation task to run.** The plugin participates in the normal build, so the spec follows the code on every compile — that is what
 makes drift hard rather than merely discouraged.
 
-Add `ktor-server-openapi` and `ktor-server-routing-openapi` to the version catalog; neither is there yet (`ktor-toolkit:gradle`).
+Add `ktor-server-openapi` and `ktor-server-routing-openapi` to the version catalog; neither is there yet (load the `ktor-toolkit:gradle` skill).
 
 ## Serving it: Scalar, not Swagger UI
 
@@ -245,19 +245,19 @@ Three things there are the point of this skill:
 **The defaults and the cap are stated.** They are enforced silently — `?pageSize=5000` returns 100 without complaint — so a client that does not read
 them quietly gets less than it asked for and never learns why.
 
-**The sortable fields are listed.** The allow-list is unguessable, and guessing wrong is a 400 (or a 500 if the mapping from `ktor-toolkit:pagination`
-was never added).
+**The sortable fields are listed.** The allow-list is unguessable, and guessing wrong is a 400 (or a 500 if the mapping from the
+`ktor-toolkit:pagination` skill was never added).
 
 **`totalPages` is explained.** It is a count, not an index — the single most commonly misread field in the whole response.
 
-For expansion, document the supported fields and the depth you actually support;
-`ktor-toolkit:expand` explains why unbounded nesting is a promise you do not want to make.
+For expansion, document the supported fields and the depth you actually support; load the `ktor-toolkit:expand` skill for why unbounded nesting is a
+promise you do not want to make.
 
 ## Errors and examples
 
 Document every status a client should handle, and say what causes it — a bare `400 Bad Request` tells a caller nothing they did not already know.
 Always name `application/problem+json` on error responses: clients that branch on `Content-Type` need to know the error shape differs from the success
-shape (`ktor-toolkit:problem-details`).
+shape (load the `ktor-toolkit:problem-details` skill).
 
 `500` is worth one mention per API rather than one per route. Every endpoint can fail; repeating it adds noise without adding information.
 
@@ -268,7 +268,7 @@ shows the shape and the spirit at once.
 ## Keeping it in sync
 
 Generation removes most of the drift, but not the parts that are prose. Treat the comment as part of the endpoint's contract, changed in the same
-commit as the code — `ktor-toolkit:commit`.
+commit as the code — load the `ktor-toolkit:commit` skill.
 
 The reviewable question on any endpoint change: **if this shipped, would the comment now be a lie?**
 A new validation rule, a widened sort allow-list, a newly mapped exception, a renamed field — each changes what a client must know, and none will fail

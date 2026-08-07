@@ -169,8 +169,8 @@ Keep two concerns apart, because they fail for different reasons:
 **`up` / `down`** manage the *dependencies* — Postgres, Redis — through `docker compose`. These are what someone runs once in the morning, and they do
 not depend on `setup`.
 
-**`image` / `image_run`** build and run *this service's* image. `ktor-toolkit:container` owns the Dockerfile; the Makefile only needs to name the tag
-and pass the environment.
+**`image` / `image_run`** build and run *this service's* image. The `ktor-toolkit:container` skill owns the Dockerfile — load it; the Makefile only
+needs to name the tag and pass the environment.
 
 Keeping `run` (on the JVM, with a debugger and hot reload available) separate from `image_run` (in the container, as production sees it) matters —
 they answer different questions, and collapsing them costs a fast feedback loop.

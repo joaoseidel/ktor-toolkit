@@ -50,7 +50,7 @@ catalog-adapters/src/main/resources/db/migration/
 
 **The SQL belongs to `-adapters`, and `-app` runs it.** The schema is a persistence concern, so it sits beside `ExposedBookRepository` and `Books` —
 the three change together and a reviewer sees them in one diff. `-app` depends on `-adapters` at runtime, so the resources are on its classpath
-without anything extra; see `ktor-toolkit:architecture` for why the deployable owns the runtime and the adapter owns the concern.
+without anything extra; load the `ktor-toolkit:architecture` skill for why the deployable owns the runtime and the adapter owns the concern.
 
 Nothing about the schema goes in `-core`. A domain that knows its own column names has acquired a database.
 
@@ -77,7 +77,7 @@ that is defined rather than accumulated — anything you would rather state once
 
 ## One migration, one change
 
-Same test as a commit (`ktor-toolkit:commit`): it should be describable in one sentence without an "and".
+Same test as a commit (load the `ktor-toolkit:commit` skill): it should be describable in one sentence without an "and".
 
 ```sql
 -- V3__add_books_published_at.sql
@@ -124,7 +124,7 @@ implementation(libs.flyway.core)
 implementation(libs.flyway.database.postgresql)   // or flyway-mysql, and so on
 ```
 
-Both go in the catalog, never inline — `ktor-toolkit:gradle`.
+Both go in the catalog, never inline — load the `ktor-toolkit:gradle` skill.
 
 ## When it refuses to start
 
@@ -173,7 +173,7 @@ Flyway.configure().dataSource(postgres.jdbcUrl, postgres.username, postgres.pass
 ```
 
 A repository test whose schema came from `SchemaUtils.create` proves the query works against a table Flyway never built. That gap is exactly where
-production bugs come from, and closing it costs one line. `ktor-toolkit:tests` covers the container setup.
+production bugs come from, and closing it costs one line. Load the `ktor-toolkit:tests` skill for the container setup.
 
 Worth a test of its own when the migration carries data: a backfill is code, it runs once, and it is the only code in the repository with no second
 chance.

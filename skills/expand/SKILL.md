@@ -93,7 +93,7 @@ The builder rejects a duplicate field name and a missing `batch` at construction
 
 **The spec belongs in `-adapters/web`, and its batcher calls a port.** The spec is about the shape of a response, so it is an adapter concern — but
 the data comes from `-core`'s repository interfaces, not from Exposed directly. Build it where the dependencies are available and hand it to the
-routes; `ktor-toolkit:architecture` has the layering.
+routes; load the `ktor-toolkit:architecture` skill for the layering.
 
 ## Applying it
 
@@ -168,11 +168,11 @@ and it holds.
 This is worth planning around rather than discovering:
 
 - Keep expansion **one level deep by default**. Add a second level when a client genuinely needs it, not because the DSL supports it.
-- If a second level is required, make its batcher cheap — a `ktor-toolkit:cache` lookup inside the batcher collapses repeated fetches across parents,
-  and is usually the smallest fix.
+- If a second level is required, make its batcher cheap — a cache lookup inside the batcher collapses repeated fetches across parents and is usually
+  the smallest fix (load the `ktor-toolkit:cache` skill).
 - Consider whether the nested data belongs in the parent's own query instead. A join that returns authors with their book ids already populated turns
   the nested batch into a no-op.
-- Cap the depth you support in `ktor-toolkit:openapi` and mean it. `?expand=a.b.c.d` multiplies.
+- Cap the depth you support in the API documentation (load the `ktor-toolkit:openapi` skill) and mean it. `?expand=a.b.c.d` multiplies.
 
 Also size the payload, not just the queries: `?expand=reviews` on a page of 50 with 100 reviews each is a 5,000-object response that no pagination
 limit is protecting.

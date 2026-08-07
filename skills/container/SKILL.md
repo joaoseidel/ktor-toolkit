@@ -220,7 +220,7 @@ ktor:
 defaults to 30, so 15 seconds of Ktor timeout is comfortable and 45 would be pointless.
 
 **Resources must close on the way out.** Connection pools and HTTP clients need a `cleanup` in the DI registration, or shutdown drops connections it
-was supposed to return — see `ktor-toolkit:di`.
+was supposed to return — load the `ktor-toolkit:di` skill.
 
 If the service spawns child processes, add `--init` (or `tini`) so PID 1 reaps them. A plain Ktor service does not, and does not need it.
 

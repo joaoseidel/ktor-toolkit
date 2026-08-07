@@ -108,7 +108,7 @@ val connection = RedisClient.create("redis://localhost:6379").connect(LettuceCac
 val cache = LettuceCache(connection.async(), ttl = 5.minutes)
 ```
 
-Both objects are built once in `-app` and registered with a `cleanup` so the connection closes on shutdown — see `ktor-toolkit:di`.
+Both objects are built once in `-app` and registered with a `cleanup` so the connection closes on shutdown — load the `ktor-toolkit:di` skill.
 
 `InMemoryCache` defaults to `maxSize = 1_000` and no expiry; it is LRU-bounded, so entries leave when the bound is hit. `LettuceCache` lets Redis
 apply the expiry itself.

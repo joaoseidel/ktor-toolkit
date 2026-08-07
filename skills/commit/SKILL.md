@@ -180,11 +180,10 @@ make build
 change that caused it — it is the clearest statement of what a consumer will feel, and a reviewer should see the two together. A commit that changes a
 signature without its dump fails `apiCheck` on CI anyway.
 
-Coverage is gated at 100% line and branch, so a new branch of logic arrives with its test. A bug fix arrives with the test that fails without it
-(`ktor-toolkit:tests`).
+Coverage is gated at 100% line and branch, so a new branch of logic arrives with its test. A bug fix arrives with the test that fails without it (load
+the `ktor-toolkit:tests` skill).
 
-In a service, the equivalent gates are whatever `make build` runs there — see
-`ktor-toolkit:makefile`.
+In a service, the equivalent gates are whatever `make build` runs there — load the `ktor-toolkit:makefile` skill.
 
 ## Common mistakes
 

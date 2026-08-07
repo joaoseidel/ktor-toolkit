@@ -22,7 +22,7 @@ description: >-
 repository, a clock, or another service.
 
 The boundary is one question: **does answering it require I/O?** If yes, it is not request validation — it belongs in the use case or the entity, in
-`-core`, and it fails by throwing a domain exception that `ktor-toolkit:problem-details` maps. Putting an ISBN-uniqueness check in
+`-core`, and it fails by throwing a domain exception that the `ktor-toolkit:problem-details` skill maps. Putting an ISBN-uniqueness check in
 `rulesFor` would drag a repository into the plugin configuration and make the rule untestable without a database.
 
 Cross-field rules are still syntactic as long as both fields are in the request. `invariant` exists for exactly those.
@@ -82,7 +82,7 @@ install(RequestValidation) {
 ```
 
 For a request with more than a handful of fields, implement `RequestValidator<T>` and register it with `rulesFrom(validator)`. The validator is then a
-plain object with no Ktor in sight, which means it can be unit-tested directly — see `ktor-toolkit:tests`.
+plain object with no Ktor in sight, which means it can be unit-tested directly — load the `ktor-toolkit:tests` skill.
 
 ## The DSL
 
@@ -242,7 +242,7 @@ the constructor's `require` becomes a belt-and-braces check that only fires if t
 `ValidationResult.Invalid` raises `RequestValidationException`, which the toolkit's
 `problemDetails { }` turns into an `application/problem+json` response with one entry per failed rule, keyed by field path and rendered through the
 configured naming strategy. You do not write any of that — but you do need `problemDetails { }` installed, or Ktor answers with its default error page
-instead. `ktor-toolkit:problem-details` covers the envelope.
+instead. Load the `ktor-toolkit:problem-details` skill for the envelope.
 
 ## Common mistakes
 

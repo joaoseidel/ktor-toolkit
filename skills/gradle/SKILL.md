@@ -201,7 +201,7 @@ requirement in the README, because the failure mode for a consumer who forgets i
 
 ### In a service
 
-The three production modules follow the pattern in `ktor-toolkit:architecture`: `-core` and
+The three production modules follow the pattern in the `ktor-toolkit:architecture` skill: `-core` and
 `-adapters` compile against their libraries, and `-app` owns them at runtime.
 
 ```kotlin
@@ -256,7 +256,7 @@ Two rules keep it honest:
 
 - **A module exposes the minimum.** Prefer `implementation` over `api` between your own modules unless a type genuinely crosses the boundary — `api`
   makes every downstream module see the whole graph, and then nothing can be moved.
-- **Register new production modules in `report`**, or their coverage is silently uncounted (`ktor-toolkit:kover`).
+- **Register new production modules in `report`**, or their coverage is silently uncounted (load the `ktor-toolkit:kover` skill).
 
 ## Hygiene
 
@@ -270,7 +270,7 @@ Worth doing whenever you touch a build file:
   `tasks.register` over `tasks.create`, providers over eager `get()`. These keep configuration lazy, which is most of Gradle's performance.
 - **Keep the configuration cache working.** When one task cannot support it, opt that task out —
   `notCompatibleWithConfigurationCache("…")` — rather than disabling it for the build.
-- **A public API change carries its `api/` dump** in the same commit (`ktor-toolkit:commit`).
+- **A public API change carries its `api/` dump** in the same commit (load the `ktor-toolkit:commit` skill).
 
 ## Common mistakes
 

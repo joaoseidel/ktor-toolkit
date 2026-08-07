@@ -89,9 +89,8 @@ dependencies {
 ```
 
 **`-core` and `-adapters` compile against their libraries; `-app` owns them at runtime.** Only the deployable assembles a runtime classpath, so a
-library version is decided in exactly one place and the inner modules cannot quietly pull a transitive dependency into the artifact.
-`ktor-toolkit:gradle`
-covers when `compileOnly` is right and when it is not — do not extend the pattern to a new module without reading it.
+library version is decided in exactly one place and the inner modules cannot quietly pull a transitive dependency into the artifact. The
+`ktor-toolkit:gradle` skill covers when `compileOnly` is right and when it is not — do not extend the pattern to a new module without loading it.
 
 Note what `-core` does *not* list: no Exposed, no Ktor. That absence is the architecture, expressed in the one place a reviewer always looks.
 
@@ -198,8 +197,8 @@ fun RequestValidationConfig.bookRules() {
 }
 ```
 
-Keeping the rule beside the DTO is what stops the two drifting apart — see `ktor-toolkit:validation`
-and `ktor-toolkit:problem-details`.
+Keeping the rule beside the DTO is what stops the two drifting apart — load the `ktor-toolkit:validation`
+and `ktor-toolkit:problem-details` skills.
 
 **`persistence/`** holds table definitions and port implementations, named for their technology because the name is the one place the choice is
 visible: `ExposedBookRepository`, `RedisBookCache`,
@@ -207,7 +206,8 @@ visible: `ExposedBookRepository`, `RedisBookCache`,
 it under their own directional package.
 
 The migration SQL lives in this module's resources rather than in `-app`, so the table definition, the repository and the schema they both describe
-change in one diff. `-app` depends on `-adapters` at runtime, so it runs those migrations without owning them — `ktor-toolkit:migrations`.
+change in one diff. `-app` depends on `-adapters` at runtime, so it runs those migrations without owning them — load the `ktor-toolkit:migrations`
+skill.
 
 ### `-app` — the composition root
 
@@ -249,15 +249,15 @@ fun Application.configureDependencies() {
 ```
 
 Ports resolve to their adapter here and nowhere else, and a route pulls what it needs with
-`val findBooks: FindBooks by dependencies`. `ktor-toolkit:di` owns scopes, lifetimes and testing — go there before adding a registration.
+`val findBooks: FindBooks by dependencies`. The `ktor-toolkit:di` skill owns scopes, lifetimes and testing — load it before adding a registration.
 
 ### `acceptance-tests` and `report`
 
 `acceptance-tests` is its own module so black-box tests cannot reach into internals: it exercises the app the way a client does. It is the preferred
-kind of test here — `ktor-toolkit:tests` explains when a unit test earns its place instead.
+kind of test here — load the `ktor-toolkit:tests` skill for when a unit test earns its place instead.
 
 `report` aggregates Kover across the three production modules and holds the thresholds. A new production module that is not registered there is
-silently uncovered — see `ktor-toolkit:kover`.
+silently uncovered — load the `ktor-toolkit:kover` skill.
 
 ## Where the toolkit's own types belong
 
@@ -285,7 +285,7 @@ The `data` / `web` split in the table is also the package split, and the import 
 packages are `com.github.joaoseidel.ktor.toolkit.*`. So `-core` imports
 `com.github.joaoseidel.ktor.toolkit.paginator.data.Pagination` and `-adapters/web` imports
 `...paginator.web.PagedResponse` — an import from `web` in a `-core` file is the same violation as the Ktor grep above, visible in the import list.
-`ktor-toolkit:install` has the full map.
+The `ktor-toolkit:install` skill has the full map — load it.
 
 Two consequences worth stating outright, because they are what people get wrong:
 
@@ -294,8 +294,8 @@ title" — while `?page=` syntax is not. So
 `findAll(pagination: Pagination): List<Book>` is right, and `findAll(page: Int, size: Int)` throws away the sort model for nothing.
 
 **Core never throws `HttpStatusException`.** It throws `BookNotFoundException`, which it owns and can be tested against. Mapping that to a 404 happens
-once, in `problemDetails { }` — see
-`ktor-toolkit:problem-details`. A domain that picks status codes has quietly become a web layer.
+once, in `problemDetails { }` — load the
+`ktor-toolkit:problem-details` skill. A domain that picks status codes has quietly become a web layer.
 
 ## How a request travels
 
@@ -315,7 +315,7 @@ HTTP
 `-app` appears nowhere in that path. It built the objects before the first request arrived and then got out of the way — that is the test of whether
 it is doing its job.
 
-`ktor-toolkit:pagination` walks this end to end with full code.
+The `ktor-toolkit:pagination` skill walks this end to end with full code — load it.
 
 ## Common mistakes
 
