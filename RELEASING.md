@@ -161,8 +161,8 @@ gpg --output ktor-toolkit-revoke.asc --gen-revoke A1B2C3D4E5F6A7B8
 ### 7. Prove it signs
 
 Put `signingInMemoryKey`, `signingInMemoryKeyId` and `signingInMemoryKeyPassword` in
-`~/.gradle/gradle.properties`. Gradle reads that file and the one at the repository root, and nothing else, the repository's `.gradle/` directory is
-a build cache, so properties dropped there are silently ignored and signing fails with *no configured signatory*.
+`~/.gradle/gradle.properties`. Gradle reads that file and the one at the repository root, and nothing else, the repository's `.gradle/` directory is a
+build cache, so properties dropped there are silently ignored and signing fails with *no configured signatory*.
 
 Three details decide whether the key parses at all:
 
