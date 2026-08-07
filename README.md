@@ -362,7 +362,7 @@ The libraries leave the surrounding decisions open, and contributors resolve the
 error envelope, another puts the repository call in the route body. The skills record the intended answer to each of those decisions, so an agent
 working in the project follows the same conventions a maintainer would.
 
-There are 21 of them, installed with the commands under [Install](#let-the-agent-do-it).
+There are 22 of them, installed with the commands under [Install](#let-the-agent-do-it).
 
 ### The entrypoint
 
@@ -388,6 +388,7 @@ is written is too late to be useful.
 | `kover`           | The `report` aggregation module, thresholds, and the strict rule for exclusions         |
 | `openapi`         | Ktor's comment-based OpenAPI generation, served through Scalar                          |
 | `logging`         | KotlinLogging idioms, correlation IDs via CallId/CallLogging, what must never be logged |
+| `healthcheck`     | Liveness and readiness probes with Cohort, and what a probe may depend on               |
 | `gradle`          | `libs.versions.toml` as the single source of versions, choosing a dependency scope      |
 | `makefile`        | The canonical target set, and a self-documenting `help`                                 |
 | `container`       | Multi-stage jlink Dockerfile, container-aware JVM ergonomics, graceful shutdown         |
