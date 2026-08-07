@@ -1,15 +1,27 @@
 ---
 name: container
 description: >-
-  Production containers for Ktor services — a multi-stage jdeps/jlink Dockerfile, choosing a
-  runtime base image, container-aware JVM ergonomics (MaxRAMPercentage, CPU quotas, GC selection),
-  AOT and CDS startup tuning, non-root users, graceful SIGTERM shutdown, health checks and layer
-  caching. Use when writing or reviewing a Dockerfile, when an image is too large or starts too
-  slowly, when the JVM ignores the container memory limit or gets OOM-killed, when a deploy drops
-  in-flight requests, and whenever a JVM flag is being copied from an older project.
+    Production Docker images for a Ktor service — a multi-stage jdeps/jlink Dockerfile, choosing a
+    runtime base, container-aware JVM flags (MaxRAMPercentage, CPU quotas, GC), non-root users,
+    graceful SIGTERM shutdown and layer caching. Use when writing or reviewing a Dockerfile, when an
+    image is too large or slow to start, when the JVM gets OOM-killed, or when a deploy drops
+    in-flight requests.
 ---
 
 # Containers
+
+## When there is no Dockerfile
+
+A service with no Dockerfile is either deployed some other way — a fat jar on a VM, a buildpack, Fly or Heroku building it for you — or not deployed
+yet. Both are fine, and neither is something to change while doing an unrelated task.
+
+**Ask before writing one.** How the service is packaged and shipped is a platform decision with a team behind it, and a Dockerfile that appears in a
+feature branch will be reviewed by someone who did not expect it. When it is genuinely wanted, say what you would produce — the jlink multi-stage
+build below, roughly this size, this base image — and wait.
+
+Two things worth writing whenever you do create one: a `.dockerignore` (without it the build context is the whole tree including `build/` and `.git`,
+which is slow and leaks more than you think) and the `make image` / `make image_run` targets from the `ktor-toolkit:makefile` skill, so the image is
+buildable the same way by everyone.
 
 ## What we are optimising, in order
 
@@ -24,11 +36,15 @@ Teams usually optimise these in reverse. Size is the most visible and the least 
 
 ## Choosing the runtime base
 
+**Match the image tag to the project's `jvmToolchain`.** A jar built for 25 will not start on a 21 runtime, and the error —
+`UnsupportedClassVersionError` — names bytecode versions rather than the mismatch. The tags below say `25`; substitute whatever the build targets, and
+keep the two in step when either moves. Ktor Toolkit needs 21 or newer, so that is the floor, not the target.
+
 | Base                                                     | Size       | When                                                                                                                           |
 |----------------------------------------------------------|------------|--------------------------------------------------------------------------------------------------------------------------------|
-| `eclipse-temurin:25-jre-noble`                           | ~180 MB    | Default when nobody wants to maintain a module list. glibc, `apt` available, easy to debug.                                    |
-| jlink runtime on `debian:bookworm-slim` / `ubuntu:noble` | ~90–120 MB | The house standard. Smallest practical while keeping glibc, and you choose exactly what ships.                                 |
-| `gcr.io/distroless/java21-*`                             | ~190 MB    | Hard security requirement. No shell, no package manager — and no way to debug inside the container.                            |
+| jlink runtime on `debian:bookworm-slim` / `ubuntu:noble` | ~90–120 MB | **Start here.** Smallest practical while keeping glibc, and you choose exactly what ships.                                     |
+| `eclipse-temurin:25-jre-noble`                           | ~180 MB    | When nobody wants to maintain a module list. glibc, `apt` available, easy to debug.                                            |
+| `gcr.io/distroless/java25-*`                             | ~190 MB    | Hard security requirement. No shell, no package manager — and no way to debug inside the container.                            |
 | `eclipse-temurin:25-jre-alpine`                          | ~130 MB    | Only when you have tested it. musl is not glibc: DNS resolution, locale handling and some native libraries behave differently. |
 | Liberica Runtime Container                               | varies     | Good pre-built middle ground, and the practical route to CRaC.                                                                 |
 | Any `-jdk-` image                                        | ~400 MB+   | Never in the runtime stage. It ships a compiler you do not run.                                                                |
@@ -127,24 +143,19 @@ there, and every deploy waits out the 10-second kill timeout. If you do not need
 -XX:InitialRAMPercentage=50
 ```
 
-The default `MaxRAMPercentage` is **25%**, which is right for a machine running many processes and badly wrong for a container running exactly one.
-Left alone, three quarters of the memory you pay for is unused — and the JVM still gets OOM-killed under load, because heap is not the only thing it
-allocates.
+The default is **25%** — right for a machine running many processes, badly wrong for a container running one. Left alone, three quarters of the memory
+you pay for goes unused and the JVM still gets OOM-killed under load, because heap is not the only thing it allocates. That is also why 75 and not 90:
+metaspace, thread stacks, code cache, direct byte buffers and GC structures live outside the heap. Leave them a quarter.
 
-That is the reason for 75 rather than 90: metaspace, thread stacks, code cache, direct byte buffers and GC structures all live outside the heap. Leave
-them a quarter.
+**`-XX:+ExitOnOutOfMemoryError` is not optional.** A JVM that cannot allocate otherwise keeps running degraded — failing some requests, serving
+others — while a liveness probe on a trivial endpoint keeps passing. Exiting turns an ambiguous failure into a restart the orchestrator understands.
 
-**`-XX:+ExitOnOutOfMemoryError` is not optional.** By default a JVM that cannot allocate keeps running in a degraded state, failing some requests and
-serving others, and a liveness probe on a trivial endpoint may keep passing. Exiting turns an ambiguous failure into a restart the orchestrator
-understands.
+**CPU.** Modern JVMs read the cgroup quota and size GC and compiler threads from it. Override only for a fractional quota: a limit of `0.5` floors to
+one processor, silently selecting SerialGC and a single compiler thread. Set `-XX:ActiveProcessorCount=2` explicitly rather than hoping.
 
-**CPU.** Modern JVMs read the cgroup quota and size their GC and compiler threads from it. The one case worth an override is a fractional quota — a
-limit of `0.5` floors to one processor, which silently selects SerialGC and a single compiler thread. If that is not what you want, set
-`-XX:ActiveProcessorCount=2` explicitly rather than hoping.
-
-**GC.** Let the JVM choose. It picks SerialGC below two processors or a small heap and G1 otherwise, and that heuristic is usually right for a service
-container. Forcing G1 onto a one-CPU container is a common, measurable pessimisation. Choose deliberately only when you have a latency target ZGC
-would meet and G1 would not, and confirm the container has the cores to make it worthwhile.
+**GC: let the JVM choose.** It picks SerialGC below two processors or a small heap, G1 otherwise, and that is right for a service container. Forcing
+G1 onto a one-CPU container is a common, measurable pessimisation. Override only for a latency target ZGC meets and G1 does not, with the cores to
+make it worthwhile.
 
 ## Flags to delete
 
@@ -165,15 +176,14 @@ Every one of these is either the default now or was a workaround for a JVM you a
 Worth keeping on JDK 24+: `--enable-native-access=ALL-UNNAMED`, which silences the restricted native-access warnings that Netty and similar libraries
 otherwise produce on every start.
 
-**The philosophy behind this list** is the one `run-java.sh` had: an application in a container should run well with almost no manual tuning, because
-the JVM already knows more about its environment than a flag copied from a 2016 blog post. Every flag you keep is one you have to re-justify at the
-next upgrade. Set the percentage, set the OOM behaviour, and stop.
+**Set the percentage, set the OOM behaviour, and stop.** The JVM knows more about its environment than a flag copied from a 2016 blog post, and every
+flag you keep is one to re-justify at the next upgrade.
 
 ## Startup
 
 Class loading and linking dominate JVM startup, and both have a modern answer.
 
-**AOT cache (JDK 24+, simplest on 25).** A training run records what the application loads, and the cache is replayed on every subsequent start:
+**AOT cache (JDK 24+, simplest on 25).** A training run records what the application loads; the cache is replayed on every subsequent start:
 
 ```dockerfile
 RUN java -XX:AOTCacheOutput=/app/app.aot -jar app.jar --training-exit
@@ -183,8 +193,8 @@ RUN java -XX:AOTCacheOutput=/app/app.aot -jar app.jar --training-exit
 -XX:AOTCache=/app/app.aot
 ```
 
-Typical gain is 30–50% off startup. The training run must exercise a realistic path — a JVM that started and exited immediately caches almost nothing
-worth having. It also needs the same JDK version and roughly the same flags at runtime, so regenerate it in the image build, never by hand.
+Typically 30–50% off startup. The training run must exercise a realistic path — a JVM that started and exited immediately caches nothing worth
+having — and it needs the same JDK version and roughly the same flags at runtime. Regenerate it in the image build, never by hand.
 
 **AppCDS (JDK 19+)** is the fallback where AOT is unavailable, and it is one flag:
 
@@ -192,12 +202,11 @@ worth having. It also needs the same JDK version and roughly the same flags at r
 -XX:+AutoCreateSharedArchive -XX:SharedArchiveFile=/tmp/app.jsa
 ```
 
-The archive is created on first run and reused afterwards, and it regenerates itself when the classpath changes. On a read-only filesystem, point it
-at a writable volume or generate it at build time instead.
+Created on first run, reused after, and regenerated when the classpath changes. On a read-only filesystem, point it at a writable volume or generate
+it at build time.
 
-**CRaC** — checkpoint a warmed process and restore in milliseconds — is real and a large win, but it needs a CRaC-enabled JDK (Liberica, Azul),
-privileged `criu` at checkpoint time, and application code that handles the checkpoint callbacks for anything holding a connection. Reach for it when
-startup is genuinely the constraint, not by default.
+**CRaC** — checkpoint a warmed process, restore in milliseconds — is a large win but needs a CRaC-enabled JDK (Liberica, Azul), privileged `criu` at
+checkpoint time, and application code handling the callbacks for anything holding a connection. Reach for it when startup is genuinely the constraint.
 
 ## Graceful shutdown
 
@@ -210,32 +219,25 @@ timeout.
 
 ```yaml
 ktor:
-  deployment:
-    shutdownGracePeriod: 5000
-    shutdownTimeout: 15000
+    deployment:
+        shutdownGracePeriod: 5000
+        shutdownTimeout: 15000
 ```
 
-`shutdownGracePeriod` is how long the server keeps serving after being asked to stop;
-`shutdownTimeout` is when it stops waiting. Both must fit inside the orchestrator's grace period — Kubernetes' `terminationGracePeriodSeconds`
-defaults to 30, so 15 seconds of Ktor timeout is comfortable and 45 would be pointless.
+`shutdownGracePeriod` is how long the server keeps serving after being asked to stop; `shutdownTimeout` is when it stops waiting. Both must fit inside
+the orchestrator's grace period — Kubernetes' `terminationGracePeriodSeconds` defaults to 30, so a 15-second Ktor timeout is comfortable and 45 is
+pointless.
 
 **Resources must close on the way out.** Connection pools and HTTP clients need a `cleanup` in the DI registration, or shutdown drops connections it
 was supposed to return — load the `ktor-toolkit:di` skill.
 
-If the service spawns child processes, add `--init` (or `tini`) so PID 1 reaps them. A plain Ktor service does not, and does not need it.
+If the service spawns child processes, add `--init` (or `tini`) so PID 1 reaps them. A plain Ktor service does not need it.
 
 ## Health checks
 
-Prefer the orchestrator's probes over `HEALTHCHECK`. Kubernetes ignores `HEALTHCHECK` entirely, and Docker's version cannot distinguish liveness from
-readiness — which is the distinction that matters:
-
-- **Liveness** — is the process wedged? Keep it trivial and dependency-free. A liveness probe that checks the database restarts every instance during
-  a database blip, turning a partial outage into a total one.
-- **Readiness** — can it serve right now? This one may check dependencies, and failing it removes the instance from the load balancer without killing
-  it.
-
-The endpoints themselves are Cohort's, and which check belongs on which probe is the whole subject of the `ktor-toolkit:healthcheck` skill — load it
-before writing either probe.
+**Use the orchestrator's probes, not `HEALTHCHECK`.** Kubernetes ignores `HEALTHCHECK` entirely, and Docker's cannot distinguish liveness from
+readiness — the distinction that matters. Which check belongs on which probe is the whole subject of the `ktor-toolkit:healthcheck` skill; load it
+before writing either.
 
 Where a `HEALTHCHECK` is genuinely required, remember a jlink or distroless image has no `curl`. Use the JDK's own client rather than adding a package
 for it:
@@ -245,42 +247,36 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=20s \
   CMD java -e 'java.net.http.HttpClient.newHttpClient().send(...)' || exit 1
 ```
 
-Simpler still: expose the endpoint, let the orchestrator call it, and omit `HEALTHCHECK`.
+Expose the endpoint, let the orchestrator call it, and omit `HEALTHCHECK`.
 
 ## Layers and build speed
 
 Docker caches by layer, so order from least to most likely to change: base and packages, then the runtime, then dependencies, then your code.
 
-**A fat jar defeats this.** One 60 MB layer rebuilds and re-pushes on every one-line change, because your classes and every dependency are in the same
-file. Where rebuild and push time matter, use
-`installDist` instead and split them:
+**A fat jar defeats this.** Your classes and every dependency share one 60 MB layer, so a one-line change rebuilds and re-pushes all of it. Where push
+time matters, use `installDist` and split them:
 
 ```dockerfile
 COPY catalog-app/build/install/catalog-app/lib/ /app/lib/     # dependencies, change rarely
 COPY catalog-app/build/libs/catalog-app.jar /app/lib/         # your code, changes constantly
 ```
 
-Two other things that pay for themselves:
-
 **Build the jar outside the image.** CI already ran `make build`; rebuilding inside Docker discards the Gradle cache and doubles the pipeline. `COPY`
-the artefact that `make build` produced.
+what `make build` produced.
 
-**Use a `.dockerignore`.** Without one, `build/`, `.git/` and `.gradle/` are sent to the daemon on every build — often hundreds of megabytes, and
-enough to invalidate the cache on their own.
+**Write a `.dockerignore`.** Without one, `build/`, `.git/` and `.gradle/` go to the daemon on every build — often hundreds of megabytes, and enough
+to invalidate the cache by themselves.
 
-## Common mistakes
+## Mistakes that surface only in production
 
-| Mistake                                 | Why it hurts                                                        |
+| Mistake                                 | What it does                                                        |
 |-----------------------------------------|---------------------------------------------------------------------|
 | No `MaxRAMPercentage`                   | The JVM uses 25% of the limit, then gets OOM-killed anyway          |
-| `-Xmx` with a literal value             | Wrong the moment the container limit changes                        |
 | No `ExitOnOutOfMemoryError`             | A degraded process keeps passing liveness and failing requests      |
 | Shell-form `ENTRYPOINT` without `exec`  | SIGTERM stops at the shell; every deploy waits out the kill timeout |
-| Running as root                         | Fails `runAsNonRoot`, and a container escape starts with privileges |
-| `USER app` instead of `USER 1001`       | Kubernetes cannot verify a non-numeric user                         |
-| A `-jdk-` image at runtime              | Ships a compiler and doubles the size                               |
-| Alpine adopted untested                 | musl breaks DNS, locales and some native libraries — in production  |
-| Liveness probe that checks the database | A database blip restarts every instance                             |
-| Fat jar with no layering                | Every one-line change rebuilds and re-pushes the whole thing        |
-| No `.dockerignore`                      | `build/` and `.git/` are uploaded on every build                    |
-| Legacy flags copied forward             | Either no-ops or, for removed ones, a JVM that will not start       |
+| `USER app` instead of `USER 1001`       | Kubernetes cannot verify a non-numeric user, and admission fails    |
+| Alpine adopted untested                 | musl breaks DNS, locales and some native libraries                  |
+| An image tag below the build's target   | `UnsupportedClassVersionError` at start, naming bytecode versions   |
+| A liveness probe that checks a database | One blip restarts every instance                                    |
+| Legacy flags copied forward             | No-ops, or for removed ones a JVM that will not start               |
+| No `.dockerignore`                      | `build/` and `.git/` uploaded on every build                        |

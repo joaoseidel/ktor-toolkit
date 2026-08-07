@@ -1,25 +1,34 @@
 ---
 name: migrations
 description: >-
-    Database schema migrations for a Ktor Toolkit service — versioned SQL under Flyway, where the
-    files live relative to the -core / -adapters / -app split, running them on startup, and the
-    expand/contract sequence that lets a schema change ship without a deploy window. Use whenever a
-    table, column, index or constraint is added, renamed or dropped, when an Exposed table definition
-    changes, when scaffolding persistence for a new service, when a migration fails with a checksum
-    mismatch or a missing database module, and whenever SchemaUtils.create is about to be called
-    outside a test. Covers naming, ordering, repeatable migrations, baselining, locking, testing
-    against Testcontainers and the rule that applied migrations are immutable.
+    Versioned schema migrations with Flyway — where the SQL lives in the -core / -adapters / -app
+    split, running them on startup, immutability of applied migrations, and the expand/contract
+    sequence that ships a schema change without a deploy window. Use whenever a table, column, index
+    or constraint changes, or SchemaUtils.create is about to be called outside a test.
 ---
 
 # Schema migrations
+
+## When the project has no migrations yet
+
+A service whose schema was created by hand, by `SchemaUtils.create`, or by a DBA running SQL out of band has no migration history — and the first
+versioned migration you add has to account for what is already there.
+
+**Do not write `V1__create_books.sql` against a database where those tables already exist.** Flyway will try to run it and fail on the first
+`CREATE TABLE`. The correct move is a baseline: capture the current schema as `V1`, then tell Flyway to treat existing databases as already at that
+version (`baselineOnMigrate = true`, `baselineVersion = "1"`). New environments run `V1` and get the schema; existing ones record it and skip it.
+
+Introducing Flyway is a change to how the service starts and how it is deployed, so **say what you would add and wait for a yes**: the dependency, the
+`db/migration` directory, the baseline file, and the startup call. Ask specifically whether any environment already has the schema — the answer
+decides whether you baseline or not, and getting it wrong fails the next deploy rather than the build in front of you.
 
 ## The one rule
 
 **An applied migration is immutable.** Once a file has run anywhere you do not control — a colleague's machine counts — it is history, and history is
 appended to, never edited.
 
-Everything below follows from that. It is also the rule people break first, because editing yesterday's file is obviously easier than writing a new
-one, and the cost lands on someone else's checkout rather than yours.
+It is also the rule people break first, because editing yesterday's file is easier than writing a new one and the cost lands on someone else's
+checkout rather than yours.
 
 The reason a toolkit service needs a position on this at all: `-core` does not know a database exists, so the schema is not visible from the domain,
 and nothing in the type system notices when an Exposed table and the real table drift apart. The migration files are the only place the schema is
@@ -27,7 +36,7 @@ stated, which makes them the schema.
 
 ## Flyway, versioned SQL
 
-**Flyway with plain `.sql` files is the house position.** Not Liquibase XML, not `SchemaUtils.createMissingTablesAndColumns`, not a hand-run script.
+**Use Flyway with plain `.sql` files.** Not Liquibase XML, not `SchemaUtils.createMissingTablesAndColumns`, not a hand-run script.
 
 The reason is reviewability. A migration is the most dangerous kind of change in the repository — it is applied once, to real data, often without a
 tested rollback — so the thing a reviewer reads should be exactly the thing the database executes. SQL in a diff is that. A changelog abstraction is

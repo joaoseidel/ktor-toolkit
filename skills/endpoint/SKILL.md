@@ -1,14 +1,10 @@
 ---
 name: endpoint
 description: >-
-    Implements a new HTTP endpoint in a Ktor Toolkit service, end to end across -core, -adapters and
-    -app. Use this for ANY route-shaped request — "add an endpoint", "expose X over HTTP", "GET
-    /orders should return…", "let clients create a Y", "add a search route", or changing an existing
-    route's contract. It interrogates the endpoint for pagination, sorting, filtering, HATEOAS links,
-    field expansion, validation, caching, error shape, auth, idempotency, uploads, streaming and rate
-    limiting, then loads the toolkit skill that owns each one before any code is written. Route to
-    this skill rather than composing the feature skills yourself; it asks the questions in the order
-    that keeps answers consistent.
+    Implements a new HTTP endpoint end to end across -core, -adapters and -app. Use for ANY
+    route-shaped request — "add an endpoint", "expose X over HTTP", "GET /orders should return…",
+    "let clients create a Y", or changing a route's contract. Asks the paging, links, validation,
+    caching, errors and auth questions in order and loads the skill that owns each.
 ---
 
 # Implementing an endpoint
@@ -157,8 +153,8 @@ only if the client genuinely navigates by links — an unused `_links` block is 
 
 ## Features without a toolkit module
 
-No module owns these yet, so here is the house position. Follow it unless the endpoint has a stated reason not to, and flag repetition: the third
-endpoint to hand-roll the same thing is a signal the collection is missing a skill.
+No module owns these. Follow the defaults below unless the endpoint has a stated reason not to, and flag repetition: the third endpoint to hand-roll
+the same thing wants a shared helper, not a fourth copy.
 
 **Filtering.** Declare each filter as its own typed query parameter and pass it into the use case as a parameter or a small `BookFilter` value object
 in `-core`. Never accept a client-supplied field name or operator — that is an injection surface and it welds your storage schema to your API.

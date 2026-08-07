@@ -2,13 +2,10 @@
 name: validation
 description: >-
     Request validation with ktor-toolkit-validator — the rulesFor<T> { property(…) { should be … } }
-    DSL over Ktor's RequestValidation, where rules live, and the toolkit's nullable-DTO convention
-    (request properties are nullable with defaults; nullability ends at toDomain()). Use whenever an
-    endpoint accepts a body or constrained query parameters, when deciding whether a rule is
-    syntactic or a business rule, when a required field needs enforcing, and whenever you see manual
-    isNullOrBlank checks at the top of a handler or `!!` on a request DTO. Covers blank, email, size,
-    min, max, inRange, uuid, pattern, past, future, before, after, within, nil, satisfying, rule
-    composition, describedAs, nested, each, eachNested, whenever and invariant.
+    DSL over Ktor's RequestValidation, where rules live, and the nullable-DTO convention (request
+    properties are nullable with defaults; nullability ends at toDomain()). Use whenever an endpoint
+    accepts a body or constrained query parameters, when deciding whether a rule is syntactic or a
+    business rule, and whenever you see manual isNullOrBlank checks or `!!` on a request DTO.
 ---
 
 # Request validation

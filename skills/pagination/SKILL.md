@@ -3,11 +3,9 @@ name: pagination
 description: >-
   Paging and sorting with ktor-toolkit-paginator — reading ?page, ?pageSize and ?sortBy off the
   call, carrying Pagination through the port into the persistence adapter, and shaping the
-  PagedResponse metadata that comes back. Use whenever an endpoint returns more than one of
-  something, whenever a client can choose the order of results, and whenever you see hand-written
-  page/limit/offset parsing, a bespoke {items, total, page} response, or a sort key going to the
-  database unchecked. Covers Page, Sort, Pagination, Paged, PaginationRequest, PagedResponse, the
-  sortBy { } DSL, Sort.toExposedQueryExpression and Sort.toMongoSortExpression.
+  PagedResponse metadata. Use whenever an endpoint returns more than one of something, and whenever
+  you see hand-written page/limit/offset parsing, a bespoke {items, total, page} response, or a sort
+  key reaching the database unchecked.
 ---
 
 # Pagination

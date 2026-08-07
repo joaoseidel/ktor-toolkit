@@ -1,30 +1,37 @@
 ---
 name: openapi
 description: >-
-    API documentation with Ktor's built-in comment-based OpenAPI generation, served through Scalar —
-    KDoc blocks above route handlers using Tag / OperationId / Path / Query / Body / Responses with
-    fully-qualified type references in brackets, the ktor { openApi { } } compiler configuration, and
-    a /docs.json + /scalar pair of routes. Use when
-    adding or changing any endpoint's public contract, when a request asks to document an API or
-    expose an API reference, and when documenting the query parameters the toolkit reads for you
-    (?page, ?pageSize, ?sortBy, ?expand) or the problem+json errors it produces — none of which the
-    compiler can infer. No annotation libraries, and Scalar rather than Swagger UI.
+    API docs from KDoc above route handlers, served through Scalar — Tag / Path / Query / Body /
+    Responses with fully-qualified types in brackets, the ktor { openApi { } } config, and the
+    /docs.json + /scalar routes. Use when adding or changing any endpoint's public contract, and to
+    document what the compiler cannot infer: ?page, ?sortBy, ?expand and the problem+json errors.
 ---
 
 # OpenAPI
+
+## When the project has no API docs
+
+A service with no `/docs.json` and no `openApi { }` block is not doing anything wrong, and turning documentation on is not a silent side effect of
+adding one endpoint: it publishes a specification of *every* route, including ones nobody meant to advertise, and it adds a compiler plugin to the
+build.
+
+**Offer it once.** Say what it adds — the plugin configuration, the two routes, and whether the reference should be exposed publicly or behind the
+same auth as everything else — and wait. That last question matters more than it sounds: `/scalar` on a public listener is a map of your API for
+anyone who asks.
+
+Where docs are already generated some other way — a hand-written `openapi.yaml`, a gateway that owns the spec — write to that instead of standing up a
+second source. Two specifications that disagree are worse than one that is out of date.
 
 ## Ktor generates it; you do not annotate it
 
 Ktor's compiler plugin builds the specification from the routes themselves — the path, the method, the type passed to `call.respond`, the type read by
 `call.receive` — and enriches it from a KDoc comment above the handler.
 
-**Do not add an annotation library.** No `@Operation`, no `@ApiResponse`, no third-party Swagger DSL. They restate what the compiler already knows,
-they go stale independently of the code, and they turn a route handler into a wall of metadata. The design here is that documentation sits in a
-comment where a reader would look anyway, and everything derivable is derived.
+**Do not add an annotation library.** No `@Operation`, no `@ApiResponse`, no third-party Swagger DSL: they restate what the compiler already knows, go
+stale on their own schedule, and turn a route handler into a wall of metadata. Documentation belongs in a comment where a reader already looks, and
+everything derivable stays derived.
 
-If something genuinely cannot be expressed in a comment, the escape hatch is the runtime
-`describe { }` builder from `ktor-server-routing-openapi` — still Ktor, no new dependency worth the name. It is experimental; reach for it only when a
-comment cannot say what you need.
+The escape hatch, for what a comment genuinely cannot express, is the experimental `describe { }` builder from `ktor-server-routing-openapi`.
 
 ## Setup
 
@@ -45,9 +52,9 @@ ktor {
 }
 ```
 
-`onlyCommented = true` is the house setting: an endpoint appears in the specification when someone wrote a comment for it. Without it every route is
-published the moment it exists, including the ones that are half-built, and the specification stops being a statement of intent. Documenting an
-endpoint becomes a deliberate act.
+**Keep `onlyCommented = true`.** An endpoint then appears in the specification only when someone wrote a comment for it, making documentation a
+deliberate act. Without it every route is published the moment it exists, half-built ones included, and the specification stops being a statement of
+intent.
 
 There is **no generation task to run.** The plugin participates in the normal build, so the spec follows the code on every compile — that is what
 makes drift hard rather than merely discouraged.
@@ -119,23 +126,40 @@ scalar:
     proxy: "$SCALAR_PROXY:"
 ```
 
-**Scalar over Swagger UI**, and not only as taste: the reference is a single CDN script against a document you already serve, so there is no bundled
-UI to keep in step with the Ktor version, no static assets in the jar, and the URL is configuration rather than a compiled-in path. It also reads
-better on the two things this toolkit produces a lot of — nested schemas and multiple error responses per operation.
+**Scalar over Swagger UI**, and not as taste: one CDN script against a document you already serve means no bundled UI to keep in step with Ktor, no
+static assets in the jar, and a URL that is configuration rather than a compiled-in path. It also reads better on nested schemas and multiple error
+responses per operation, which is most of what these modules produce.
 
-Declaring `tags` on the document rather than only on routes is what gives the reference a sensible left-hand nav; a `Tag:` in a comment that matches
-no declared tag still works but arrives undescribed.
+**Declare `tags` on the document, not only on routes** — that is what gives the reference a sensible left-hand nav. A `Tag:` matching no declared tag
+still works, but arrives undescribed.
 
-Gate `/scalar` on configuration outside development. The document itself is usually fine to expose; an interactive console issuing real writes against
-production is not.
+**Gate `/scalar` on configuration outside development.** The document itself is usually fine to expose; an interactive console issuing real writes
+against production is not.
 
-Load `@scalar/api-reference` unversioned, as above, so the reference tracks upstream without a release of your own. Where an environment forbids
-third-party CDNs, vendor the bundle into the module's resources and serve it yourself — the rest of the setup is unchanged.
+Load `@scalar/api-reference` unversioned so the reference tracks upstream without a release of your own. Where CDNs are forbidden, vendor the bundle
+into the module's resources and serve it yourself; nothing else changes.
+
+### Exclude the routes that are not part of the API
+
+`descendants()` walks the whole routing tree, and `onlyCommented` does not cover all of it: that setting belongs to the compiler plugin, so it only
+knows routes in the module the plugin compiled. Health probes registered by Cohort in `-app`, or anything else installed outside `-adapters`, carry no
+metadata at all — neither commented nor marked uncommented — and land in the document as `"/health/live": { "get": {} }`: an operation with no
+summary, no responses and no schema, telling a client only that an endpoint it must never call exists.
+
+`.hide()` cannot reach them either, since nothing hands you the `Route` a plugin registered. Filter them where the document is assembled, next to the
+`hide()` calls, so every rule about what the document contains stays in one file:
+
+```kotlin
+) +call.application.routingRoot.descendants().filterNot(Route::isOperational) +
+    call.application.findSecuritySchemesOrRefs()
+
+private fun Route.isOperational(): Boolean = toString().startsWith("/health")
+```
 
 ### Match the schemas to your JSON naming
 
-If responses are serialized snake_case — which they are wherever `JsonNamingStrategy.SnakeCase` is configured, including `problemDetails` — then the
-**inferred schemas must be snake_case too**, or the reference documents field names no client will ever see. Override the inference once:
+Wherever `JsonNamingStrategy.SnakeCase` is configured — including `problemDetails` — the **inferred schemas must be snake_case too**, or the reference
+documents field names no client will ever see. Override the inference once:
 
 ```kotlin
 private object SnakeCaseJsonSchemaInference : JsonSchemaInference {
@@ -146,7 +170,7 @@ private object SnakeCaseJsonSchemaInference : JsonSchemaInference {
 }
 ```
 
-and install it via `JsonSchemaAttributeKey` before building the document, as above. This is easy to forget and produces documentation that is subtly,
+and install it via `JsonSchemaAttributeKey` before building the document, as above. Forgetting this produces documentation that is subtly and
 consistently wrong.
 
 ## The comment syntax
@@ -203,32 +227,58 @@ Write the summary as what the endpoint *does for a caller* — "Register a new b
 
 **Every `[Type]` in an OpenAPI comment is fully qualified.** Not "when ambiguous" — always, in `Path:`, `Query:`, `Header:`, `Cookie:`, `Body:` and
 every `Response:` line. The one exception is Kotlin's own built-ins, `[Int]`, `[String]`, `[Boolean]`, which are in scope in every file and can never
-resolve to anything else.
+resolve to anything else. A generic type is not an exception to this rule so much as excluded from bracket references altogether — see
+[Never name a generic type in brackets](#never-name-a-generic-type-in-brackets), which is a harder failure than anything in this section.
 
-The reason is how the link resolves. `[ProblemDetail]` is a KDoc reference resolved against **the imports of the file the comment sits in** — not
-against the classpath. A route file receives `CreateBookRequest` and responds `BookResponse`, so those two are imported and happen to resolve; it
-never mentions `ProblemDetail` in code, because the 400 is *thrown* and mapped by `problemDetails { }` (load the `ktor-toolkit:problem-details`
-skill). With no import there is nothing to resolve, and the failure is silent: the operation is still published, the response still lists
-`application/problem+json`, and the schema is simply missing. The reference reads as documented while telling a client nothing about the shape it will
-actually receive. The same holds for `PagedResponse` on a collection route — `call.respond` may hand back a `Paged`, and the response type never
-appears by name in the file.
+The reason is resolution. `[ProblemDetail]` is a KDoc reference resolved against **the imports of the file the comment sits in**, not against the
+classpath. A route file imports `CreateBookRequest` and `BookResponse`, so those resolve by luck; it never mentions `ProblemDetail` in code, because
+the 400 is *thrown* and mapped by `problemDetails { }` (load the `ktor-toolkit:problem-details` skill). With no import there is nothing to resolve,
+and the failure is silent — the operation is published, the response still lists `application/problem+json`, and the schema is simply gone. It reads
+as documented while telling a client nothing about the shape it receives.
 
-Adding an import to satisfy a comment is the wrong fix: it is an unused import, and the next cleanup removes it and silently un-documents the
-endpoint. The fully-qualified name resolves from anywhere and survives that.
+**Do not add an import to satisfy a comment.** It is unused, the next cleanup removes it, and the endpoint is silently un-documented. A
+fully-qualified name resolves from anywhere and survives that.
 
 The toolkit types you will name most often:
 
 | Type              | Write                                                                  |
 |-------------------|------------------------------------------------------------------------|
 | `ProblemDetail`   | `com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail` |
-| `PagedResponse`   | `com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse`       |
-| `Resource`        | `com.github.joaoseidel.ktor.toolkit.hateoas.data.Resource`             |
 | `Link`            | `com.github.joaoseidel.ktor.toolkit.hateoas.data.Link`                 |
 | `ValidationError` | `com.github.joaoseidel.ktor.toolkit.validator.data.ValidationError`    |
 
-Your own DTOs get the same treatment — `[com.example.catalog.adapters.web.book.BookResponse]`, not `[BookResponse]`. It is longer, and the length is
-the price of a reference that does not quietly lose a schema. It also makes the rule mechanical: reviewers check for a dot, not for whether a given
-simple name happened to be imported.
+`PagedResponse` and `Resource` are deliberately absent: both are generic, and naming either is the mistake the next section is about.
+
+Your own DTOs get the same treatment — `[com.example.catalog.adapters.web.book.BookResponse]`, not `[BookResponse]`. The length is the price of a
+reference that cannot quietly lose a schema, and it makes review mechanical: check for a dot, not for whether a simple name happened to be imported.
+
+### Never name a generic type in brackets
+
+`[com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse]` on a collection route is the one reference that does not fail quietly. Inference
+resolves it to `PagedResponse<T>`, asks kotlinx-serialization for a serializer, and gets a `SerializationException` — nothing supplies an element type
+through a KDoc link. The comment path does not catch it, so the exception escapes and **`/docs.json` returns 500 for the entire API**. Not one missing
+schema: no document at all, taking every other endpoint's documentation with it.
+
+**No bracket reference ever names a type with type parameters** — `PagedResponse`, `Resource`, `Paged`, `Expandable` or your own. Write no `[Type]` on
+that line and let the description carry it.
+
+That costs less than it looks: the compiler already infers the success schema from `call.respond`, where the type *is* concrete. A route responding
+`PagedResponse<BookResponse>` inside a `Resource` documents correctly with no reference at all:
+
+```kotlin
+ *  -200 application / json A page of books, ordered by `slug,id` unless sorted. `content` holds the rows.
+```
+
+If inference cannot reach it — the type is only thrown, or built somewhere the compiler cannot follow — the escape hatch is `describe { }`, which
+takes a real Kotlin type and therefore a real element type:
+
+```kotlin
+get(BOOKS_ROUTE) { … }.describe {
+    responses { OK { schema = jsonSchema<PagedResponse<BookResponse>>() } }
+}
+```
+
+Reach for that only when inference has genuinely failed. Read the generated document before assuming it has.
 
 ## What is inferred, and what is not
 
@@ -240,12 +290,11 @@ simple name happened to be imported.
 
 What it cannot see is the larger half, and all of it matters to a client:
 
-**Query parameters the toolkit reads for you.** `call.pagination` and `call.expand` consume `?page`,
-`?pageSize`, `?sortBy` and `?expand` without those strings appearing in your handler. Nothing infers them. A collection endpoint that does not
-document them is undocumented in the way clients will actually notice.
+**Query parameters the toolkit reads for you.** `call.pagination` and `call.expand` consume `?page`, `?pageSize`, `?sortBy` and `?expand` without
+those strings appearing in your handler, so nothing infers them. A collection endpoint that skips them is undocumented in the way clients notice.
 
-**Anything thrown rather than responded.** `HttpStatusException`, a domain exception mapped in
-`problemDetails { }`, a validation failure — none reach a `call.respond` the compiler can read. Every non-200 you care about is a line you write.
+**Anything thrown rather than responded.** `HttpStatusException`, a domain exception mapped in `problemDetails { }`, a validation failure — none reach
+a `call.respond` the compiler can read. Every non-200 you care about is a line you write.
 
 **Constraints.** Validation rules, the sortable-column allow-list, the maximum page size: all enforced at runtime, none visible in a signature.
 
@@ -267,13 +316,19 @@ Because the toolkit's parameters are invisible to inference, a paged collection 
  * Query: expand [String] Comma-separated fields to embed. Supported: `author`.
  *
  * Responses:
- *  - 200 application/json [com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse] A page of books.
+ *  - 200 application/json A page of books. `content` holds the rows, `metadata` the counts.
  *  - 400 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail] An unknown sort field.
  */
 ```
 
-Both response types are fully qualified for the reason above: neither `PagedResponse` nor `ProblemDetail` is necessarily named in the route file's
-code, so neither simple name is guaranteed to resolve.
+`ProblemDetail` is fully qualified for the reason above: it is never named in the route file's code, because the 400 is thrown rather than responded,
+so the simple name has nothing to resolve against.
+
+The 200 carries **no** bracket reference, and that is not an omission. `PagedResponse` is generic, so naming it 500s the whole document; and the
+page's schema needs no help, because `call.respond` hands inference the concrete `Resource<PagedResponse<BookResponse>>` and it reads the whole
+envelope —
+`content` as an array of `BookResponse`, `metadata`, and `_links` — straight off the serializer. Write the description and let inference do the
+schema.
 
 Three things there are the point of this skill:
 
@@ -314,20 +369,20 @@ a build.
 With `onlyCommented = true`, an endpoint with no comment is simply absent from the specification. That is the honest outcome: better a documented
 subset than a published lie.
 
-## Common mistakes
+## Mistakes that break the document silently
 
-| Mistake                                              | Why it hurts                                                                 |
-|------------------------------------------------------|------------------------------------------------------------------------------|
-| Adding an annotation library                         | Duplicates what the compiler infers, and drifts on its own schedule          |
-| Swagger UI instead of Scalar                         | Bundled assets to keep in step with Ktor, for a worse read of nested schemas |
-| Forgetting `.hide()` on the docs routes              | `/docs.json` and `/scalar` document themselves                               |
-| Inferred schemas left camelCase with snake_case JSON | Every field name in the reference is one no client will see                  |
-| A simple name in `[]` — `[ProblemDetail]`            | Resolves only if the file imports it; otherwise the schema vanishes silently |
-| Adding an import just to make a `[]` reference work  | An unused import; the next cleanup un-documents the endpoint                 |
-| `ktor { openApi { } }` in `-app`                     | The compiler plugin must run where the routes are compiled                   |
-| No `Query:` lines on a paged endpoint                | The toolkit's parameters are invisible to inference and to clients           |
-| Not listing the sortable fields                      | The allow-list is unguessable; wrong guesses are errors                      |
-| Documenting only the success case                    | Clients discover the error shape in production                               |
-| Renaming an `OperationId` casually                   | Breaks the method name in every generated client                             |
-| Placeholder examples (`"string"`, `"foo"`)           | Restate the type the schema already gave                                     |
-| Scalar exposed in production                         | An interactive console for real writes                                       |
+The first two are the ones to check on every comment you write: neither fails the build, and the second takes the whole reference down.
+
+| Mistake                                              | What it does                                                                  |
+|------------------------------------------------------|-------------------------------------------------------------------------------|
+| A simple name in `[]` — `[ProblemDetail]`            | Resolves only if the file imports it; otherwise the schema vanishes, unwarned |
+| A generic type in `[]` — `[PagedResponse]`           | `T` is never substituted: `/docs.json` 500s and the whole API loses its docs  |
+| Adding an import just to make a `[]` reference work  | An unused import; the next cleanup un-documents the endpoint                  |
+| `ktor { openApi { } }` in `-app`                     | The plugin must run where the routes are compiled — nothing is generated      |
+| Inferred schemas left camelCase with snake_case JSON | Every field name in the reference is one no client will ever see              |
+| No `Query:` lines on a paged endpoint                | `?page`, `?pageSize`, `?sortBy` are invisible to inference and to clients     |
+| Not listing the sortable fields                      | The allow-list is unguessable, and a wrong guess is an error                  |
+| Documenting only the success case                    | Clients discover the error shape in production                                |
+| Forgetting `.hide()` on the docs routes              | `/docs.json` and `/scalar` document themselves                                |
+| Renaming an `OperationId` casually                   | Breaks the method name in every generated client                              |
+| Scalar reachable in production                       | An interactive console for real writes                                        |

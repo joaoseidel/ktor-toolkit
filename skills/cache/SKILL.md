@@ -2,12 +2,9 @@
 name: cache
 description: >-
     Response caching with ktor-toolkit-cache — serving a route through withCache(namespace, cache),
-    choosing between InMemoryCache and LettuceCache (Redis), and invalidating with
-    invalidateNamespace / invalidateContaining after a write. Use when an endpoint is slow or its
-    result is reusable across clients, when deciding where a cache belongs and who invalidates it,
-    when picking a TTL, and whenever you see a ConcurrentHashMap used as a cache or a memoised
-    repository. Covers cache keys, TTL, read-through, write-through, warming, cache boundaries and
-    the KeyValueCache interface for a custom store.
+    choosing between InMemoryCache and LettuceCache (Redis), picking a TTL, and invalidating after a
+    write. Use when an endpoint is slow or its result is reusable across clients, when deciding who
+    invalidates what, and whenever you see a ConcurrentHashMap used as a cache.
 ---
 
 # Caching
@@ -128,7 +125,7 @@ cache.invalidateNamespace("books")   // every entry under the namespace
 cache.invalidateContaining(bookId)   // entries whose payload mentions this id
 ```
 
-**Prefer `invalidateNamespace`.** It matches on the key prefix and deletes in parallel.
+**Reach for `invalidateNamespace` first.** It matches on the key prefix and deletes in parallel.
 
 `invalidateContaining` reads **every key and every value** in the store and does a substring match on the serialized payload. It exists for the case
 where an entity appears in entries whose keys do not name it — a book inside a cached author response — and it is honest about its cost: fine for a

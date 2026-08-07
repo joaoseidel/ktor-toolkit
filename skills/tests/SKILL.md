@@ -1,33 +1,26 @@
 ---
 name: tests
 description: >-
-    How this project tests — Kotest ShouldSpec with behaviour-named cases, MockK for collaborators,
-    testApplication for routes, Testcontainers for real persistence, and acceptance tests over the
-    assembled app. Use whenever writing or reviewing a test, when naming a context or a should, when
-    deciding what to mock and what to run for real, when a bug fix needs a failing test first, when a
-    test is flaky or time-dependent, and when choosing between a unit, integration or acceptance
-    test. Covers spec style, naming conventions, fixtures and builders, determinism, Kotest matchers
-    and where each kind of test lives.
+    Testing a Ktor Toolkit service — Kotest ShouldSpec with behaviour-named cases, MockK for
+    collaborators, testApplication for routes, Testcontainers for real persistence, and acceptance
+    tests over the assembled app. Use when writing or reviewing any test, naming a context or a
+    should, deciding what to mock and what to run for real, or when a test is flaky.
 ---
 
 # Testing
 
 ## Prefer the test that would have caught it
 
-The house preference is **acceptance tests first**, then integration, then unit — the inverse of the usual advice, and deliberately so. Most bugs that
-reach production are not wrong arithmetic inside a function; they are a route wired to the wrong use case, a missing plugin, a serializer that renames
-a field, an adapter whose query does not match the port's contract. Unit tests are structurally incapable of seeing any of those.
+**Acceptance first, then integration, then unit** — the inverse of the usual advice. Bugs that reach production are rarely wrong arithmetic inside a
+function; they are a route wired to the wrong use case, a missing plugin, a serializer that renamed a field, an adapter whose query does not match the
+port. A unit test cannot see any of those, which is how a service ends up with 400 green tests and a 500 on the first request.
 
-That is a preference, not a ban. A unit test earns its place when the logic has enough cases that driving them through HTTP would be slow and
-unreadable — parsing, clamping, date arithmetic, anything with a table of inputs. Write those as units *and* one acceptance test that proves the
-feature is reachable.
-
-The failure mode this guards against is a service with 400 green unit tests where the endpoint 500s on the first request because nothing was ever
-wired together.
+Not a ban. Logic with a table of inputs — parsing, clamping, date arithmetic — is slow and unreadable driven through HTTP. Write those as units *and*
+one acceptance test proving the feature is reachable.
 
 ## Where each kind lives
 
-**A test lives in the module of the code it tests.** Acceptance tests are the one exception: they belong to no single module, so they get their own.
+**A test lives in the module of the code it tests.** Acceptance tests belong to no single module, so they get their own.
 
 | Location                      | Tests                                        | Runs against                                                                          |
 |-------------------------------|----------------------------------------------|---------------------------------------------------------------------------------------|
@@ -36,19 +29,20 @@ wired together.
 | `<service>-app/src/test`      | Plugin configuration and wiring, if anything | Rarely needed — `-app` mostly has no logic of its own.                                |
 | `acceptance-tests/src/test`   | Whole features                               | The assembled application, over HTTP, as a client sees it.                            |
 
-There is no `-core` test that starts a server and no `-adapters` test of a domain rule. If you find yourself writing one, the code is in the wrong
-module — load the `ktor-toolkit:architecture` skill.
+A `-core` test that starts a server, or an `-adapters` test of a domain rule, means the code is in the wrong module — load the
+`ktor-toolkit:architecture` skill.
 
-`acceptance-tests` is a separate Gradle module precisely so it *cannot* reach into internals. It depends on the app the way a client does, which is
-what makes it the test that would have caught the wiring bug.
+**The two Ktor tests differ only in how much they assemble.** An `-adapters` route test installs what that route needs and mocks the use case behind
+it, so a failure names the adapter. An acceptance test boots `module()` against the real graph, so a failure means the feature is broken for a client.
+`acceptance-tests` is its own module precisely so it cannot reach internals.
 
-The distinction that matters in practice is between the two Ktor tests. An `-adapters` route test installs only what that route needs and mocks the
-use case behind it, so a failure names the adapter. An acceptance test boots `module()` and touches the real graph, so a failure means the feature is
-broken for a client. Both use `testApplication`; they differ in how much they assemble.
+**Where there is no `acceptance-tests` module**, offer one — a settings entry plus a build script — the first time a task needs a whole-app test, and
+wait. Until it exists, boot `module()` from an app-level test and say that is what you did.
 
 ## The shape of a test
 
-Kotest `ShouldSpec`, always. The project uses it exclusively across every module; a second spec style is a style argument nobody needs to have.
+Kotest `ShouldSpec`, one style across every module. Where the project already standardised on `FunSpec`, `BehaviorSpec` or JUnit, match it and apply
+the naming rules below to that.
 
 ```kotlin
 class PaginationExtensionsTest :
@@ -71,44 +65,31 @@ class PaginationExtensionsTest :
     })
 ```
 
-**Three blocks, blank-line separated: arrange, act, assert.** No comments needed; the shape carries it. A one-line case that reads clearly as a single
-expression can skip the separation, as the second
-`should` above does. One behaviour per `should`, so a failure names the thing that broke.
+**Three blocks, blank-line separated: arrange, act, assert.** The shape carries it; no comments needed. A one-line case can skip the separation, as
+the second `should` above does. One behaviour per `should`, so a failure names the thing that broke.
 
 **File naming:** `XTest.kt`, in the package of the thing under test.
 
 ### Naming a `context`
 
-A `context` names **what is being exercised**, and there are two idioms in use. Pick whichever makes the `should` names underneath read naturally.
+A `context` names **what is being exercised**. Two idioms — pick whichever makes the `should` names underneath read naturally.
 
-**The API surface** — the function, property or entry point under test. Use the name as written, including the receiver and, when overloads differ
-meaningfully, the parameters:
+**The API surface**, written as it appears in code, including the receiver and, where overloads differ meaningfully, the parameters:
 
 ```
-context("PaginationRequest.from(Parameters)")
-context("PaginationRequest.from(page, pageSize, sortBy)")
-context("Sort.fromString")
-context("List<Sort>.toExposedQueryExpression")
-context("ApplicationCall.expand")
-context("buildCacheKey")
-context("withCache")
-context("toResource")
-context("rulesFor")
-context("invariant")
+context("GET /books")
+context("ExposedBookRepository.findAll")
+context("Isbn.fromString")
+context("CreateBookRequest.toDomain")
 ```
 
-**The situation** — the state of the world the cases share. Use this when the interesting variable is the input rather than the entry point:
+**The situation** — the state the cases share. Use this when the interesting variable is the input rather than the entry point:
 
 ```
 context("a paged route")
 context("an absent value")
-context("a malformed spec")
 context("a rule with no opinion about absence")
-context("an application's own exception")
 context("unhandled exceptions")
-context("which links are emitted")
-context("the window is symmetric")
-context("without a zone")
 ```
 
 Nest a second `context` to split variants, so each leaf stays about one thing:
@@ -117,35 +98,24 @@ Nest a second `context` to split variants, so each leaf stays about one thing:
 context("size bound") {
     context("on a string") { … }
     context("on a collection") { … }
-    context("on a map") { … }
-    context("on an array") { … }
 }
 ```
 
-Common nesting axes here: by type (`on a LocalDate`, `on an Instant`), by direction (`serialization`, `deserialization`), by DSL phrasing (`be blank`,
-`notBe blank`), and by lifecycle (`construction`, `comparing two links`).
+Nest by type, by direction (`serialization` / `deserialization`), by phrasing (`be blank` / `notBe blank`), or by lifecycle.
 
 ### Naming a `should`
 
-**Name the behaviour, not the method.** Read it aloud with "it should" in front — if that is not a sentence about what the software does for someone,
-rename it. Never `should("test coerceIn")`.
+**Name the behaviour, not the method.** Read it with "it should" in front — if that is not a sentence about what the software does for someone, rename
+it. Never `should("test coerceIn")`.
 
-Start with a verb. The vocabulary that recurs here: *accept*, *reject*, *return*, *fall back to*, *default to*, *carry … through*, *skip*, *stay
-quiet*, *record*, *emit*, *apply*, *drop*, *strip*, *hold for*, *answer with*, *consider … equal*.
+Start with a verb: *accept*, *reject*, *fall back to*, *default to*, *carry … through*, *skip*, *stay quiet*, *emit*, *drop*, *answer with*.
 
 ```
 should("apply the standard maximum page size when the caller names none")
-should("fall back to the defaults when nothing is supplied")
 should("produce an empty sort when none was requested")
-should("index the errors it records")
-should("skip an absent collection")
-should("do nothing for an empty collection")
 should("stay quiet when the condition holds")
 should("emit only self when everything fits on one page")
-should("delete only the keys under the namespace")
-should("ask for every ref id in one call")
 should("answer with the exception's status and detail as problem+json")
-should("accept the smallest expiry Redis records")
 ```
 
 **The best names carry a *because*.** A name that says why the behaviour matters survives a refactor; one that restates the assertion does not:
@@ -185,13 +155,11 @@ class FindBooksTest :
     })
 ```
 
-`coEvery` for `suspend` functions, `every` for the rest — the ports in this architecture are suspending, so `coEvery` is what you will reach for most.
-`mockk(relaxed = true)` when a test only cares about one interaction and the others are noise, though naming each stub is usually clearer about what
-the test depends on.
+`coEvery` for `suspend` functions, `every` for the rest — ports here are suspending, so `coEvery` is the one you reach for. Use
+`mockk(relaxed = true)` only when a test cares about one interaction and the rest are noise; naming each stub states what the test depends on.
 
-MockK also serves where a real object is impossible or beside the point: a third-party client that would open a network connection, and a constructor
-argument the test never touches —
-`LettuceCache(mockk(), ttl = Duration.ZERO)`, where the point is that the constructor rejects the ttl.
+MockK also covers a constructor argument the test never touches — `LettuceCache(mockk(), ttl = Duration.ZERO)`, where the point is that the
+constructor rejects the ttl.
 
 **What not to mock:**
 
@@ -202,14 +170,11 @@ argument the test never touches —
 | A `@Serializable` DTO                 | Stubbing getters proves nothing about serialization       |
 | A pure function you own               | Call it                                                   |
 
-**Verifying interactions is for when the interaction *is* the behaviour.** `coVerify {
-cache.invalidateNamespace("books") }` is a real assertion — invalidation is not observable any other way. But `coVerify { repository.save(any()) }`
-next to an assertion on the result is asserting *how*
-the code works, so it fails on every refactor that keeps the behaviour intact. Prefer asserting on the outcome; add `coVerify` when the call is the
-outcome.
+**Verify an interaction only when the interaction *is* the behaviour.** `coVerify { cache.invalidateNamespace("books") }` is a real assertion —
+invalidation is observable no other way. `coVerify { repository.save(any()) }` beside an assertion on the result asserts *how* the code works, so it
+breaks on every refactor that keeps the behaviour intact.
 
-Mocking is for collaborators the code under test *talks to*. When a test starts stubbing three levels deep to reach one assertion, that is the design
-telling you the use case has too many dependencies — fix the design rather than the test.
+When a test stubs three levels deep to reach one assertion, the use case has too many dependencies. Fix the design, not the test.
 
 ## Fixtures and builders
 
@@ -222,20 +187,15 @@ fun book(
     isbn: Isbn = Isbn("978-0261102217"),
     publishedAt: LocalDate? = LocalDate(1937, 9, 21),
 ) = Book(id, title, isbn, publishedAt)
-```
 
-```kotlin
 val draft = book(title = "Untitled", publishedAt = null)
 ```
 
-The reader sees immediately that this test is about the title and the date, and that nothing else matters. A test that spells out eight constructor
-arguments hides its own point, and every new field on `Book` breaks every test that ever built one.
+That test is visibly about the title and the date, and nothing else. Spelling out eight constructor arguments hides the point, and every new field on
+`Book` then breaks every test that ever built one. It is also why entities are built rather than mocked: `book(title = "Untitled")` is shorter than
+stubbing four properties and cannot drift from the real constructor.
 
-This is why entities are built rather than mocked: `book(title = "Untitled")` is shorter than stubbing four properties and cannot drift from the real
-constructor.
-
-Keep small helpers private and local to the file — a `bytes()`, a function that pulls `_links` out of a JSON body. Promote one to a shared fixture
-only when a third file needs it, and give shared helpers a KDoc line saying *why* they exist:
+Keep helpers private and local. Promote one to a shared fixture when a third file needs it, with a KDoc line saying why it exists:
 
 ```kotlin
 /** A clock the test moves by hand, so expiry can be exercised without sleeping. */
@@ -272,18 +232,17 @@ class BookRoutesTest :
     })
 ```
 
-Register only the mock the route resolves, and install only the plugins it uses. Nothing else in the graph is stood up, so a failure here is the
-adapter's — load the `ktor-toolkit:di` skill for overriding a registration when the real module is booted.
+Register only the mock the route resolves and install only the plugins it uses, so a failure here is the adapter's — load the `ktor-toolkit:di` skill
+for overriding a registration when the real module is booted.
 
-**Assert on the JSON, not on a deserialized object.** Deserializing with your own `@Serializable`
-class asserts that your class round-trips with itself and would not notice a renamed field, a naming-strategy change, or a null where the client
-expects a value. Parsing the body as
-`JsonElement` tests the contract the client actually receives.
+**Assert on the JSON, not on a deserialized object.** Deserializing with your own `@Serializable` class only proves it round-trips with itself; it
+cannot see a renamed field, a naming-strategy change, or a null where the client expects a value. Parsing as `JsonElement` tests the contract the
+client receives.
 
 ## Testing a feature — `acceptance-tests/src/test`
 
 Same tool, everything assembled. Boot the real `module()`, so routing, DI, `problemDetails`,
-`RequestValidation` and content negotiation are all exercised together:
+`RequestValidation` and content negotiation are exercised together:
 
 ```kotlin
 class CreateBookAcceptanceTest :
@@ -309,42 +268,63 @@ class CreateBookAcceptanceTest :
     })
 ```
 
-Send the body as a raw string rather than a serialized DTO. The point of an acceptance test is to prove the service handles what a client actually
-sends, and a DTO the service also owns cannot disagree with itself.
+**Send the body as a raw string, not a serialized DTO.** A DTO the service also owns cannot disagree with itself; the point is to prove the service
+handles what a client actually sends.
 
-This layer is where the cross-cutting wiring is proved: that the error shape is `problem+json`, that validation reached the client with a usable field
-path, that a route exists at the path documented. None of that is visible from a unit test, and an `-adapters` test only sees the half it assembled.
+This layer proves the cross-cutting wiring — that errors are `problem+json`, that validation reached the client with a usable field path, that the
+route exists at the documented path. A unit test sees none of it, and an `-adapters` test sees only the half it assembled.
 
 ## Testing persistence — `<service>-adapters/src/test`
 
-A repository test that mocks the database tests the mock: mocking is for the collaborators of the code under test, and for a repository the database
-*is* the code under test. Run the real thing with Testcontainers:
+For a repository, the database *is* the code under test — mocking it tests the mock. Run the real thing with Testcontainers:
 
 ```kotlin
-private val postgres = PostgreSQLContainer("postgres:17-alpine")
+class ExposedBookRepositoryTest :
+    ShouldSpec({
+        val postgres = PostgreSQLContainer("postgres:17-alpine")
+
+        beforeSpec {
+            postgres.start()
+
+            // The same migrations production runs — never SchemaUtils.create.
+            Flyway.configure()
+                .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)
+                .load()
+                .migrate()
+
+            Database.connect(postgres.jdbcUrl, user = postgres.username, password = postgres.password)
+        }
+
+        afterSpec { postgres.stop() }
+
+        context("findAll") {
+            should("return the requested page in the requested order") { … }
+        }
+    })
 ```
 
-Testcontainers is **not** in the version catalog yet — add it there rather than inline, and give
-`acceptance-tests` and `-adapters` the dependency they need (load the `ktor-toolkit:gradle` skill, which covers both). It needs a working Docker
-daemon, so the CI runner must provide one.
+**`beforeSpec`, not `beforeTest`** — one container per spec; per test turns a fast suite slow. Declaring the container without starting it is the same
+mistake's other half: nothing starts it for you, and the failure is a connection refused that reads like a config problem.
 
-Start the container once for the spec rather than per test, and let each test own its data — insert what it needs, assert, and rely on a transaction
-rollback or a truncate between cases. Shared mutable fixtures across tests are the usual cause of a suite that passes alone and fails in parallel.
+**Build the schema with the real migrations.** A query tested against a table the migrations never produced proves nothing about production, and the
+two drift silently — load the `ktor-toolkit:migrations` skill.
 
-**Build the container's schema with the real migrations**, not `SchemaUtils.create`. A query tested against a table the migrations never produced
-proves nothing about production, and the two drift silently — load the `ktor-toolkit:migrations` skill.
+**Let each test own its data.** Insert, assert, then roll back or truncate. Shared fixtures are the usual cause of a suite that passes alone and fails
+in parallel.
+
+Testcontainers goes in the version catalog, not inline, with the dependency on `-adapters` and `acceptance-tests` — load the `ktor-toolkit:gradle`
+skill. Say so before adding it: it needs a Docker daemon on every machine that runs the suite, CI included, and a team without one gets a red build
+they did not ask for.
 
 ## Determinism
 
 A flaky test is worse than no test: it trains people to re-run the build.
 
-- **Control the clock.** Never let code a test drives call `Clock.System.now()` — take a `Clock`
-  parameter and stub it: `every { clock.now() } returns Instant.parse("2024-01-01T00:00:00Z")`, or
-  `returnsMany` when the test needs time to move. The toolkit's temporal validators take an explicit
-  `now` for exactly this reason. A hand-written clock you advance is fine when a test steps through many instants and `returnsMany` would obscure the
-  sequence.
-- **Never sleep.** A `delay` in a test is a slow test that will still be flaky on a loaded CI machine.
-- **Do not assume ordering** the code does not guarantee. `shouldContainExactlyInAnyOrder` states what you mean; `shouldContainExactly` on a `Map`'s
+- **Control the clock.** Never let code under test call `Clock.System.now()` — take a `Clock` parameter and stub it:
+  `every { clock.now() } returns Instant.parse("2024-01-01T00:00:00Z")`, or `returnsMany` when time must move. The toolkit's temporal rules take an
+  explicit `now` for exactly this reason. A hand-written advancing clock is clearer when a test steps through many instants.
+- **Never sleep.** A `delay` is a slow test that is still flaky on a loaded CI machine.
+- **Do not assume ordering the code does not guarantee.** `shouldContainExactlyInAnyOrder` says what you mean; `shouldContainExactly` on a `Map`'s
   values is a coin flip.
 - **Pin generated values.** Random ids and `LocalDate.now()` in a fixture make a failure unreproducible. Pass them in.
 
@@ -360,29 +340,25 @@ Kotest matchers, chosen for what they say when they fail:
 | `shouldContainExactlyInAnyOrder`   | Order does not                                                       |
 | `shouldThrow<T> { }`               | The type of failure — assert the message too when it is the contract |
 
-`result shouldBe expected` on a data class reports the differing field. Asserting field by field gives up that report and stops at the first mismatch.
+`result shouldBe expected` on a data class reports the differing field. Asserting field by field gives that up and stops at the first mismatch.
 
 ## Before a bug is fixed
 
-Write the failing test first, and watch it fail for the *stated* reason. A test that passes before the fix is testing something else, and you will not
-find out until the bug returns.
+**Write the failing test first and watch it fail for the stated reason.** A test that passes before the fix is testing something else, and you find
+out when the bug returns. Put it at the level the bug lived at: an off-by-one in page arithmetic is a unit test, a route that returned 500 is an
+acceptance test.
 
-Put it at the level the bug lived at: an off-by-one in page arithmetic is a unit test, a route that returned 500 is an acceptance test.
+## Mistakes that make a green suite worthless
 
-## Common mistakes
-
-| Mistake                                            | Why it hurts                                                              |
-|----------------------------------------------------|---------------------------------------------------------------------------|
-| `coVerify` on every interaction                    | Asserts the implementation, so every refactor is a test rewrite           |
-| Mocking an entity or data class                    | Nothing to stub, and the stub drifts from the real constructor            |
-| Mocking the database in a repository test          | The database is what is under test                                        |
-| `every` where `coEvery` is needed                  | The stub never matches; the mock throws on a call it was never told about |
-| Deserializing the response with your own DTO       | Cannot see a renamed field or a naming-strategy change                    |
-| `Thread.sleep` / `delay` to wait for expiry        | Slow, and flaky on a loaded machine                                       |
-| Fixtures with every field spelled out              | Hides the point of the test; every new field breaks every test            |
-| Shared mutable state between tests                 | Passes alone, fails in parallel, blamed on Kotest                         |
-| Only unit tests                                    | Nothing proves the endpoint is wired at all                               |
-| An acceptance test living in `-adapters` or `-app` | It can reach internals, so it stops testing what a client sees            |
-| Booting the whole `module()` for an adapter test   | A failure could be anywhere in the graph; the test names nothing          |
-| `should("test findAll")`                           | Names the method; says nothing about the behaviour                        |
-| A `-core` test that starts a server                | The domain has a dependency it should not have                            |
+| Mistake                                          | What it costs                                                           |
+|--------------------------------------------------|-------------------------------------------------------------------------|
+| Only unit tests                                  | Nothing proves the endpoint is wired at all                             |
+| Deserializing the response with your own DTO     | Cannot see a renamed field or a naming-strategy change                  |
+| Mocking the database in a repository test        | The database is the thing under test                                    |
+| `coVerify` on every interaction                  | Asserts the implementation, so every refactor is a test rewrite         |
+| Shared mutable state between tests               | Passes alone, fails in parallel, gets blamed on Kotest                  |
+| `Thread.sleep` / `delay` to wait for expiry      | Slow, and flaky on a loaded CI machine — inject a `Clock`               |
+| Fixtures with every field spelled out            | Hides the point of the test; every new field breaks every test          |
+| `should("test findAll")`                         | Names the method, says nothing about the behaviour                      |
+| Booting the whole `module()` for an adapter test | A failure could be anywhere in the graph; the test names nothing        |
+| `every` where `coEvery` is needed                | The stub never matches, and the mock throws on a call it never heard of |
