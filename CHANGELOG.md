@@ -122,5 +122,8 @@ First public release. Nothing was published before this, so the breaking changes
   remain optional — see the README.
 - `ExpandSpec` collapsed from four near-duplicate field implementations to two; single-item expansion now delegates to the batched path, so the two
   can no longer diverge.
+- The `openapi` skill now requires a fully-qualified type in every `[]` reference of an OpenAPI comment, rather than only where the simple name is
+  ambiguous. Those brackets resolve against the route file's imports, so `[ProblemDetail]` on an error response — thrown and mapped, never named in
+  the route's code — resolved to nothing and dropped the schema without a warning. The `comments` skill draws the same distinction for ordinary KDoc.
 - ktlint and binary-compatibility-validator run as part of `build`.
 - Test coverage went from one module to all six, with Kover gating at 85% line and 65% branch.

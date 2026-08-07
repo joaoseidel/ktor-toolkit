@@ -164,7 +164,10 @@ suspend fun get(key: String): ByteArray?
 - Whether it performs I/O, and how much — "one query per call", "walks the keyspace".
 - Anything a caller must do in a particular order, or must not do.
 
-**Use `[References]`** to related types; they become links and they survive renames.
+**Use `[References]`** to related types; they become links and they survive renames. A simple name is fine when the file can already see the type —
+same package, or already imported, as with `[InMemoryCache]` above. It is *not* fine in the OpenAPI comment above a route: those brackets are read by
+the compiler plugin to attach a schema, an unresolved one is dropped without a warning, and the fully-qualified name is mandatory there — load the
+`ktor-toolkit:openapi` skill.
 
 **`@param` only when the name does not carry it.** A `@param key the key` is noise. A
 `@param excludeQueryKeys Query parameters that must not take part in the cache key` is the contract.

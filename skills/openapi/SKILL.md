@@ -2,8 +2,9 @@
 name: openapi
 description: >-
     API documentation with Ktor's built-in comment-based OpenAPI generation, served through Scalar —
-    KDoc blocks above route handlers using Tag / OperationId / Path / Query / Body / Responses, the
-    ktor { openApi { } } compiler configuration, and a /docs.json + /scalar pair of routes. Use when
+    KDoc blocks above route handlers using Tag / OperationId / Path / Query / Body / Responses with
+    fully-qualified type references in brackets, the ktor { openApi { } } compiler configuration, and
+    a /docs.json + /scalar pair of routes. Use when
     adding or changing any endpoint's public contract, when a request asks to document an API or
     expose an API reference, and when documenting the query parameters the toolkit reads for you
     (?page, ?pageSize, ?sortBy, ?expand) or the problem+json errors it produces — none of which the
@@ -167,6 +168,8 @@ Keywords take the form `Keyword: value`. Plural forms — `Tags:`, `Responses:` 
 | `Deprecated:`   | `reason`                              |
 | `ExternalDocs:` | `href`                                |
 
+Every `[Type]` is a KDoc link, and it resolves the way KDoc links resolve — against what the *file* can see. Write them fully qualified; see below.
+
 The comment goes **immediately above the route call**, inside the route function:
 
 ```kotlin
@@ -179,12 +182,12 @@ fun Route.createBookRoute() {
      * Description: Adds a book to the catalogue. The ISBN must not already be registered.
      * Tag: books
      *
-     * Body: application/json [CreateBookRequest] The book to create
+     * Body: application/json [com.example.catalog.adapters.web.book.CreateBookRequest] The book to create
      *
      * Responses:
-     *  - 201 application/json [BookResponse] The created book.
-     *  - 400 application/problem+json [ProblemDetail] Validation failed; `properties` names each field.
-     *  - 409 application/problem+json [ProblemDetail] That ISBN is already registered.
+     *  - 201 application/json [com.example.catalog.adapters.web.book.BookResponse] The created book.
+     *  - 400 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail] Validation failed; `properties` names each field.
+     *  - 409 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail] That ISBN is already registered.
      */
     post(BOOKS_ROUTE) {
         val book = createBook(call.receive<CreateBookRequest>().toDomain())
@@ -196,7 +199,36 @@ fun Route.createBookRoute() {
 Write the summary as what the endpoint *does for a caller* — "Register a new book", not "createBook".
 `OperationId` is what client generators turn into a method name, so keep it stable: renaming one is a breaking change for every generated SDK.
 
-Use a fully-qualified type in brackets when the simple name is ambiguous across packages.
+### Always write the fully-qualified name in brackets
+
+**Every `[Type]` in an OpenAPI comment is fully qualified.** Not "when ambiguous" — always, in `Path:`, `Query:`, `Header:`, `Cookie:`, `Body:` and
+every `Response:` line. The one exception is Kotlin's own built-ins, `[Int]`, `[String]`, `[Boolean]`, which are in scope in every file and can never
+resolve to anything else.
+
+The reason is how the link resolves. `[ProblemDetail]` is a KDoc reference resolved against **the imports of the file the comment sits in** — not
+against the classpath. A route file receives `CreateBookRequest` and responds `BookResponse`, so those two are imported and happen to resolve; it
+never mentions `ProblemDetail` in code, because the 400 is *thrown* and mapped by `problemDetails { }` (load the `ktor-toolkit:problem-details`
+skill). With no import there is nothing to resolve, and the failure is silent: the operation is still published, the response still lists
+`application/problem+json`, and the schema is simply missing. The reference reads as documented while telling a client nothing about the shape it will
+actually receive. The same holds for `PagedResponse` on a collection route — `call.respond` may hand back a `Paged`, and the response type never
+appears by name in the file.
+
+Adding an import to satisfy a comment is the wrong fix: it is an unused import, and the next cleanup removes it and silently un-documents the
+endpoint. The fully-qualified name resolves from anywhere and survives that.
+
+The toolkit types you will name most often:
+
+| Type              | Write                                                                  |
+|-------------------|------------------------------------------------------------------------|
+| `ProblemDetail`   | `com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail` |
+| `PagedResponse`   | `com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse`       |
+| `Resource`        | `com.github.joaoseidel.ktor.toolkit.hateoas.data.Resource`             |
+| `Link`            | `com.github.joaoseidel.ktor.toolkit.hateoas.data.Link`                 |
+| `ValidationError` | `com.github.joaoseidel.ktor.toolkit.validator.data.ValidationError`    |
+
+Your own DTOs get the same treatment — `[com.example.catalog.adapters.web.book.BookResponse]`, not `[BookResponse]`. It is longer, and the length is
+the price of a reference that does not quietly lose a schema. It also makes the rule mechanical: reviewers check for a dot, not for whether a given
+simple name happened to be imported.
 
 ## What is inferred, and what is not
 
@@ -235,10 +267,13 @@ Because the toolkit's parameters are invisible to inference, a paged collection 
  * Query: expand [String] Comma-separated fields to embed. Supported: `author`.
  *
  * Responses:
- *  - 200 application/json [PagedResponse] A page of books.
- *  - 400 application/problem+json [ProblemDetail] An unknown sort field.
+ *  - 200 application/json [com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse] A page of books.
+ *  - 400 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail] An unknown sort field.
  */
 ```
+
+Both response types are fully qualified for the reason above: neither `PagedResponse` nor `ProblemDetail` is necessarily named in the route file's
+code, so neither simple name is guaranteed to resolve.
 
 Three things there are the point of this skill:
 
@@ -256,8 +291,10 @@ promise you do not want to make.
 ## Errors and examples
 
 Document every status a client should handle, and say what causes it — a bare `400 Bad Request` tells a caller nothing they did not already know.
-Always name `application/problem+json` on error responses: clients that branch on `Content-Type` need to know the error shape differs from the success
-shape (load the `ktor-toolkit:problem-details` skill).
+Always name `application/problem+json` on error responses, paired with
+`[com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail]`: clients that branch on `Content-Type` need to know the error shape differs
+from the success shape (load the `ktor-toolkit:problem-details` skill). That type is the single most common place the simple name fails to resolve,
+because error responses are produced by the mapper rather than by the route.
 
 `500` is worth one mention per API rather than one per route. Every endpoint can fail; repeating it adds noise without adding information.
 
@@ -285,6 +322,8 @@ subset than a published lie.
 | Swagger UI instead of Scalar                         | Bundled assets to keep in step with Ktor, for a worse read of nested schemas |
 | Forgetting `.hide()` on the docs routes              | `/docs.json` and `/scalar` document themselves                               |
 | Inferred schemas left camelCase with snake_case JSON | Every field name in the reference is one no client will see                  |
+| A simple name in `[]` — `[ProblemDetail]`            | Resolves only if the file imports it; otherwise the schema vanishes silently |
+| Adding an import just to make a `[]` reference work  | An unused import; the next cleanup un-documents the endpoint                 |
 | `ktor { openApi { } }` in `-app`                     | The compiler plugin must run where the routes are compiled                   |
 | No `Query:` lines on a paged endpoint                | The toolkit's parameters are invisible to inference and to clients           |
 | Not listing the sortable fields                      | The allow-list is unguessable; wrong guesses are errors                      |
