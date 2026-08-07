@@ -2,13 +2,10 @@
 name: expand
 description: >-
   Expandable resources with ktor-toolkit-expander — declaring an ExpandSpec so a client can ask for
-  ?expand=author or ?expand=author.books, serving a whole page's references in one batched query
-  instead of one per row, and the Expandable wire contract (a bare id string while unresolved, a
-  full object once expanded). Use when a response references another resource by id, when a client
-  needs related data without a second round trip, when deciding which fields should be expandable,
-  and whenever you see a loop that queries per row to fill in a related object. Covers ExpandSpec,
-  field, listField, polymorphicField, batch, nested, field projection and the N+1 characteristics
-  of nested expansion.
+  ?expand=author or ?expand=author.books, serving a whole page's references in one batched query,
+  and the Expandable wire contract. Use when a response references another resource by id, when a
+  client needs related data without a second round trip, and whenever you see a loop that queries
+  per row to fill in a related object.
 ---
 
 # Expandable resources

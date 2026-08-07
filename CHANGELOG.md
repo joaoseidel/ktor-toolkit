@@ -59,6 +59,15 @@ First public release. Nothing was published before this, so the breaking changes
 
 ### Fixed
 
+- The `kover` skill's `report/build.gradle.kts` example could not compile: it omitted the `AggregationType`, `CoverageUnit` and `KoverReport` imports,
+  and showed `filters { }` without saying it nests inside `reports { }` — where, at the top level, every exclusion silently applies to nothing. It is
+  now one complete file.
+- The `tests` skill's Testcontainers example declared a container and never started it, so copying it gave a connection refused that reads like
+  misconfiguration. It now shows `beforeSpec` / `afterSpec` with the Flyway migration the surrounding prose already required.
+- The `install` skill never said the modules need Java 21, so an older toolchain failed with `class file has wrong version` — which reads like a
+  corrupt artifact. It is now the first step, with a check command and a troubleshooting row.
+- The `container` skill mixed JDK 25 base images with a `distroless/java21` row and never said the tag must match the project's `jvmToolchain`. A jar
+  built for 25 on a 21 runtime fails with `UnsupportedClassVersionError`, which names bytecode versions rather than the mismatch.
 - Pagination links in `hateoas` built their query strings by concatenation, so any carried-over parameter containing `&`, `=`, a space or a non-ASCII
   character produced a corrupt URL. They now go through Ktor's `ParametersBuilder`.
 - `first` and `last` pagination links pointed at the wrong pages, because the link builder consumed
@@ -119,6 +128,11 @@ First public release. Nothing was published before this, so the breaking changes
 - A `healthcheck` skill, covering health endpoints with Cohort: separate liveness and readiness registries, which dependencies may fail a probe,
   writing a `HealthCheck` that reports a failure instead of throwing it, and keeping the heapdump, sysprops and logging endpoints off the public
   internet.
+- A `codestyle` skill, covering what ktlint cannot check: file and package naming, expression bodies, explicit public return types, exposing the
+  narrowest type over private mutable state, `require` in the primary constructor so deserialization and `copy` cannot skip it, sealed hierarchies,
+  the `@DslMarker` builder pattern, null handling without `!!`, and never swallowing `CancellationException`.
+- A `changelog` skill, covering how this file is written: the section order, what an entry has to say from the consumer's side rather than the diff's,
+  which changes earn one, and the rule that the entry, the code and the refreshed API dump land in a single commit.
 
 ### Changed
 
@@ -129,5 +143,26 @@ First public release. Nothing was published before this, so the breaking changes
 - The `openapi` skill now requires a fully-qualified type in every `[]` reference of an OpenAPI comment, rather than only where the simple name is
   ambiguous. Those brackets resolve against the route file's imports, so `[ProblemDetail]` on an error response — thrown and mapped, never named in
   the route's code — resolved to nothing and dropped the schema without a warning. The `comments` skill draws the same distinction for ordinary KDoc.
+- **The skills are written for the repository that installs them.** They previously carried this repository's own rules as if they were universal:
+  `start` branched on "is this the toolkit repo?", `commit` scoped a commit by toolkit module name, `kover` presented a 100% gate as the standard.
+  Library-maintenance steps a service has no use for — `make api`, `apiCheck`, the `api/` dump — are now conditional on the project publishing a
+  library, and `changelog` treats an HTTP contract change as the main case rather than a footnote.
+- **A skill that describes a project artifact now says what to do when your repository has none.** `makefile`, `changelog`, `container`, `kover`,
+  `tests`, `gradle`, `migrations`, `healthcheck`, `openapi`, `architecture` and `logging` each propose the file and wait, rather than scaffolding it
+  unasked or silently working around its absence. `migrations` covers baselining an existing schema, which is what a live service actually needs from
+  its first versioned migration.
+- **`comments` now removes comments as well as governing new ones.** The default is writing none, with a stated test for whether one earns its place,
+  and a `Delete as you read` section that clears stale and redundant comments from code you are already changing — flagging, never touching, anything
+  outside that change.
+- `start` and `install` are rewritten. `start` routes by phase — orient, route, implement, document, verify, record. `install` leads with the Java 21
+  check and gains a step on imports, since the package root (`com.github.joaoseidel`) is not the group id (`io.github.joaoseidel`), each validator
+  rule imports separately from `…validator.validators`, and `withCache` extends `ApplicationRequest`, so the call is `call.request.withCache(…)`.
+- `codestyle` is rewritten and no longer assumes ktlint is configured: where the project has its own formatter that one wins, and where it has none
+  the skill offers to add one as its own commit rather than reformatting inside a feature branch.
+- Every skill description is roughly half its former length, so a skill triggers on the task it covers rather than on a table of contents.
+- The prose is denser throughout — same rules and reasoning, several hundred words lighter across `tests`, `healthcheck`, `logging` and `openapi`. The
+  `Common mistakes` tables now list only failures that leave the build green, since running the build already catches the loud ones.
+- `makefile`'s target set gains `verify` — the single command `start` Phase 4 runs — and moves `api`, `api_check` and `publish_local` into a
+  library-only section.
 - ktlint and binary-compatibility-validator run as part of `build`.
 - Test coverage went from one module to all six, with Kover gating at 85% line and 65% branch.

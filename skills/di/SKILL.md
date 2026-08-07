@@ -1,12 +1,10 @@
 ---
 name: di
 description: >-
-  Dependency injection with Ktor's native DI plugin — registering with dependencies { provide<Port>
-  { Impl(resolve()) } }, consuming with `by dependencies`, organising registrations per feature in
-  -app, lifetimes, named dependencies, shutdown cleanup and overriding in tests. Use whenever a new
-  use case, repository, adapter or client needs wiring, when a route needs a dependency, when
-  deciding where an object is constructed, and when a dependency fails to resolve or resolves
-  ambiguously. No Koin, no Dagger, no third-party container.
+  Wiring with Ktor's native DI plugin — dependencies { provide<Port> { Impl(resolve()) } },
+  consuming with `by dependencies`, registrations organised per feature in -app, lifetimes, shutdown
+  cleanup and overriding in tests. Use whenever a use case, repository, adapter or client needs
+  wiring, or a dependency fails to resolve. No Koin, no Dagger, no third-party container.
 ---
 
 # Dependency injection

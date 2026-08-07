@@ -1,15 +1,10 @@
 ---
 name: architecture
 description: >-
-  The Ports & Adapters layout every Ktor Toolkit service follows — the three-module Gradle split
-  (<service>-core, <service>-adapters, <service>-app) plus report and acceptance-tests, what belongs
-  in each, the dependency direction between them, and which module each toolkit type lives in
-  (Pagination and Sort are core types; PaginationRequest, PagedResponse, Resource, Link and
-  ExpandSpec are adapter types). Use when creating any new file and deciding where it goes, when
-  scaffolding a new service, when naming or placing a route, use case, port, adapter, repository,
-  entity, value object or DTO, when a request mentions layering, hexagonal or clean architecture,
-  and whenever a core class is about to import io.ktor or org.jetbrains.exposed. Other toolkit
-  skills defer placement decisions to this one.
+    Where a file goes in a Ports & Adapters Ktor service — the -core / -adapters / -app module split,
+    the dependency direction between them, and which module each toolkit type belongs in. Use before
+    creating any file, when placing a route, use case, port, adapter, entity or DTO, and whenever a
+    core class is about to import io.ktor or exposed.
 ---
 
 # Ports & Adapters, the toolkit way
@@ -19,12 +14,22 @@ description: >-
 **`-core` does not know that HTTP or a database exist.** Everything else here is a consequence.
 
 The payoff is not architectural purity, it is that business rules stay testable without a server or a container, and that replacing Exposed is one
-package of work rather than a rewrite. The cost is a mapping step at each boundary. That trade is the house position — take it rather than
-relitigating it per endpoint.
+package of work rather than a rewrite. The cost is a mapping step at each boundary. Take that trade rather than relitigating it per endpoint.
 
 The unusual thing about this layout is that the boundary is a **Gradle module boundary**, not a package convention. A package boundary is a promise; a
 module boundary is checked by the compiler on every build. Start there, because retrofitting it onto a service that grew inside one module is the
 expensive direction.
+
+## When the project is a single module
+
+Plenty of services are one Gradle module, and most of this skill still applies — the placement rules work as package rules, with `core`, `adapters`
+and `app` as packages instead of modules. Follow them that way. You lose the compiler check and keep everything else, which is most of the value.
+
+**Do not split someone's build as part of another task.** Proposing the three-module layout is fair when the user is scaffolding a new service or has
+asked about structure; it is not fair as a side effect of adding an endpoint. When it is worth raising, say what moves where and that the split is its
+own commit — then wait.
+
+Until then, the greppable check below still works; point it at `src/main/kotlin/**/core/` instead of a module directory.
 
 ## The modules
 
@@ -60,7 +65,7 @@ catalog-app ──▶ catalog-adapters ──▶ catalog-core
 
 Arrows never point left. `-core` depends on no other module in the build; that is the invariant the whole layout exists to protect.
 
-The build expresses this with a configuration choice worth understanding rather than copying blind:
+The build expresses it through the dependency configurations — understand these rather than copying them:
 
 ```kotlin
 // catalog-core/build.gradle.kts
@@ -230,11 +235,11 @@ Configuration is `application.yaml` with environment interpolation, read through
 
 ```yaml
 ktor:
-  deployment:
-    port: "$APPLICATION_PORT:8080"
-  application:
-    modules:
-      - com.example.catalog.app.ApplicationKt.module
+    deployment:
+        port: "$APPLICATION_PORT:8080"
+    application:
+        modules:
+            - com.example.catalog.app.ApplicationKt.module
 ```
 
 Wiring uses **Ktor's own DI plugin** — no third-party container:
@@ -287,7 +292,7 @@ packages are `com.github.joaoseidel.ktor.toolkit.*`. So `-core` imports
 `...paginator.web.PagedResponse` — an import from `web` in a `-core` file is the same violation as the Ktor grep above, visible in the import list.
 The `ktor-toolkit:install` skill has the full map — load it.
 
-Two consequences worth stating outright, because they are what people get wrong:
+Two consequences people get wrong:
 
 **Ports take `Pagination` and return `List<T>` or `Paged<T>`.** Paging is a domain-level concern — the domain really does want "the first 20 by
 title" — while `?page=` syntax is not. So

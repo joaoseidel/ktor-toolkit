@@ -1,13 +1,10 @@
 ---
 name: hateoas
 description: >-
-  Hypermedia links with ktor-toolkit-hateoas — wrapping a response in a Resource so it carries a
-  _links array, generating self/next/prev/first/last for a paged collection with toResource(call),
-  and declaring a resource's own links with the resource { link(…) } builder. Use whenever a
-  response should advertise navigation or available actions, whenever a collection endpoint needs
-  page links, whenever you see a next-page URL being built by string concatenation, and when
-  choosing relation names or deciding which links to show for a given resource state. Covers Link,
-  Resource, LinksBuilder, createPaginationLinks and the flattened _links wire format.
+  Hypermedia links with ktor-toolkit-hateoas — wrapping a response in a Resource so it carries
+  _links, generating self/next/prev/first/last for a paged collection with toResource(call), and the
+  resource { link(…) } builder. Use whenever a response should advertise navigation or available
+  actions, and whenever you see a next-page URL built by string concatenation.
 ---
 
 # HATEOAS

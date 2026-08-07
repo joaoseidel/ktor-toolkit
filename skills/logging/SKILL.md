@@ -3,10 +3,9 @@ name: logging
 description: >-
   Logging with KotlinLogging — the file-level `private val logger = KotlinLogging.logger {}` idiom,
   the lazy lambda message form, correlation IDs through CallId and CallLogging with an MDC, JSON
-  output via the logstash encoder, and what must never reach a log line. Use when adding or
-  reviewing any log statement, when choosing a level, when an exception needs recording, when a
-  request needs to be traceable across services, and whenever a log line is about to contain a
-  token, a password, an email address or a whole request body.
+  output, and what must never reach a log line. Use when adding or reviewing any log statement,
+  choosing a level, or whenever a line is about to contain a token, a password, an email address or
+  a whole request body.
 ---
 
 # Logging
@@ -59,15 +58,15 @@ logger.debug { "Resolved sort to ${sort.joinToString()} against ${columns.size} 
 logger.trace { "Row $index mapped in ${elapsed.inWholeMicroseconds}µs" }
 ```
 
-Two rules that keep the levels meaningful:
+Two rules keep the levels meaningful:
 
-**`info` is not "a request happened".** `CallLogging` already records every request. An `info` per request from your own code doubles the volume and
+**`info` is not "a request happened".** `CallLogging` already records every request; an `info` per request from your own code doubles the volume and
 adds nothing.
 
 **A handled failure is `warn`, not `error`.** If the code recovered — fell back to the origin, kept a cached value, retried successfully — the system
-is working. Reserve `error` for what actually needs a human, or alerting stops meaning anything.
+is working. Reserve `error` for what needs a human, or alerting stops meaning anything.
 
-Production runs at `info`. Drive it from the environment so raising it does not need a deploy:
+Production runs at `info`, driven from the environment so raising it does not need a deploy:
 
 ```xml
 <root level="${LOG_LEVEL:-info}">
@@ -79,20 +78,20 @@ Production runs at `info`. Drive it from the environment so raising it does not 
 logger.error(e) { "License server returned an unverifiable entitlement token; keeping cached one" }
 ```
 
-Say what the system did about it. "Failed to fetch license" tells the reader what broke; "…; keeping cached one" tells them whether to get out of bed.
+"Failed to fetch license" says what broke; "…; keeping cached one" says whether to get out of bed. Write the second kind.
 
-**Do not log and rethrow.** The exception gets logged again wherever it is finally handled, and the same failure appears two or three times under
-different messages — which reads like three failures. Either handle it and log, or let it propagate and let one place log it.
+**Never log and rethrow.** The exception is logged again wherever it is finally handled, so one failure appears three times under three messages and
+reads like three failures. Either handle it and log, or let it propagate to the one place that logs.
 
-The one place that already logs is the toolkit's catch-all: an unmapped exception is logged with its full stack trace by `problemDetails { }`, and the
-client is told nothing. That means **an exception mapped with `on<E>` is deliberately not logged** — if a mapped case also deserves a log line, log it
-where you throw it. Load the `ktor-toolkit:problem-details` skill.
+That place is the toolkit's catch-all: `problemDetails { }` logs any unmapped exception with its full stack trace and tells the client nothing. So
+**an exception mapped with `on<E>` is deliberately not logged** — if a mapped case deserves a log line, log it where you throw it. Load the
+`ktor-toolkit:problem-details` skill.
 
 ## Writing the message
 
-A log line is read months later by someone who does not have the code open, at speed, under pressure. Write for that reader.
+A log line is read months later, at speed, under pressure, by someone without the code open.
 
-**Say what happened, then what the system did about it.** The second half is what decides whether anyone needs to act.
+**Say what happened, then what the system did about it.** The second half decides whether anyone needs to act.
 
 ```kotlin
 // Weak — describes a symptom and stops
@@ -115,13 +114,11 @@ logger.debug { "Expanded $n authors for book $id" }           // reads as a sent
 logger.info { "Reindexed $count books in ${elapsed.inWholeMilliseconds}ms" }
 ```
 
-**Keep the leading words stable.** Logs are searched by prefix far more often than by regex, so
-`"Reindexed 412 books"` groups with every other reindex line; `"412 books were reindexed"` does not.
+**Keep the leading words stable.** Logs are searched by prefix far more than by regex, so `"Reindexed 412 books"` groups with every other reindex
+line; `"412 books were reindexed"` does not.
 
-**No punctuation theatre.** No `!!!`, no `====== STARTING ======`, no emoji. A JSON log has a level field; shouting adds nothing and breaks grep.
-
-**Never log a bare "here" or a stray marker.** `logger.info { "here 2" }` is debugging residue — delete it before the commit rather than shipping it
-at `debug`.
+**No punctuation theatre and no stray markers.** No `!!!`, no `====== STARTING ======`, no emoji — a JSON log has a level field, and shouting only
+breaks grep. `logger.info { "here 2" }` is debugging residue; delete it before the commit rather than shipping it at `debug`.
 
 ## Correlation IDs
 
@@ -144,13 +141,11 @@ fun Application.installRequestTracing() {
 }
 ```
 
-`retrieveFromHeader` adopts an id a caller already has, so a trace spans services rather than restarting at your edge. `generate()` creates one when
-there is none. `replyToHeader` returns it, so a client reporting a problem can quote the exact request.
+`retrieveFromHeader` adopts an id the caller already has, so a trace spans services instead of restarting at your edge; `generate()` creates one when
+there is none; `replyToHeader` returns it, so a client reporting a problem can quote the exact request. `callIdMdc("call-id")` puts it in the MDC,
+which is what makes it appear on **every** line of that request without any of them mentioning it.
 
-`callIdMdc("call-id")` puts it in the MDC, which is what makes it appear on **every** line logged during that request without any of them mentioning
-it.
-
-Add your own scoped context the same way, rather than repeating an id in message strings:
+Add your own scoped context the same way rather than repeating an id in message strings:
 
 ```kotlin
 withLoggingContext("bookId" to book.id) {
@@ -159,8 +154,8 @@ withLoggingContext("bookId" to book.id) {
 }
 ```
 
-Everything logged inside the block carries `bookId`, including code further down the stack that has never heard of it. `disableForStaticContent()`
-keeps asset requests out of the log entirely.
+Everything inside the block carries `bookId`, including code further down the stack that has never heard of it. `disableForStaticContent()` keeps
+asset requests out of the log entirely.
 
 ## Structured output
 
@@ -188,10 +183,14 @@ Logs are read by a machine first. Configure Logback to emit JSON rather than par
 </appender>
 ```
 
-`<mdc/>` is what publishes `call-id` and anything from `withLoggingContext` as queryable fields — without that provider the context is collected and
-then thrown away. `rootCauseFirst` puts the actual cause at the top, where the useful line in a twelve-frame wrapped exception usually is.
+`<mdc/>` publishes `call-id` and anything from `withLoggingContext` as queryable fields — without that provider the context is collected and thrown
+away. `rootCauseFirst` puts the actual cause at the top, where the useful line in a twelve-frame wrapped exception lives.
 
-This needs `net.logstash.logback:logstash-logback-encoder`, which is **not** in the version catalog yet — load the `ktor-toolkit:gradle` skill.
+This needs `net.logstash.logback:logstash-logback-encoder` and a `logback.xml` in the app module's resources. Where the project has neither, say so
+before adding them: changing a service's log format changes what every existing dashboard, alert and saved search matches, and that belongs to whoever
+owns the log pipeline. Load the `ktor-toolkit:gradle` skill for the catalog entry once agreed.
+
+Keep the plain-text encoder for local runs, via a Logback profile or a separate `logback-dev.xml`. JSON is for the aggregator, not for a laptop.
 
 A line then arrives as an object you can query, with the MDC flattened alongside the message:
 
@@ -208,14 +207,12 @@ A line then arrives as an object you can query, with the MDC flattened alongside
 ```
 
 `call-id` and `bookId` are queryable because `<mdc/>` published them — the code that logged this never mentioned either. That is the payoff for
-`callIdMdc` and `withLoggingContext`, and it is why
-`"…all lines for request 6f1c9a2e…"` is a search rather than an investigation.
-
-Console-friendly text is fine locally; keep JSON for anything deployed. A field only becomes searchable if it is a field.
+`callIdMdc` and `withLoggingContext`: "all lines for request 6f1c9a2e" becomes a search rather than an investigation. A field is only searchable if it
+is a field.
 
 ## Never log these
 
-The rule that covers most of it: **log the identifier, not the object.**
+One rule covers most of it: **log the identifier, not the object.**
 
 | Never                                                   | Instead                                     |
 |---------------------------------------------------------|---------------------------------------------|
@@ -227,19 +224,16 @@ The rule that covers most of it: **log the identifier, not the object.**
 | Full request or response bodies                         | The endpoint, the status, a field count     |
 | An entire entity                                        | Its id, and the one field the line is about |
 
-That last row is where the damage usually comes from. `logger.debug { "Saving $user" }` looks harmless and prints an email, a hashed password, and
-whatever gets added to the class next year. Nobody re-reviews that line when the field is added.
+The last row does most of the damage. `logger.debug { "Saving $user" }` looks harmless, prints an email and a hashed password, and silently starts
+printing whatever field someone adds next year — nobody re-reviews that line when it happens.
 
-Two consequences worth internalising:
+**Logs outlive the request and travel further than the response.** They are shipped, indexed and retained by systems with different access rules from
+the database, often for years. A secret in a log is a secret in a search index.
 
-**Logs outlive the request and travel further than the response.** They are shipped, indexed, and retained by systems with different access rules from
-the database — often for years. A secret in a log is a secret in a search index.
+**`includeExceptionMessage` is about the client, not the log.** Exception text is always logged in full; the flag only controls whether it is echoed
+to the caller, and it stays off in production.
 
-**`includeExceptionMessage` is about the client, not the log.** Exception text is always logged in full; that flag only controls whether it is also
-echoed to the caller, and it stays off in production.
-
-If a log line genuinely needs to identify a person for support, log the id and let whoever is debugging join it to the database, where access is
-controlled.
+Where a line must identify a person for support, log the id and let whoever debugs join it to the database, where access is controlled.
 
 ## Worked examples
 
@@ -301,38 +295,32 @@ logger.info { "Reindexed $count books in ${elapsed.inWholeMilliseconds}ms" }
 
 ## Where logging belongs
 
-Logging is allowed in `-core`. `kotlin-logging` is a facade over SLF4J — no framework, no I/O contract, nothing that compromises the module's
-independence, so a use case may log a decision it made.
+**Logging is allowed in `-core`.** `kotlin-logging` is a facade over SLF4J — no framework, no I/O contract — so a use case may log a decision it made.
 
-Keep it sparse there anyway. A use case logging every step is usually compensating for a test that does not exist. The natural homes are: startup and
-shutdown in `-app`, integration failures and retries in `-adapters`, and genuinely notable decisions in `-core`.
+Keep it sparse there. A use case logging every step is compensating for a test that does not exist. The natural homes are startup and shutdown in
+`-app`, integration failures and retries in `-adapters`, and genuinely notable decisions in `-core`.
 
 ## Performance
 
-- **The lambda form is the whole optimisation.** Keep expensive work inside it — `logger.debug { "…
-  ${expensiveSummary()}" }` never calls `expensiveSummary()` when DEBUG is off.
-- **Do not log per item.** A line per row of a page turns one request into a hundred lines. Log the count.
-- **Do not log inside a hot loop** even at `trace`; the level check is cheap but not free at that volume.
+- **The lambda form is the whole optimisation.** Keep expensive work inside it — `logger.debug { "… ${expensiveSummary()}" }` never calls
+  `expensiveSummary()` when DEBUG is off.
+- **Never log per item.** A line per row turns one request into a hundred lines; log the count. The same goes for a hot loop even at `trace` — the
+  level check is cheap but not free at that volume.
 - **`disableForStaticContent()`**, so asset requests do not dominate the log.
-- Logging is I/O. A synchronous appender on a slow sink makes the log part of your latency; use an async appender for anything shipping over a
+- **Logging is I/O.** A synchronous appender on a slow sink puts the log in your latency budget; use an async appender for anything shipping over a
   network.
 
-## Common mistakes
+## Mistakes worth checking every log line for
 
-| Mistake                                     | Why it hurts                                                           |
-|---------------------------------------------|------------------------------------------------------------------------|
-| `logger.info("Found " + count + " books")`  | Builds the string even when the level is off                           |
-| `logger.error { "Failed: ${e.message}" }`   | Loses the stack trace; pass the exception as the first argument        |
-| Log and rethrow                             | The same failure appears several times and reads like several failures |
-| `error` for something the code handled      | Alerting stops meaning anything                                        |
-| An `info` line per request                  | `CallLogging` already does it; you doubled the volume                  |
-| Logging a whole entity                      | Prints today's PII and next year's new field                           |
-| An id interpolated into every message       | Use `withLoggingContext`; it reaches code that never saw the id        |
-| Plain-text logs in production               | Fields are not searchable unless they are fields                       |
-| No `<mdc/>` provider                        | `call-id` is collected and then silently discarded                     |
-| A logger in a companion object, or injected | Three idioms where one will do                                         |
-| Paired "starting…" / "finished…" lines      | Double the volume, and uncorrelatable once requests interleave         |
-| `logger.debug { "here 2" }` left in         | Debugging residue; delete it rather than shipping it                   |
-| `"===== STARTED ====="` or emoji            | The level is already a field; decoration only breaks grep              |
-| A message built from local variable names   | `id=7, ok=true` means nothing in a search result                       |
-| Logging every retry attempt                 | A transient blip becomes a page of noise; log the recovery             |
+| Mistake                                     | What it costs                                                      |
+|---------------------------------------------|--------------------------------------------------------------------|
+| Logging a whole entity, DTO or request body | Prints today's PII and every field somebody adds next year         |
+| `logger.error { "Failed: ${e.message}" }`   | Loses the stack trace — pass the exception as the first argument   |
+| Log and rethrow                             | One failure appears several times and reads like several failures  |
+| `error` for something the code handled      | Alerting stops meaning anything                                    |
+| No `<mdc/>` provider in the encoder         | `call-id` is collected and then silently discarded                 |
+| An id interpolated into every message       | Use `withLoggingContext`; it reaches code that never saw the id    |
+| An `info` line per request                  | `CallLogging` already logs it; you doubled the volume              |
+| Paired "starting…" / "finished…" lines      | Double volume, and uncorrelatable once requests interleave         |
+| Logging every retry attempt                 | A transient blip becomes a page; log the recovery instead          |
+| `logger.info("Found " + count + " books")`  | Builds the string even when the level is off — use the lambda form |

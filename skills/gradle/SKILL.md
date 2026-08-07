@@ -1,13 +1,10 @@
 ---
 name: gradle
 description: >-
-  The project's Gradle conventions — libs.versions.toml as the single source of versions,
-  settings.gradle.kts, shared configuration through convention plugins, and above all choosing the
-  right dependency configuration (api / implementation / compileOnly / runtimeOnly /
-  testImplementation / ksp) rather than defaulting to implementation. Use when adding a dependency
-  or a module, when a version is about to be written into a build script, when deciding what a
-  module exposes to its consumers, when build logic is duplicated across modules, and when
-  organising any build.gradle.kts or settings.gradle.kts.
+  Gradle conventions — libs.versions.toml as the only place a version lives, convention plugins over
+  subprojects { }, and choosing api / implementation / compileOnly / runtimeOnly deliberately rather
+  than defaulting to implementation. Use when adding a dependency or a module, when a version is
+  about to be written into a build script, or when organising any build.gradle.kts.
 ---
 
 # Gradle
@@ -106,7 +103,11 @@ include("backend-core")
 project(":backend-core").projectDir = file("backend/core")
 ```
 
-The foojay resolver lets Gradle download a matching JDK, so a contributor with the wrong Java installed still builds.
+The foojay resolver lets Gradle download a matching JDK, so someone with the wrong Java installed still builds.
+
+**Where there is no `gradle/libs.versions.toml` yet**, adding one is a mechanical but tree-wide change: every module script loses its literal versions
+in the same commit. Offer it as its own change rather than folding it into a feature — a half-migrated catalog, where some versions live in the file
+and some do not, is worse than either end state.
 
 ## Shared configuration
 
@@ -127,7 +128,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain(25)   // 21 is the floor Ktor Toolkit requires; pick the version you deploy on
     compilerOptions { freeCompilerArgs.add("-Xjsr305=strict") }
 }
 
@@ -182,24 +183,26 @@ Work down this list; the first match is the answer:
 | Only tests need it at runtime — a JUnit platform launcher, a driver?                                                 | `testRuntimeOnly`                                 |
 | Is it an annotation processor?                                                                                       | `ksp`                                             |
 
-**`api` is a promise.** It puts the dependency in the published POM and on every consumer's compile classpath, so removing it later is a breaking
-change. In this toolkit the rule is exact: **`api` only when the type appears in a public signature.** `ktor-server-core` is `api` in every module
-because
-`ApplicationCall` is in their signatures; anything a module merely uses internally is
-`implementation`.
+**`api` is a promise.** It puts the dependency on every downstream module's compile classpath — and in the POM, if the module is published — so
+removing it later breaks them. The rule is exact: **`api` only when the type appears in a public signature.** A module whose public functions return
+`PagedResponse` needs the paginator as `api`; a module that merely calls `call.pagination` inside a route body does not.
 
-**`compileOnly` is how an optional feature stays optional.** `Sort.toExposedQueryExpression` compiles against Exposed, but a consumer who never sorts
-through Exposed should not inherit it:
+**`compileOnly` is how an optional integration stays optional.** A module that offers a Mongo-backed variant alongside a Postgres one compiles against
+both drivers without forcing either on whoever depends on it:
 
 ```kotlin
-compileOnly(libs.exposed.core)
-testImplementation(libs.exposed.core)   // so the code is still compiled and tested here
+compileOnly(libs.mongodb.driver.core)
+testImplementation(libs.mongodb.driver.core)   // so the code is still compiled and tested here
 ```
 
-The `testImplementation` is not optional — `compileOnly` is **not** on the test classpath, so without it the feature ships untested. Document the
-requirement in the README, because the failure mode for a consumer who forgets is `NoClassDefFoundError` at runtime, not a compile error.
+The `testImplementation` is not optional — `compileOnly` is **not** on the test classpath, so without it the feature ships untested. The failure mode
+for whoever forgets the runtime dependency is `NoClassDefFoundError` in production, not a compile error, so say so wherever the feature is documented.
 
-### In a service
+This is also why the toolkit's own optional features behave the way they do: `Sort.toExposedQueryExpression`, `Sort.toMongoSortExpression` and
+`LettuceCache` are each `compileOnly` against a library the module does not carry, and your build supplies it. Load the `ktor-toolkit:install` skill
+for that table.
+
+### Across the service's own modules
 
 The three production modules follow the pattern in the `ktor-toolkit:architecture` skill: `-core` and
 `-adapters` compile against their libraries, and `-app` owns them at runtime.
@@ -270,7 +273,7 @@ Worth doing whenever you touch a build file:
   `tasks.register` over `tasks.create`, providers over eager `get()`. These keep configuration lazy, which is most of Gradle's performance.
 - **Keep the configuration cache working.** When one task cannot support it, opt that task out —
   `notCompatibleWithConfigurationCache("…")` — rather than disabling it for the build.
-- **A public API change carries its `api/` dump** in the same commit (load the `ktor-toolkit:commit` skill).
+- **If the project publishes a library**, a public API change carries its `api/` dump in the same commit (load the `ktor-toolkit:commit` skill).
 
 ## Common mistakes
 
