@@ -1,14 +1,14 @@
 ---
 name: validation
 description: >-
-  Request validation with ktor-toolkit-validator — the rulesFor<T> { property(…) { should be … } }
-  DSL over Ktor's RequestValidation, where rules live, and the toolkit's nullable-DTO convention
-  (request properties are nullable with defaults; nullability ends at toDomain()). Use whenever an
-  endpoint accepts a body or constrained query parameters, when deciding whether a rule is
-  syntactic or a business rule, when a required field needs enforcing, and whenever you see manual
-  isNullOrBlank checks at the top of a handler or `!!` on a request DTO. Covers blank, email, size,
-  min, max, inRange, uuid, pattern, past, future, before, after, within, nil, satisfying, rule
-  composition, describedAs, nested, each, eachNested, whenever and invariant.
+    Request validation with ktor-toolkit-validator — the rulesFor<T> { property(…) { should be … } }
+    DSL over Ktor's RequestValidation, where rules live, and the toolkit's nullable-DTO convention
+    (request properties are nullable with defaults; nullability ends at toDomain()). Use whenever an
+    endpoint accepts a body or constrained query parameters, when deciding whether a rule is
+    syntactic or a business rule, when a required field needs enforcing, and whenever you see manual
+    isNullOrBlank checks at the top of a handler or `!!` on a request DTO. Covers blank, email, size,
+    min, max, inRange, uuid, pattern, past, future, before, after, within, nil, satisfying, rule
+    composition, describedAs, nested, each, eachNested, whenever and invariant.
 ---
 
 # Request validation
@@ -152,6 +152,20 @@ rulesFor<CreateBookRequest> {
 `target` is the object under validation, so a rule can depend on a sibling: `should be
 after(target.startsAt)`.
 
+**A single nested object** uses `nested`, which is `eachNested` for one value rather than a collection. Errors report under the property path, so a
+rule on `Address::city` lands at `shipTo.city`:
+
+```kotlin
+nested(CreateOrderRequest::shipTo) {
+    property(Address::city) { should notBe blank() }
+}
+```
+
+It is the **one construct that treats absence as a failure**. Every rule stays silent on `null`, but a `nested` block has nothing to descend into, so
+a null property records `"should not be null"` at that path and skips the block. Override the wording with the second argument —
+`nested(CreateOrderRequest::shipTo, "is required for a physical order") { … }` — and reach for `whenever` instead when the object is genuinely
+optional.
+
 **Time zones.** Temporal rules take an explicit `timeZone`, defaulting to the system zone. Pass
 `TimeZone.UTC` when the verdict must not depend on where the server runs, and `now` to make a test deterministic.
 
@@ -240,6 +254,7 @@ instead. `ktor-toolkit:problem-details` covers the envelope.
 | Nullable property without `= null`                            | Still throws `MissingFieldException`; the convention silently does nothing        |
 | `should be email()` as the only rule on a required field      | Silent on `null` — the field is now optional and nobody meant that                |
 | A value object as a DTO property type                         | Its `require` fires during deserialization, losing the field path                 |
+| `nested` on a genuinely optional object                       | Unlike every rule, it reports absence as an error; gate it with `whenever`        |
 | A repository call inside `rulesFor`                           | Business validation in the wrong layer; untestable without a database             |
 | Rules declared in `-app` next to `install(RequestValidation)` | Drift from the DTO they constrain; a rename leaves them stale                     |
 | Passing nullable request types into a use case                | `-core` grows null handling for a case validation already ruled out               |

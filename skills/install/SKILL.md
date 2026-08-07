@@ -109,6 +109,26 @@ use them do not pay for them. Add the dependency only alongside the feature:
 These fail at runtime with `NoClassDefFoundError`, not at compile time — the module compiled fine against a class the consumer never supplied. If a
 user reports that, this table is the answer.
 
+**The package root is not the group id.** Coordinates are `io.github.joaoseidel`, because only `io.github.<user>` is verifiable on Maven Central
+through a GitHub account. The Kotlin packages are `com.github.joaoseidel.ktor.toolkit.*`, so an import guessed from the dependency line does not
+resolve:
+
+```kotlin
+import com.github.joaoseidel.ktor.toolkit.paginator.pagination        // ApplicationCall.pagination
+import com.github.joaoseidel.ktor.toolkit.paginator.data.Pagination
+import com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse
+import com.github.joaoseidel.ktor.toolkit.hateoas.data.resource
+import com.github.joaoseidel.ktor.toolkit.problemdetails.problemDetails
+import com.github.joaoseidel.ktor.toolkit.validator.rulesFor
+import com.github.joaoseidel.ktor.toolkit.expander.data.ExpandSpec
+import com.github.joaoseidel.ktor.toolkit.cache.withCache
+```
+
+Note `problemdetails` — one word, no hyphen and no dot, unlike the artifact name. Within each module, domain types sit under `data`, wire types under
+`web`, and the call extensions and plugin installers at the module root. The one further level worth knowing is
+`...validator.validators`, where each rule lives: `should notBe blank()` needs
+`import com.github.joaoseidel.ktor.toolkit.validator.validators.blank`, one import per rule the file uses.
+
 ## Step 4 — Wire the Ktor plugins
 
 A dependency on its own changes nothing. Install only the plugins the selected modules need:
@@ -209,7 +229,8 @@ Keep it to a short list. The user asked for a working project, and the evidence 
 
 | Symptom                                                           | Cause                                                            |
 |-------------------------------------------------------------------|------------------------------------------------------------------|
-| `Could not find io.github.joaoseidel:...`           | `mavenCentral()` missing from the build's repositories           |
+| `Could not find io.github.joaoseidel:...`                         | `mavenCentral()` missing from the build's repositories           |
+| Unresolved reference on `import io.github.joaoseidel...`          | The packages are `com.github.joaoseidel...` (Step 3)             |
 | `Response pipeline couldn't transform`                            | ContentNegotiation missing (Step 3)                              |
 | `NoClassDefFoundError` on Exposed / Lettuce / MongoDB classes     | Optional integration used without its dependency (Step 3)        |
 | Validation failures return HTML, not `problem+json`               | `problemDetails { }` missing from StatusPages (Step 4)           |

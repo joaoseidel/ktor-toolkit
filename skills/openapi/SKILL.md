@@ -1,13 +1,13 @@
 ---
 name: openapi
 description: >-
-  API documentation with Ktor's built-in comment-based OpenAPI generation, served through Scalar —
-  KDoc blocks above route handlers using Tag / OperationId / Path / Query / Body / Responses, the
-  ktor { openApi { } } compiler configuration, and a /docs.json + /scalar pair of routes. Use when
-  adding or changing any endpoint's public contract, when a request asks to document an API or
-  expose an API reference, and when documenting the query parameters the toolkit reads for you
-  (?page, ?pageSize, ?sortBy, ?expand) or the problem+json errors it produces — none of which the
-  compiler can infer. No annotation libraries, and Scalar rather than Swagger UI.
+    API documentation with Ktor's built-in comment-based OpenAPI generation, served through Scalar —
+    KDoc blocks above route handlers using Tag / OperationId / Path / Query / Body / Responses, the
+    ktor { openApi { } } compiler configuration, and a /docs.json + /scalar pair of routes. Use when
+    adding or changing any endpoint's public contract, when a request asks to document an API or
+    expose an API reference, and when documenting the query parameters the toolkit reads for you
+    (?page, ?pageSize, ?sortBy, ?expand) or the problem+json errors it produces — none of which the
+    compiler can infer. No annotation libraries, and Scalar rather than Swagger UI.
 ---
 
 # OpenAPI
@@ -114,8 +114,8 @@ fun Route.configureDocsRoutes() {
 
 ```yaml
 scalar:
-  url: "$SCALAR_URL:http://localhost:8080/docs.json"
-  proxy: "$SCALAR_PROXY:"
+    url: "$SCALAR_URL:http://localhost:8080/docs.json"
+    proxy: "$SCALAR_PROXY:"
 ```
 
 **Scalar over Swagger UI**, and not only as taste: the reference is a single CDN script against a document you already serve, so there is no bundled
@@ -186,7 +186,7 @@ fun Route.createBookRoute() {
      *  - 400 application/problem+json [ProblemDetail] Validation failed; `properties` names each field.
      *  - 409 application/problem+json [ProblemDetail] That ISBN is already registered.
      */
-    post("$BOOKS_ROUTE") {
+    post(BOOKS_ROUTE) {
         val book = createBook(call.receive<CreateBookRequest>().toDomain())
         call.respond(HttpStatusCode.Created, book.toResponse())
     }
