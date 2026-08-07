@@ -80,9 +80,9 @@ no-duration form silently uses `DEFAULT_INTERVAL` (5 seconds) for both. `initial
 until a check has run its status is `unhealthy("Not yet executed")` — so 5 seconds is a reasonable initial delay and 60 is a minute of 503s on every
 deploy.
 
-**The interval is a load decision.** Every registered check runs on its own timer forever, whether or not anyone probes. Ten seconds against a database
-is cheap; ten seconds against a paid third-party API is a bill. Cohort skips a tick if the previous run of that check is still in flight, so a slow
-check degrades to "as often as it can" rather than piling up.
+**The interval is a load decision.** Every registered check runs on its own timer forever, whether or not anyone probes. Ten seconds against a
+database is cheap; ten seconds against a paid third-party API is a bill. Cohort skips a tick if the previous run of that check is still in flight, so
+a slow check degrades to "as often as it can" rather than piling up.
 
 **`limitedParallelism(1)`** is Cohort's own recommendation for the dispatcher: checks are scheduled work, not throughput work, and the built-in checks
 that do IO shift to `Dispatchers.IO` themselves. Do not hand it `Dispatchers.IO`.
@@ -96,10 +96,10 @@ that do IO shift to `Dispatchers.IO` themselves. Do not hand it `Dispatchers.IO`
 
 ## What goes on which probe
 
-| Probe                | Register                                                             | Never register                                       |
-|----------------------|----------------------------------------------------------------------|------------------------------------------------------|
-| `/health/live`       | `ThreadDeadlockHealthCheck`, and little else                        | Anything that leaves the process — DB, cache, HTTP   |
-| `/health/ready`      | Dependencies the service **cannot serve core traffic without**       | Optional dependencies you already degrade gracefully |
+| Probe           | Register                                                       | Never register                                       |
+|-----------------|----------------------------------------------------------------|------------------------------------------------------|
+| `/health/live`  | `ThreadDeadlockHealthCheck`, and little else                   | Anything that leaves the process — DB, cache, HTTP   |
+| `/health/ready` | Dependencies the service **cannot serve core traffic without** | Optional dependencies you already degrade gracefully |
 
 **Liveness must be process-local.** A wedged JVM is what it detects: deadlocked threads, or nothing at all. If you cannot name a failure that only a
 restart fixes, an empty-ish liveness check that simply proves the event loop still accepts connections is the honest answer.
@@ -120,17 +120,17 @@ unhealthy, on older versions it returned a green 200 with an empty body forever.
 
 Registering these beats writing your own — they are already correct about timeouts, dispatchers and turning a throw into an unhealthy result.
 
-| Check                                              | Module            | Use for                                                              |
-|----------------------------------------------------|-------------------|----------------------------------------------------------------------|
-| `ThreadDeadlockHealthCheck()`                      | `cohort-api`      | Liveness. Default `maxDeadlocks = 0`; any deadlock is a problem.     |
-| `DatabaseConnectionHealthCheck(ds, timeout, query)`| `cohort-api`      | Readiness. JDBC4 `isValid` plus an optional query.                   |
-| `HikariConnectionsHealthCheck(ds, minConnections)` | `cohort-hikari`   | Readiness during startup — the pool has actually opened connections. |
-| `RedisClusterHealthCheck(conn)`                    | `cohort-lettuce`  | Readiness, when Redis is load-bearing.                               |
-| `TcpHealthCheck(host, port)`                       | `cohort-api`      | A dependency with no client library worth booting.                   |
-| `EndpointStartupHealthCheck(client) { … }`         | `cohort-ktor`     | Smoke-testing an upstream **once** at startup.                       |
-| `EndpointHealthCheck(client) { … }`                | `cohort-ktor`     | Rarely. Read the warning below first.                                |
-| `DiskSpaceHealthCheck.root(minFreeSpacePercentage)`| `cohort-api`      | Services that write to disk. Most do not.                            |
-| `FreememHealthCheck.mb(n)`                         | `cohort-api`      | Almost never — see above.                                            |
+| Check                                               | Module           | Use for                                                              |
+|-----------------------------------------------------|------------------|----------------------------------------------------------------------|
+| `ThreadDeadlockHealthCheck()`                       | `cohort-api`     | Liveness. Default `maxDeadlocks = 0`; any deadlock is a problem.     |
+| `DatabaseConnectionHealthCheck(ds, timeout, query)` | `cohort-api`     | Readiness. JDBC4 `isValid` plus an optional query.                   |
+| `HikariConnectionsHealthCheck(ds, minConnections)`  | `cohort-hikari`  | Readiness during startup — the pool has actually opened connections. |
+| `RedisClusterHealthCheck(conn)`                     | `cohort-lettuce` | Readiness, when Redis is load-bearing.                               |
+| `TcpHealthCheck(host, port)`                        | `cohort-api`     | A dependency with no client library worth booting.                   |
+| `EndpointStartupHealthCheck(client) { … }`          | `cohort-ktor`    | Smoke-testing an upstream **once** at startup.                       |
+| `EndpointHealthCheck(client) { … }`                 | `cohort-ktor`    | Rarely. Read the warning below first.                                |
+| `DiskSpaceHealthCheck.root(minFreeSpacePercentage)` | `cohort-api`     | Services that write to disk. Most do not.                            |
+| `FreememHealthCheck.mb(n)`                          | `cohort-api`     | Almost never — see above.                                            |
 
 **`EndpointHealthCheck` against another service is how a cascade starts.** Service A marks itself unready because B is unready because C is
 restarting, and an outage in one leaf takes down the graph. `EndpointStartupHealthCheck` exists precisely to avoid that: it probes once, and once it
@@ -187,10 +187,10 @@ fine as long as they are named differently, which is what the `register(name, ch
 
 ## The HTTP contract
 
-| Registry state          | Status | Body (`verboseHealthCheckResponse = true`) | Body (`false`)              |
-|-------------------------|--------|--------------------------------------------|------------------------------|
-| Every check healthy     | `200`  | JSON array, one object per check           | `OK`, `text/plain`           |
-| Any check unhealthy     | `503`  | Same array, failing entries included       | `Service Unavailable`        |
+| Registry state      | Status | Body (`verboseHealthCheckResponse = true`) | Body (`false`)        |
+|---------------------|--------|--------------------------------------------|-----------------------|
+| Every check healthy | `200`  | JSON array, one object per check           | `OK`, `text/plain`    |
+| Any check unhealthy | `503`  | Same array, failing entries included       | `Service Unavailable` |
 
 ```json
 [
@@ -215,8 +215,8 @@ Two things about this response that surprise people:
 turn it off, or keep the path off the internet, for anything reachable from outside.
 
 **Cohort writes the body itself.** It uses its own Jackson mapper and `respondText`, so `ContentNegotiation`, your `Json` configuration and the
-toolkit's `problem-details` mapping are all bypassed. A 503 from here is deliberately *not* `application/problem+json` — do not try to make it one, and
-do not let the `ktor-toolkit:problem-details` skill's rules chase it. It is a machine-to-machine signal, not an API response.
+toolkit's `problem-details` mapping are all bypassed. A 503 from here is deliberately *not* `application/problem+json` — do not try to make it one,
+and do not let the `ktor-toolkit:problem-details` skill's rules chase it. It is a machine-to-machine signal, not an API response.
 
 ## Kubernetes
 
@@ -250,18 +250,18 @@ covers that window; load the `ktor-toolkit:container` skill.
 
 Cohort also serves diagnostics under `endpointPrefix` (default `/cohort`), each behind its own flag, each **off** unless enabled:
 
-| Flag                        | Path                                | Exposes                                             |
-|-----------------------------|-------------------------------------|-----------------------------------------------------|
-| `jvmInfo`                   | `/cohort/jvm`                       | JVM version, flags, uptime                          |
-| `gc`                        | `/cohort/gc`                        | Collector counts and times                          |
-| `memory`                    | `/cohort/memory`                    | Heap and buffer pool usage                          |
-| `threadDump`                | `/cohort/threaddump`                | Full thread dump                                    |
-| `dataSources`               | `/cohort/datasources`               | Pool sizes and waits (`HikariDataSourceManager`)    |
-| `migrations`                | `/cohort/dbmigration`               | Applied migrations (`FlywayMigrations(dataSource)`) |
-| `logManager`                | `/cohort/logging`, `PUT …/{n}/{lv}` | Reads **and changes** log levels (`LogbackManager`) |
-| `sysprops`                  | `/cohort/sysprops`                  | Every system property                               |
-| `heapDump`                  | `/cohort/heapdump`                  | A full `.hprof` of the running heap                 |
-| `operatingSystem`           | `/cohort/os`                        | Host OS details                                     |
+| Flag              | Path                                | Exposes                                             |
+|-------------------|-------------------------------------|-----------------------------------------------------|
+| `jvmInfo`         | `/cohort/jvm`                       | JVM version, flags, uptime                          |
+| `gc`              | `/cohort/gc`                        | Collector counts and times                          |
+| `memory`          | `/cohort/memory`                    | Heap and buffer pool usage                          |
+| `threadDump`      | `/cohort/threaddump`                | Full thread dump                                    |
+| `dataSources`     | `/cohort/datasources`               | Pool sizes and waits (`HikariDataSourceManager`)    |
+| `migrations`      | `/cohort/dbmigration`               | Applied migrations (`FlywayMigrations(dataSource)`) |
+| `logManager`      | `/cohort/logging`, `PUT …/{n}/{lv}` | Reads **and changes** log levels (`LogbackManager`) |
+| `sysprops`        | `/cohort/sysprops`                  | Every system property                               |
+| `heapDump`        | `/cohort/heapdump`                  | A full `.hprof` of the running heap                 |
+| `operatingSystem` | `/cohort/os`                        | Host OS details                                     |
 
 `/cohort/datasources` and `/cohort/dbmigration` are the two that pay for themselves — "is the pool exhausted?" and "did this deployment run the
 migration?" are the questions asked during real incidents. Load the `ktor-toolkit:migrations` skill for the Flyway side.
@@ -342,23 +342,23 @@ a duplicate `healthcheck()` path silently overwrites the earlier registry; and a
 
 ## Common mistakes
 
-| Mistake                                                | Why it hurts                                                                |
-|--------------------------------------------------------|------------------------------------------------------------------------------|
-| One endpoint for liveness and readiness                | Every dependency blip becomes a restart of every instance                   |
-| A database or cache check on liveness                  | The same thing, with a specific cause                                       |
-| A hand-written `get("/health")` that pings the database| Probe latency becomes dependency latency, and every replica adds load       |
-| Redis on readiness when the code degrades without it   | Takes the fleet out of the load balancer over a handled failure             |
-| `EndpointHealthCheck` against an upstream service      | One leaf outage cascades through the graph; use the startup variant         |
-| An empty registry                                      | A probe that can never fail, and is believed                                |
-| `runCatching` inside `check()`                         | Swallows cancellation; shutdown and `checkTimeout` look like failures       |
-| Throwing out of `check()`                              | The operator reads Cohort's generic message instead of yours                |
-| No `withTimeout` in a custom check                     | On 2.8 it can hang forever and the status silently goes stale               |
-| A long `initialDelay`                                  | Exactly that many seconds of 503 on every deploy                            |
-| A 1-second check interval                              | Constant load on a dependency, forever, from every replica                  |
-| `heapDump` or `sysprops` reachable from the internet   | Ships the heap — tokens, PII — or every `-D` credential                     |
-| `logManager` without authentication                    | Anyone can switch the app to `TRACE` and make it log request bodies         |
-| Verbose responses on a public path                     | `cause` is a full stack trace                                               |
-| Expecting `problem+json` from a 503 here               | Cohort writes its own body; `ContentNegotiation` is bypassed                |
-| Asserting `200` immediately after boot in a test       | Checks have not run yet, so unhealthy is the correct answer                 |
-| Duplicate check names in one registry                  | Throws at startup                                                           |
-| `cohort` imported in `-core` or `-adapters`            | A deployment concern leaking into the domain                                |
+| Mistake                                                 | Why it hurts                                                          |
+|---------------------------------------------------------|-----------------------------------------------------------------------|
+| One endpoint for liveness and readiness                 | Every dependency blip becomes a restart of every instance             |
+| A database or cache check on liveness                   | The same thing, with a specific cause                                 |
+| A hand-written `get("/health")` that pings the database | Probe latency becomes dependency latency, and every replica adds load |
+| Redis on readiness when the code degrades without it    | Takes the fleet out of the load balancer over a handled failure       |
+| `EndpointHealthCheck` against an upstream service       | One leaf outage cascades through the graph; use the startup variant   |
+| An empty registry                                       | A probe that can never fail, and is believed                          |
+| `runCatching` inside `check()`                          | Swallows cancellation; shutdown and `checkTimeout` look like failures |
+| Throwing out of `check()`                               | The operator reads Cohort's generic message instead of yours          |
+| No `withTimeout` in a custom check                      | On 2.8 it can hang forever and the status silently goes stale         |
+| A long `initialDelay`                                   | Exactly that many seconds of 503 on every deploy                      |
+| A 1-second check interval                               | Constant load on a dependency, forever, from every replica            |
+| `heapDump` or `sysprops` reachable from the internet    | Ships the heap — tokens, PII — or every `-D` credential               |
+| `logManager` without authentication                     | Anyone can switch the app to `TRACE` and make it log request bodies   |
+| Verbose responses on a public path                      | `cause` is a full stack trace                                         |
+| Expecting `problem+json` from a 503 here                | Cohort writes its own body; `ContentNegotiation` is bypassed          |
+| Asserting `200` immediately after boot in a test        | Checks have not run yet, so unhealthy is the correct answer           |
+| Duplicate check names in one registry                   | Throws at startup                                                     |
+| `cohort` imported in `-core` or `-adapters`             | A deployment concern leaking into the domain                          |
