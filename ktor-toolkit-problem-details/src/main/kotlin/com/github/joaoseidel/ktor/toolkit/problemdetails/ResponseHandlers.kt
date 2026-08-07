@@ -1,5 +1,6 @@
 package com.github.joaoseidel.ktor.toolkit.problemdetails
 
+import com.github.joaoseidel.ktor.toolkit.problemdetails.ResponseHandlers.ROOT_POINTER
 import com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail
 import com.github.joaoseidel.ktor.toolkit.problemdetails.exception.HttpStatusException
 import io.ktor.http.HttpStatusCode.Companion.BadRequest
@@ -34,6 +35,49 @@ object ResponseHandlers {
         return strategy.serialNameForJson(descriptor, 0, this)
     }
 
+    /** The JSON Pointer the request body sits at, which every reported path is relative to. */
+    private const val ROOT_POINTER = "$"
+
+    /**
+     * Matches a property-scoped reason, whose path
+     * [com.github.joaoseidel.ktor.toolkit.validator.data.ValidationError] quotes in backticks.
+     * Compiled once: this runs per reason, per failed request.
+     */
+    private val PROPERTY_REASON = Regex("`(.*?)`\\s(.*)")
+
+    /** Where one validation reason belongs in the response, and what it says. */
+    private class ParsedReason(
+        val key: String,
+        private val prefix: String?,
+        val message: String,
+    ) {
+        /** Renders every message recorded under [key] as the single value the key maps to. */
+        fun render(messages: List<String>): String {
+            val text = messages.joinToString("; ")
+            return if (prefix == null) text else "$prefix $text"
+        }
+    }
+
+    /** Splits a reason into the path it belongs to and the message to report against it. */
+    private fun parseReason(
+        reason: String,
+        namingStrategy: JsonNamingStrategy?,
+    ): ParsedReason {
+        // An `invariant` belongs to the object rather than to any one property, so the validator
+        // renders it as the bare message — there is no path quoted in it to parse out.
+        val match = PROPERTY_REASON.find(reason) ?: return ParsedReason(ROOT_POINTER, prefix = null, message = reason)
+
+        val segments = match.groupValues[1].split(".")
+        val field = segments.last().applyNamingStrategy(namingStrategy)
+        val container = segments.dropLast(1).joinToString(".") { segment -> segment.applyNamingStrategy(namingStrategy) }
+
+        return ParsedReason(
+            key = if (container.isEmpty()) "$ROOT_POINTER.$field" else "$ROOT_POINTER.$container.$field",
+            prefix = "Property `$field` at `$ROOT_POINTER.${container.ifEmpty { "root" }}`",
+            message = match.groupValues[2],
+        )
+    }
+
     /**
      * Handles an [HttpStatusException] by transforming it into a [ProblemDetail] response.
      *
@@ -64,6 +108,10 @@ object ResponseHandlers {
      * Turns the validator's failures into a `400` problem whose `properties` map each offending
      * JSON path to a human-readable message.
      *
+     * A property that breaks several rules at once reports all of them under its one key, and an
+     * object-level failure — what `invariant` records — is reported against [ROOT_POINTER], since
+     * it names no property to key on.
+     *
      * @param call The [ApplicationCall] representing the current HTTP call.
      * @param cause The [RequestValidationException] containing the validation failure details.
      * @param namingStrategy The [JsonNamingStrategy] used to transform field names in the response
@@ -77,26 +125,13 @@ object ResponseHandlers {
         namingStrategy: JsonNamingStrategy? = null,
         json: Json = ProblemJson,
     ) {
+        // Grouped rather than associated: `properties` holds one entry per offending path, and a
+        // property routinely breaks more than one rule — associating would keep only the last.
         val properties =
-            cause.reasons.associate {
-                val regex = Regex("`(.*?)`\\s(.*)")
-                val match = regex.find(it)
-
-                // One `let` rather than a chain of safe calls: past the first, nothing can be null.
-                val pathGroup = match?.let { it.groupValues[1].split(".") }.orEmpty()
-
-                val realPath =
-                    pathGroup
-                        .dropLast(1)
-                        .joinToString(".") { segment -> segment.applyNamingStrategy(namingStrategy) }
-                        .ifEmpty { "root" }
-                val field = pathGroup.lastOrNull()?.applyNamingStrategy(namingStrategy).orEmpty()
-
-                val path = "$" + if (realPath != "root") ".$realPath" else ""
-                val message = match?.let { it.groupValues[2] }.orEmpty()
-
-                "$path.$field" to "Property `$field` at `$.$realPath` $message"
-            }
+            cause.reasons
+                .map { reason -> parseReason(reason, namingStrategy) }
+                .groupBy(ParsedReason::key)
+                .mapValues { (_, reasons) -> reasons.first().render(reasons.map(ParsedReason::message)) }
 
         call.respondProblem(
             ProblemDetail.fromStatus(
