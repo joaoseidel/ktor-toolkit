@@ -94,7 +94,7 @@ class ResponseHandlersTest :
                     }
                 }
 
-                should("still answer when a reason quotes no field at all") {
+                should("report a reason that quotes no field against the document itself") {
                     handlerApp(
                         boom = { throw RequestValidationException(Unit, listOf("the whole thing is wrong")) },
                         handle = { call, cause ->
@@ -102,7 +102,47 @@ class ResponseHandlersTest :
                         },
                     ) { response ->
                         response.status shouldBe HttpStatusCode.BadRequest
-                        response.problem().properties() shouldContainExactly mapOf("$." to "Property `` at `\$.root` ")
+                        // What `invariant` records: no path to quote, so the message is all there is.
+                        response.problem().properties() shouldContainExactly mapOf("$" to "the whole thing is wrong")
+                    }
+                }
+
+                should("keep every rule a single property breaks") {
+                    handlerApp(
+                        boom = {
+                            throw RequestValidationException(
+                                Unit,
+                                listOf(
+                                    "`title` should not be blank",
+                                    "`title` size should be between 3 and 200",
+                                ),
+                            )
+                        },
+                        handle = { call, cause ->
+                            ResponseHandlers.handleValidationException(call, cause as RequestValidationException)
+                        },
+                    ) { response ->
+                        response.problem().properties() shouldContainExactly
+                            mapOf(
+                                "$.title" to "Property `title` at `$.root` should not be blank; size should be between 3 and 200",
+                            )
+                    }
+                }
+
+                should("keep every object-level failure") {
+                    handlerApp(
+                        boom = {
+                            throw RequestValidationException(
+                                Unit,
+                                listOf("should not end before it starts", "should have at least one author"),
+                            )
+                        },
+                        handle = { call, cause ->
+                            ResponseHandlers.handleValidationException(call, cause as RequestValidationException)
+                        },
+                    ) { response ->
+                        response.problem().properties() shouldContainExactly
+                            mapOf("$" to "should not end before it starts; should have at least one author")
                     }
                 }
             }

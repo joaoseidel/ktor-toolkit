@@ -12,8 +12,8 @@ First public release. Nothing was published before this, so the breaking changes
 
 - **The group id is `io.github.joaoseidel` and the base package moved to `com.github.joaoseidel`.**
   Dependencies are now `io.github.joaoseidel:ktor-toolkit-*` — the group has to sit under
-  `io.github.<user>` because that is the only namespace Maven Central verifies from a GitHub
-  account. Every import changes from `com.luizalabs.ktor.toolkit.*` to
+  `io.github.<user>` because that is the only namespace Maven Central verifies from a GitHub account. Every import changes from
+  `com.luizalabs.ktor.toolkit.*` to
   `com.github.joaoseidel.ktor.toolkit.*`. Nothing else about the API changed.
 - **`PagedResponse.metadata.totalPages` now counts pages.** It previously held the *index* of the last page — 25 elements over a page size of 10
   reported `2`. It now reports `3`; the last page index is `totalPages - 1`. Any client doing arithmetic on this field must be updated.
@@ -69,6 +69,11 @@ First public release. Nothing was published before this, so the breaking changes
 - The cache wrapped suspending calls in `runCatching`, swallowing `CancellationException` and breaking structured concurrency.
 - `handleBadRequestException` looked for `MissingFieldException` at a fixed depth in the cause chain, so on the ContentNegotiation path a missing
   field was reported as a generic conversion failure. It now walks the chain.
+- Every error an `invariant` recorded reached the client empty. `handleValidationException` parsed a reason by matching the backticked property path
+  `ValidationError` quotes, but an object-level error carries no path and renders as the bare message, so the match failed and the message was
+  dropped. Such reasons are now reported as-is, under a `$` key.
+- A property that broke more than one rule reported only the last of them: the reasons were folded into `properties` with `associate`, which keeps one
+  entry per key. Every rule a property breaks is now reported, joined under that property's key.
 - `after()` and `before()` disagreed on how to compare a `LocalDate` against a `LocalDateTime`.
 - `min`, `max`, `positive` and `negative` matched only `Int`, `Long`, `Float` and `Double`, so a
   `Short`, `Byte`, `BigDecimal` or `BigInteger` property passed the type check and was then reported as violating a bound it met. All four now compare
