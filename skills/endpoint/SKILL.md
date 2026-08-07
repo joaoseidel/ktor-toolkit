@@ -185,7 +185,8 @@ whole value — do not wrap a streaming route in `withCache`.
 
 - The use case has a test that does not start a server (`ktor-toolkit:tests`).
 - The endpoint has an acceptance test in `acceptance-tests` covering the success path and the interesting failure.
-- New exceptions have a `problemDetails` mapping, or deliberately fall through to the catch-all.
+- New exceptions have a `problemDetails` mapping, or deliberately fall through to the catch-all. A mapped one is no longer logged by the catch-all, so
+  anything worth a log line has one where it is thrown (`ktor-toolkit:logging`).
 - Sortable columns are an explicit allow-list, not whatever the client sent.
 - The route is documented (`ktor-toolkit:openapi`) and the DI registration exists — an endpoint that compiles but was never wired into
   `configureRouting()` is the quietest possible bug.

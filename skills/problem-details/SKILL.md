@@ -116,6 +116,10 @@ exception in the service becomes unreadable at about the fifteenth entry.
 
 The lambda receives the exception and runs with the `ApplicationCall` as receiver, so a mapping can consult the request when it needs to.
 
+**Mapping an exception also stops it being logged.** Only the catch-all writes a stack trace; a mapped exception is answered and forgotten, which is
+right for a 404 and wrong for a 409 you are trying to measure. If a mapped case deserves a log line, log it where you throw it rather than inside the
+mapping — `ktor-toolkit:logging` covers the level to pick and what must never go in the message.
+
 **Declaration order does not matter.** StatusPages resolves by nearest ancestor class, so a mapping for `BookNotFoundException` always beats the
 `Throwable` catch-all, wherever it appears. You do not have to out-run the default, and a mapping on a base exception type covers every subtype that
 has no closer match — which is the clean way to give a whole family one status.
