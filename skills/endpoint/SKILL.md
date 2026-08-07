@@ -76,7 +76,7 @@ never write a DTO for a use case that turned out not to need it.
 is a collection. Nothing in this step mentions HTTP.
 
 **2. `-adapters/persistence` — satisfy the port.** The Exposed table and the repository implementation. Sorting arrives here as an allow-list of
-sortable columns.
+sortable columns. A new table or column is also a migration, written in the same step — `ktor-toolkit:migrations`.
 
 **3. `-adapters/web` — the route and its DTOs.** Request DTO, response DTO, mappers, validation rules, problem mappings, links.
 

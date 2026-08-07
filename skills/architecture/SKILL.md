@@ -171,6 +171,11 @@ com.example.catalog.adapters/
         └── ExposedBookRepository.kt  implements BookRepository
 ```
 
+```
+catalog-adapters/src/main/resources/db/migration/
+└── V1__create_books.sql              the schema those tables map to
+```
+
 Both directions are adapters, so both live here. An HTTP route is a *driving* adapter: it translates an inbound protocol into a use case call, exactly
 as a repository translates a port call into SQL. Putting routes anywhere else splits the translation layer in half for no benefit.
 
@@ -200,6 +205,9 @@ and `ktor-toolkit:problem-details`.
 visible: `ExposedBookRepository`, `RedisBookCache`,
 `HttpPricingClient`. This package is the only place Exposed appears. Outbound HTTP clients, message publishers and cache implementations sit alongside
 it under their own directional package.
+
+The migration SQL lives in this module's resources rather than in `-app`, so the table definition, the repository and the schema they both describe
+change in one diff. `-app` depends on `-adapters` at runtime, so it runs those migrations without owning them — `ktor-toolkit:migrations`.
 
 ### `-app` — the composition root
 
@@ -272,6 +280,12 @@ type even when it compiles without Ktor.
 
 That first row is why `-core` carries `compileOnly(libs.ktor.toolkit.paginator)` while `-app` carries it as `implementation`: the domain genuinely
 speaks in pages and sorts, and only the deployable needs it on the runtime classpath.
+
+The `data` / `web` split in the table is also the package split, and the import root is **not** the group id: artifacts are `io.github.joaoseidel`,
+packages are `com.github.joaoseidel.ktor.toolkit.*`. So `-core` imports
+`com.github.joaoseidel.ktor.toolkit.paginator.data.Pagination` and `-adapters/web` imports
+`...paginator.web.PagedResponse` — an import from `web` in a `-core` file is the same violation as the Ktor grep above, visible in the import list.
+`ktor-toolkit:install` has the full map.
 
 Two consequences worth stating outright, because they are what people get wrong:
 

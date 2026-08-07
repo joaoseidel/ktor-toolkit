@@ -1,14 +1,14 @@
 ---
 name: migrations
 description: >-
-  Database schema migrations for a Ktor Toolkit service — versioned SQL under Flyway, where the
-  files live relative to the -core / -adapters / -app split, running them on startup, and the
-  expand/contract sequence that lets a schema change ship without a deploy window. Use whenever a
-  table, column, index or constraint is added, renamed or dropped, when an Exposed table definition
-  changes, when scaffolding persistence for a new service, when a migration fails with a checksum
-  mismatch or a missing database module, and whenever SchemaUtils.create is about to be called
-  outside a test. Covers naming, ordering, repeatable migrations, baselining, locking, testing
-  against Testcontainers and the rule that applied migrations are immutable.
+    Database schema migrations for a Ktor Toolkit service — versioned SQL under Flyway, where the
+    files live relative to the -core / -adapters / -app split, running them on startup, and the
+    expand/contract sequence that lets a schema change ship without a deploy window. Use whenever a
+    table, column, index or constraint is added, renamed or dropped, when an Exposed table definition
+    changes, when scaffolding persistence for a new service, when a migration fails with a checksum
+    mismatch or a missing database module, and whenever SchemaUtils.create is about to be called
+    outside a test. Covers naming, ordering, repeatable migrations, baselining, locking, testing
+    against Testcontainers and the rule that applied migrations are immutable.
 ---
 
 # Schema migrations
@@ -81,7 +81,8 @@ Same test as a commit (`ktor-toolkit:commit`): it should be describable in one s
 
 ```sql
 -- V3__add_books_published_at.sql
-ALTER TABLE books ADD COLUMN published_at DATE;
+ALTER TABLE books
+    ADD COLUMN published_at DATE;
 CREATE INDEX idx_books_published_at ON books (published_at);
 ```
 
@@ -106,8 +107,8 @@ internal fun Application.migrateDatabase(dataSource: DataSource) {
 }
 ```
 
-Flyway takes a lock on the history table, so several instances starting at once queue rather than collide — rolling deploys do not need
-coordination for this.
+Flyway takes a lock on the history table, so several instances starting at once queue rather than collide — rolling deploys do not need coordination
+for this.
 
 Split it out into its own step — a `make migrate`, an init container, a deploy job — when one of these is true, and say which:
 
@@ -127,13 +128,13 @@ Both go in the catalog, never inline — `ktor-toolkit:gradle`.
 
 ## When it refuses to start
 
-| Symptom                                                      | Cause                                                                    |
-|--------------------------------------------------------------|--------------------------------------------------------------------------|
-| `Migration checksum mismatch for version 3`                  | An applied file was edited. Revert the edit; write `V4` instead.         |
-| `Found non-empty schema(s) without schema history table`     | An existing database predates Flyway — `baselineOnMigrate = true`, once. |
-| `Unsupported Database: PostgreSQL` (or similar)              | The vendor module is missing (above).                                    |
-| A migration is skipped and nothing is logged                 | One underscore instead of two, or the wrong directory.                   |
-| `Detected resolved migration not applied to database: 5`     | A branch added `V5` and was not merged; or `outOfOrder` is needed, once. |
+| Symptom                                                  | Cause                                                                    |
+|----------------------------------------------------------|--------------------------------------------------------------------------|
+| `Migration checksum mismatch for version 3`              | An applied file was edited. Revert the edit; write `V4` instead.         |
+| `Found non-empty schema(s) without schema history table` | An existing database predates Flyway — `baselineOnMigrate = true`, once. |
+| `Unsupported Database: PostgreSQL` (or similar)          | The vendor module is missing (above).                                    |
+| A migration is skipped and nothing is logged             | One underscore instead of two, or the wrong directory.                   |
+| `Detected resolved migration not applied to database: 5` | A branch added `V5` and was not merged; or `outOfOrder` is needed, once. |
 
 The checksum row is the one that matters, because the tempting fix — `flyway repair` — makes the error go away without making the databases agree. Two
 environments then differ in a way nothing will report again. Repair is for a migration that failed halfway and left a bad history row, not for a file
@@ -146,12 +147,12 @@ breaks the old one for the length of the rollout — and breaks the new one if y
 
 So anything destructive is **expand, then contract**, across two releases:
 
-| Renaming `title` to `name`   | Ships in                                      |
-|------------------------------|-----------------------------------------------|
-| Add `name`, nullable         | Release 1, with the code that writes both     |
-| Backfill `name` from `title` | Release 1, same or a following migration      |
-| Read from `name`             | Release 2                                     |
-| Drop `title`                 | Release 3, once nothing reads it              |
+| Renaming `title` to `name`   | Ships in                                  |
+|------------------------------|-------------------------------------------|
+| Add `name`, nullable         | Release 1, with the code that writes both |
+| Backfill `name` from `title` | Release 1, same or a following migration  |
+| Read from `name`             | Release 2                                 |
+| Drop `title`                 | Release 3, once nothing reads it          |
 
 Three releases for a rename is the price of never taking the service down for one. Fold them together only when the table is genuinely new or
 genuinely empty, and say so in the commit body.
@@ -179,17 +180,17 @@ chance.
 
 ## Common mistakes
 
-| Mistake                                          | Why it hurts                                                                 |
-|--------------------------------------------------|------------------------------------------------------------------------------|
-| Editing a migration that already ran             | Checksum mismatch for everyone else; environments silently diverge           |
-| `flyway repair` to clear a mismatch              | Hides the divergence instead of resolving it                                 |
-| `SchemaUtils.create` outside a test              | No history, and silent drift when a type or constraint changes               |
-| Tests migrating differently from production      | The schema under test is not the schema that ships                           |
-| A rename or drop in one release                  | The old instances break for the length of the rollout, and so does rollback  |
-| `ADD COLUMN … NOT NULL` with no default          | Fails on any table with rows in it                                           |
-| Several unrelated changes in one file            | Half-applies on a database without transactional DDL, and cannot be re-run   |
-| One underscore in the filename                   | Flyway ignores the file; it reads as a migration that did nothing            |
-| `flyway-core` without the vendor module          | Fails at startup with what looks like a JDBC URL problem                     |
-| Migration SQL in `-core` or `-app`               | The schema leaves the module that owns persistence                           |
-| A ticket number as the description               | `git log` and the history table say nothing about what changed               |
-| Timestamps as versions to dodge merge conflicts  | Loses the conflict that was telling you two people changed the schema at once |
+| Mistake                                         | Why it hurts                                                                  |
+|-------------------------------------------------|-------------------------------------------------------------------------------|
+| Editing a migration that already ran            | Checksum mismatch for everyone else; environments silently diverge            |
+| `flyway repair` to clear a mismatch             | Hides the divergence instead of resolving it                                  |
+| `SchemaUtils.create` outside a test             | No history, and silent drift when a type or constraint changes                |
+| Tests migrating differently from production     | The schema under test is not the schema that ships                            |
+| A rename or drop in one release                 | The old instances break for the length of the rollout, and so does rollback   |
+| `ADD COLUMN … NOT NULL` with no default         | Fails on any table with rows in it                                            |
+| Several unrelated changes in one file           | Half-applies on a database without transactional DDL, and cannot be re-run    |
+| One underscore in the filename                  | Flyway ignores the file; it reads as a migration that did nothing             |
+| `flyway-core` without the vendor module         | Fails at startup with what looks like a JDBC URL problem                      |
+| Migration SQL in `-core` or `-app`              | The schema leaves the module that owns persistence                            |
+| A ticket number as the description              | `git log` and the history table say nothing about what changed                |
+| Timestamps as versions to dodge merge conflicts | Loses the conflict that was telling you two people changed the schema at once |

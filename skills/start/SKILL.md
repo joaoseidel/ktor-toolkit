@@ -59,6 +59,7 @@ Match the request against the table. Most real tasks hit two or three rows — t
 | Rejecting bad input, required fields, formats, business rules on a request | `ktor-toolkit:validation`      |
 | Error responses, status codes, `problem+json`, exception handling          | `ktor-toolkit:problem-details` |
 | Response caching, TTL, invalidation, Redis, "this endpoint is slow"        | `ktor-toolkit:cache`           |
+| A table, column, index or constraint; anything the database schema states  | `ktor-toolkit:migrations`      |
 | Wiring dependencies, singletons, scopes, module registration               | `ktor-toolkit:di`              |
 | Tests of any kind, fixtures, mocks, Testcontainers                         | `ktor-toolkit:tests`           |
 | Coverage numbers, thresholds, exclusions                                   | `ktor-toolkit:kover`           |
@@ -109,6 +110,8 @@ whether you are writing the code or reading someone else's.
 | A `ConcurrentHashMap` used as a cache                                          | `ktor-toolkit:cache`           |
 | A loop that queries per row to fill in a related object                        | `ktor-toolkit:expand`          |
 | A repository interface declared in the same file as its Exposed implementation | `ktor-toolkit:architecture`    |
+| `SchemaUtils.create(…)` anywhere but a test                                    | `ktor-toolkit:migrations`      |
+| An edit to a migration file that has already run                               | `ktor-toolkit:migrations`      |
 | A version number literal in `build.gradle.kts`                                 | `ktor-toolkit:gradle`          |
 
 ## When nothing matches

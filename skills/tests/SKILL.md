@@ -1,13 +1,13 @@
 ---
 name: tests
 description: >-
-  How this project tests — Kotest ShouldSpec with behaviour-named cases, MockK for collaborators,
-  testApplication for routes, Testcontainers for real persistence, and acceptance tests over the
-  assembled app. Use whenever writing or reviewing a test, when naming a context or a should, when
-  deciding what to mock and what to run for real, when a bug fix needs a failing test first, when a
-  test is flaky or time-dependent, and when choosing between a unit, integration or acceptance
-  test. Covers spec style, naming conventions, fixtures and builders, determinism, Kotest matchers
-  and where each kind of test lives.
+    How this project tests — Kotest ShouldSpec with behaviour-named cases, MockK for collaborators,
+    testApplication for routes, Testcontainers for real persistence, and acceptance tests over the
+    assembled app. Use whenever writing or reviewing a test, when naming a context or a should, when
+    deciding what to mock and what to run for real, when a bug fix needs a failing test first, when a
+    test is flaky or time-dependent, and when choosing between a unit, integration or acceptance
+    test. Covers spec style, naming conventions, fixtures and builders, determinism, Kotest matchers
+    and where each kind of test lives.
 ---
 
 # Testing
@@ -220,7 +220,7 @@ fun book(
     id: String = "book-1",
     title: String = "The Hobbit",
     isbn: Isbn = Isbn("978-0261102217"),
-    publishedAt: LocalDate = LocalDate(1937, 9, 21),
+    publishedAt: LocalDate? = LocalDate(1937, 9, 21),
 ) = Book(id, title, isbn, publishedAt)
 ```
 
@@ -330,6 +330,9 @@ must provide one.
 
 Start the container once for the spec rather than per test, and let each test own its data — insert what it needs, assert, and rely on a transaction
 rollback or a truncate between cases. Shared mutable fixtures across tests are the usual cause of a suite that passes alone and fails in parallel.
+
+**Build the container's schema with the real migrations**, not `SchemaUtils.create`. A query tested against a table the migrations never produced
+proves nothing about production, and the two drift silently — `ktor-toolkit:migrations`.
 
 ## Determinism
 
