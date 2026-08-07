@@ -84,6 +84,10 @@ First public release. Nothing was published before this, so the breaking changes
 - `Link`'s `require` checks ran in a secondary constructor and never fired on a deserialized link.
 - `InMemoryCache` was an unbounded map keyed by request URL.
 - Cache keys base64-encoded the full path and query, so their length was client-controlled. They are now hashed.
+- `Resource`'s serial descriptor named `_links` and nothing else, so anything reading the type rather than an instance — OpenAPI schema inference
+  above all — documented every wrapped response as a body carrying links and no content. It now declares the content's own fields alongside `_links`,
+  matching what the serializer writes, and its serial name carries the content's so two different `Resource<T>` no longer collide on one schema
+  component. Serializing and deserializing are unchanged: both work in `JsonObject` directly and never read the descriptor.
 
 ### Added
 
