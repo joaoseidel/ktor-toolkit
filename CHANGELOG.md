@@ -10,9 +10,11 @@ First public release. Nothing was published before this, so the breaking changes
 
 ### Breaking
 
-- **The group id and base package moved to `com.github.joaoseidel`.** Dependencies are now
-  `com.github.joaoseidel.ktor-toolkit:*`, and every import changes from `com.luizalabs.ktor.toolkit.*`
-  to `com.github.joaoseidel.ktor.toolkit.*`. Nothing else about the API changed.
+- **The group id is `io.github.joaoseidel` and the base package moved to `com.github.joaoseidel`.**
+  Dependencies are now `io.github.joaoseidel:ktor-toolkit-*` — the group has to sit under
+  `io.github.<user>` because that is the only namespace Maven Central verifies from a GitHub
+  account. Every import changes from `com.luizalabs.ktor.toolkit.*` to
+  `com.github.joaoseidel.ktor.toolkit.*`. Nothing else about the API changed.
 - **`PagedResponse.metadata.totalPages` now counts pages.** It previously held the *index* of the last page — 25 elements over a page size of 10
   reported `2`. It now reports `3`; the last page index is `totalPages - 1`. Any client doing arithmetic on this field must be updated.
 - **`PagedResponse.from` rejects a page size of zero or less** with `IllegalArgumentException`

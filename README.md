@@ -37,7 +37,18 @@ dependencies {
 ```
 
 The modules are released together, so give them one shared version key in `gradle/libs.versions.toml` rather than one per module. Mixing versions
-across them is unsupported. To try an unreleased change, `make publish_local` puts the current tree in your local Maven repository.
+across them is unsupported.
+
+Every merge to `main` publishes a snapshot, so an unreleased change can be consumed without building it:
+
+```kotlin
+repositories {
+    mavenCentral()
+    maven("https://central.sonatype.com/repository/maven-snapshots/")
+}
+```
+
+For a change that is not merged yet, `make publish_local` puts the current tree in your local Maven repository.
 
 Ktor and kotlinx-serialization come along transitively. They appear in these modules' public signatures, so they are declared as `api` dependencies.
 
@@ -369,9 +380,11 @@ make test       # tests only
 make coverage   # report/build/reports/kover/html/index.html
 make format     # apply ktlint
 make api        # refresh the public API dumps after an intentional change
+make verify     # everything a release must pass
+make docs       # Dokka HTML per module
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the [CHANGELOG](CHANGELOG.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md), [RELEASING.md](RELEASING.md) and the [CHANGELOG](CHANGELOG.md).
 
 ## License
 

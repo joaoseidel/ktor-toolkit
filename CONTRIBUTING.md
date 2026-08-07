@@ -61,20 +61,29 @@ Optional integrations (Exposed, the MongoDB driver) are `compileOnly`, so consum
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`. It calls the same targets you do — `make lint`, `make api_check`,
-`make build`, `make coverage` — so a green local build is a green CI build. Test and coverage reports are attached to the run as artifacts.
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`. Its **Build** job calls the same targets you do — `make lint`,
+`make api_check`, `make build`, `make coverage` — so a green local build is a green CI build. Test and coverage reports are attached to the run as
+artifacts.
 
-## Releasing
+Its **Publication** job runs `make publish_local` and then asserts that every module produced a main, sources, javadoc and POM artifact. Maven Central
+rejects a deployment missing any of those, and it does so *after* the upload — this catches it at review time instead.
 
-No remote Maven repository is configured. `make publish_local` installs into your local `~/.m2`
-repository:
+You can run the same check locally:
 
 ```bash
 make publish_local
 ```
 
-Before releasing: update `version` in `gradle.properties`, move the `unreleased` heading in
-`CHANGELOG.md`, and make sure `make build` and `make api` are both clean.
+That installs into your `~/.m2` repository as `io.github.joaoseidel:ktor-toolkit-*`, unsigned, so no GPG key is needed.
 
-Pushing a `v*` tag then runs `.github/workflows/release.yml`, which refuses the tag unless it matches `version` in `gradle.properties`, runs the full
-build, and publishes a GitHub Release with every module's main, sources and javadoc jars attached (`make dist`).
+## Releasing
+
+Cutting a release is a tag push. The full procedure, the required secrets and how to verify a published artifact are in [RELEASING.md](RELEASING.md).
+
+Every merge to `main` also publishes a `-SNAPSHOT` build, so a change can be consumed before it is released:
+
+```kotlin
+repositories {
+    maven("https://central.sonatype.com/repository/maven-snapshots/")
+}
+```
