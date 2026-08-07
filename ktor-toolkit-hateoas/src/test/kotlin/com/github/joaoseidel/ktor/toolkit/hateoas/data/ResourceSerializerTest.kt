@@ -4,16 +4,31 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.serializer
 
 @Serializable
 private data class Book(
     val id: String,
     val title: String,
+)
+
+@Serializable
+private data class Shelf(
+    val id: String,
+    val label: String = "unfiled",
+)
+
+@Serializable
+private data class Conflicting(
+    val id: String,
+    @SerialName("_links") val ownLinks: List<Link> = emptyList(),
 )
 
 class ResourceSerializerTest :
@@ -66,6 +81,44 @@ class ResourceSerializerTest :
                     shouldThrow<IllegalArgumentException> {
                         json.decodeFromString<Link>("""{"rel":"self","href":"","method":"GET"}""")
                     }
+                }
+            }
+
+            context("descriptor") {
+                should("declare the content's fields, not the wrapper's alone") {
+                    val descriptor = serializer<Resource<Book>>().descriptor
+
+                    (0 until descriptor.elementsCount)
+                        .map(descriptor::getElementName)
+                        .shouldContainExactly("id", "title", "_links")
+                }
+
+                should("keep the content's own optionality, so a defaulted field is not documented as required") {
+                    val descriptor = serializer<Resource<Shelf>>().descriptor
+
+                    descriptor.isElementOptional(descriptor.getElementIndex("label")) shouldBe true
+                    descriptor.isElementOptional(descriptor.getElementIndex("id")) shouldBe false
+                }
+
+                should("name each content type distinctly, since a schema generator keys components by serial name") {
+                    serializer<Resource<Book>>().descriptor.serialName shouldNotBe
+                        serializer<Resource<Shelf>>().descriptor.serialName
+                }
+
+                should("contribute no content fields when the content is not a class") {
+                    val descriptor = serializer<Resource<Int>>().descriptor
+
+                    (0 until descriptor.elementsCount)
+                        .map(descriptor::getElementName)
+                        .shouldContainExactly("_links")
+                }
+
+                should("not declare _links twice when the content already has one") {
+                    val descriptor = serializer<Resource<Conflicting>>().descriptor
+
+                    (0 until descriptor.elementsCount)
+                        .map(descriptor::getElementName)
+                        .shouldContainExactly("id", "_links")
                 }
             }
 
