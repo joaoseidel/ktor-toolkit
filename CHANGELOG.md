@@ -164,5 +164,7 @@ First public release. Nothing was published before this, so the breaking changes
   `Common mistakes` tables now list only failures that leave the build green, since running the build already catches the loud ones.
 - `makefile`'s target set gains `verify` — the single command `start` Phase 4 runs — and moves `api`, `api_check` and `publish_local` into a
   library-only section.
+- The two regexes that parse a `MissingFieldException` are compiled once rather than on every malformed request body, matching the reason already
+  stated for the validation-reason regex beside them.
 - ktlint and binary-compatibility-validator run as part of `build`.
 - Test coverage went from one module to all six, with Kover gating at 85% line and 65% branch.
