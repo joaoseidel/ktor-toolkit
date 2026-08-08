@@ -45,6 +45,13 @@ object ResponseHandlers {
      */
     private val PROPERTY_REASON = Regex("`(.*?)`\\s(.*)")
 
+    /**
+     * The two phrasings kotlinx.serialization gives a [MissingFieldException] — one missing field,
+     * or several. Compiled once, for the same reason as [PROPERTY_REASON].
+     */
+    private val SINGLE_MISSING_FIELD = Regex("Field '([^']+)' is required .*? at path: (\\$\\.?\\S*)")
+    private val PLURAL_MISSING_FIELDS = Regex("Fields \\[([^]]+)] are required .*? at path: (\\$\\.?\\S*)")
+
     /** Where one validation reason belongs in the response, and what it says. */
     private class ParsedReason(
         val key: String,
@@ -199,8 +206,8 @@ object ResponseHandlers {
         namingStrategy: JsonNamingStrategy?,
     ): Map<String, String> {
         val text = message.orEmpty()
-        val single = Regex("Field '([^']+)' is required .*? at path: (\\$\\.?\\S*)").find(text)
-        val plural = Regex("Fields \\[([^]]+)] are required .*? at path: (\\$\\.?\\S*)").find(text)
+        val single = SINGLE_MISSING_FIELD.find(text)
+        val plural = PLURAL_MISSING_FIELDS.find(text)
 
         val (rawFields, path) =
             when {
