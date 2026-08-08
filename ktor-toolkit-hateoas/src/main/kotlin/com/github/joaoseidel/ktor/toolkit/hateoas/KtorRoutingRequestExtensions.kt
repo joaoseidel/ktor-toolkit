@@ -65,10 +65,11 @@ internal fun createPaginationLinks(
 }
 
 /**
- * Extension function for [RoutingRequest] to create pagination links from a [PagedResponse] directly.
+ * The pagination links for [response], derived from the current request.
  *
- * @param response The paginated response containing pagination information.
- * @return A list of pagination-related [Link] objects.
+ * `self` is always present; `next`, `prev`, `first` and `last` appear only where the page they
+ * point at exists. Every query parameter other than `page` and `pageSize` is carried over, so a
+ * filtered listing stays filtered as the client follows `next`.
  */
 fun RoutingRequest.createPaginationLinks(response: PagedResponse<*>): List<Link> =
     createPaginationLinks(
@@ -78,10 +79,5 @@ fun RoutingRequest.createPaginationLinks(response: PagedResponse<*>): List<Link>
         response.metadata.totalPages,
     )
 
-/**
- * Extension function for [RoutingCall] to create pagination links from a [PagedResponse] directly.
- *
- * @param response The paginated response containing pagination information.
- * @return A list of pagination-related [Link] objects.
- */
+/** The pagination links for [response] — see the [RoutingRequest] overload. */
 fun RoutingCall.createPaginationLinks(response: PagedResponse<*>): List<Link> = request.createPaginationLinks(response)

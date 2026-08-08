@@ -136,6 +136,12 @@ First public release. Nothing was published before this, so the breaking changes
 
 ### Changed
 
+- **The public KDoc states contracts rather than restating signatures.** `RequestValidator`, `HttpStatusException`, `Link`, `Page`, `Sort`,
+  `PagedResponse`, `PaginationRequest`, `ValidationError`, `Expandable`, `ExpandRequest` and `ExpandableSerializer` previously opened with a paragraph
+  that named the type and listed its properties again. They now say what the type is for and what it does at the edges — what `Sort.fromString` does
+  with a property no data source knows, that `ExpandRequest.from` reads only the first `expand` parameter, that an `Expandable.Partial` does not
+  survive a round trip, that a `RequestValidator` is shared across concurrent requests and must hold no state of its own. `ExpandableSerializer`,
+  `ExpandRequest.from`, `ExpandRequest.NONE` and `Expandable.Ref` / `.Resolved` had no documentation at all. No signature changed.
 - Dependencies that appear in a module's public signatures are declared `api`, so the published POM resolves them. Exposed and the MongoDB driver
   remain optional — see the README.
 - `ExpandSpec` collapsed from four near-duplicate field implementations to two; single-item expansion now delegates to the batched path, so the two

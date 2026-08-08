@@ -4,13 +4,16 @@ import kotlinx.serialization.Serializable
 import kotlin.reflect.KProperty1
 
 /**
- * Represents a sorting configuration for a specific property in a dataset.
+ * One `ORDER BY` term: what to sort on, and which way.
  *
- * The [Sort] class is used to define sorting criteria for data, specifying the
- * target property and the direction of sorting (ascending or descending).
+ * A sort is carried as a property *name*, so it survives the trip from a query string to a
+ * repository without either end depending on the other's types. That also means the name is
+ * unchecked until it reaches a data source: `toExposedQueryExpression` and `toMongoSortExpression`
+ * resolve it against an allow-list and reject anything else, which is what stops a client-supplied
+ * `?sortBy=` naming a column the endpoint never meant to expose.
  *
- * @property property The property to be used as the sorting key.
- * @property direction The sorting direction, either ascending ([Direction.ASC]) or descending ([Direction.DESC]).
+ * @property property The name of the property to sort on.
+ * @property direction Which way to sort.
  */
 @Serializable
 data class Sort(
@@ -28,16 +31,7 @@ data class Sort(
         direction: Direction = Direction.ASC,
     ) : this(property.name, direction)
 
-    /**
-     * Defines the direction of sorting, either ascending or descending.
-     *
-     * The [Direction] enum is used to specify the order in which data should be sorted.
-     * It offers two values:
-     * - [ASC]: Represents ascending order.
-     * - [DESC]: Represents descending order.
-     *
-     * @see Sort
-     */
+    /** Which way a [Sort] orders its property. */
     @Serializable
     enum class Direction {
         ASC,
@@ -49,7 +43,6 @@ data class Sort(
              * Reads the direction off a sort token such as `createdAt` or `-createdAt`.
              *
              * @param token A sort token. A leading `-` means descending; anything else is ascending.
-             * @return [DESC] if [token] starts with `-`, otherwise [ASC].
              */
             fun fromString(token: String): Direction = if (token.startsWith("-")) DESC else ASC
         }
@@ -57,14 +50,12 @@ data class Sort(
 
     companion object {
         /**
-         * Creates a [Sort] instance from a string representation.
+         * Reads a sort token, as it arrives in `?sortBy=`.
          *
-         * The input string specifies a property name and optionally includes
-         * a prefix (`-`) to indicate sorting order. If the string starts with
-         * `-`, the sorting direction is descending; otherwise, it is ascending.
+         * The token is taken as the property name whatever it says — a name no data source knows
+         * is rejected later, when the sort is resolved against an allow-list, not here.
          *
-         * @param token The sort token, e.g. `createdAt` or `-createdAt`.
-         * @return A [Sort] object with the specified property and sorting direction.
+         * @param token A sort token. A leading `-` means descending; anything else is ascending.
          */
         fun fromString(token: String): Sort = Sort(token.removePrefix("-"), Direction.fromString(token))
     }

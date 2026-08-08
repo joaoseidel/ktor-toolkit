@@ -3,14 +3,22 @@ package com.github.joaoseidel.ktor.toolkit.problemdetails.exception
 import io.ktor.http.HttpStatusCode
 
 /**
- * Represents an HTTP status exception commonly used to convey structured error information
- * in server applications. This exception is designed to carry an HTTP status code, an optional
- * detailed message describing the error, and additional properties providing context about the
- * error.
+ * An exception that already knows which HTTP status it should become.
  *
- * @property status The HTTP status code associated with the error.
- * @property detail An optional detailed description of the error.
- * @property properties A map of additional properties providing context or metadata about the error.
+ * `problemDetails { }` maps it straight to a problem body, so throwing one from anywhere under a
+ * route is how a handler reports a failure without responding itself:
+ *
+ * ```kotlin
+ * throw HttpStatusException(HttpStatusCode.Conflict, "That ISBN is already catalogued")
+ * ```
+ *
+ * Reach for it in an adapter, where the status is genuinely the right vocabulary. A domain type
+ * should throw its own exception — `BookNotFoundException` — and let `on<BookNotFoundException>`
+ * choose the status once, in the web layer; a domain that picks status codes has become one.
+ *
+ * @property status The status the response should carry.
+ * @property detail What went wrong, for a human reading the response. Also the exception message.
+ * @property properties Extra fields to publish alongside `detail` in the problem body.
  */
 class HttpStatusException(
     val status: HttpStatusCode,

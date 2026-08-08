@@ -5,10 +5,15 @@ import com.github.joaoseidel.ktor.toolkit.paginator.data.Sort
 import kotlinx.serialization.Serializable
 
 /**
- * Represents a paginated response model containing metadata and content.
+ * A page of results as a client sees it: the entities, plus the metadata needed to navigate them.
+ *
+ * This is the wire shape — build it with [from] from the [Paged] a use case returned, and wrap it
+ * with `toResource(call)` from the HATEOAS module to publish `next` and `prev` as links.
+ *
+ * Instances only come from [from], so the metadata is always consistent with the content.
  *
  * @param T The type of the content within the paginated response.
- * @property metadata Contains information about the pagination such as current page, page size, total pages, etc.
+ * @property metadata Where this page sits in the whole result, and how it was ordered.
  * @property content The entities on the current page. Empty when the page is past the end of the data.
  */
 @ConsistentCopyVisibility
@@ -18,11 +23,10 @@ data class PagedResponse<T> private constructor(
     val content: List<T> = emptyList(),
 ) {
     /**
-     * Represents metadata for paginated resources.
+     * Where a page sits in the whole result, and how the result was ordered.
      *
-     * This class encapsulates details related to pagination, sorting, and navigation for resources
-     * retrieved in a paginated format. It provides information about the current page, page size,
-     * total number of pages, total number of elements, sorting, and navigation availability.
+     * Every field is derived by [from] rather than reported by the data source, so a repository
+     * only has to return the slice and the total.
      *
      * @property page The current page index, starting from 0.
      * @property pageSize The number of elements per page.
@@ -50,14 +54,20 @@ data class PagedResponse<T> private constructor(
 
     companion object {
         /**
-         * Constructs a [PagedResponse] using the provided paged data and optional content transformation.
+         * Derives the wire shape from a [Paged], mapping each element on the way out.
          *
-         * @param paged The paginated data containing details like the current page, total elements,
-         *                    sorting information, and more.
-         * @param contentTransformer An optional function to transform the content items before including
-         *                          them in the response. If not provided, items are used as-is.
-         * @return A [PagedResponse] containing the metadata and transformed content
-         *         for the current paginated response.
+         * The metadata is computed here rather than carried: `totalPages`, `hasNext` and
+         * `hasPrevious` all follow from the page size and the total, so a repository never has to
+         * report them.
+         *
+         * ```kotlin
+         * PagedResponse.from(books) { it.toResponse() }
+         * ```
+         *
+         * @param paged The page to describe, as a use case returned it.
+         * @param contentTransformer Maps each element to its response type. Omit it only when the
+         * elements are already the response type — `R` is then inferred as `T` and the content is
+         * passed through unmapped.
          * @throws IllegalArgumentException if the page size is not positive.
          */
         fun <T, R> from(
