@@ -4,12 +4,9 @@ import io.ktor.http.HttpMethod
 import kotlinx.serialization.Serializable
 
 /**
- * Represents a hyperlink model used for resource representation.
+ * Somewhere a client can go from a resource, and how to get there.
  *
- * The [Link] class is typically used in the context of Hypermedia as the Engine of Application
- * State (HATEOAS) to expose navigable links associated with a resource. It contains information such
- * as the relationship of the link to the resource, the URL of the link, and the HTTP method that
- * can be used to interact with the link.
+ * Published inside a [Resource]'s `_links`, either through the [resource] DSL or `withLink`.
  *
  * @property rel Describes the relationship of the hyperlink to the resource. Must not be blank.
  * @property href Specifies the URL that the hyperlink points to. Must not be blank.

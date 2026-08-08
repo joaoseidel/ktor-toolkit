@@ -1,5 +1,6 @@
 package com.github.joaoseidel.ktor.toolkit.problemdetails
 
+import com.github.joaoseidel.ktor.toolkit.problemdetails.ResponseHandlers.PROPERTY_REASON
 import com.github.joaoseidel.ktor.toolkit.problemdetails.ResponseHandlers.ROOT_POINTER
 import com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail
 import com.github.joaoseidel.ktor.toolkit.problemdetails.exception.HttpStatusException
@@ -91,8 +92,6 @@ object ResponseHandlers {
      * The response carries the exception's status code, its detail message, and any additional
      * properties it was given.
      *
-     * @param call The [ApplicationCall] instance representing the current HTTP request/response context.
-     * @param cause The [HttpStatusException] containing the status, detail message and optional properties.
      * @param json The serializer used for the problem body.
      */
     suspend fun handleHttpStatusException(
@@ -119,10 +118,8 @@ object ResponseHandlers {
      * object-level failure — what `invariant` records — is reported against [ROOT_POINTER], since
      * it names no property to key on.
      *
-     * @param call The [ApplicationCall] representing the current HTTP call.
-     * @param cause The [RequestValidationException] containing the validation failure details.
-     * @param namingStrategy The [JsonNamingStrategy] used to transform field names in the response
-     *        properties, so they match the names the client actually sent.
+     * @param namingStrategy Applied to the field names quoted in the response, so they match the
+     *        names the client actually sent. Match it to the application's own strategy.
      * @param json The serializer used for the problem body.
      */
     @OptIn(ExperimentalSerializationApi::class)
@@ -158,9 +155,8 @@ object ResponseHandlers {
      * individually; otherwise it falls back to the exception's own message, which for a binding
      * failure describes the request rather than the server.
      *
-     * @param call The [ApplicationCall] representing the HTTP request.
-     * @param cause The [BadRequestException] to be handled.
-     * @param namingStrategy The [JsonNamingStrategy] used to transform field names in the response properties.
+     * @param namingStrategy Applied to the field names quoted in the response, so they match the
+     *        names the client actually sent.
      * @param json The serializer used for the problem body.
      */
     @OptIn(ExperimentalSerializationApi::class)
@@ -231,8 +227,6 @@ object ResponseHandlers {
      * The exception message is deliberately kept out of the response: it routinely carries driver
      * internals, SQL fragments or filesystem paths. The full stack trace goes to the application log.
      *
-     * @param call The current [ApplicationCall] instance representing the HTTP request/response cycle.
-     * @param cause The [Throwable] instance representing the exception that was thrown.
      * @param includeExceptionMessage Echoes the exception message back to the client. Useful while
      *        developing locally; leave it off anywhere the caller is not trusted.
      * @param json The serializer used for the problem body.

@@ -6,15 +6,13 @@ import io.ktor.http.Parameters
 import kotlinx.serialization.Serializable
 
 /**
- * Represents a model for handling paginated and sortable requests.
+ * What a client asked for in `?page=`, `?pageSize=` and `?sortBy=`, already clamped.
  *
- * This class is designed to manage pagination details and sorting preferences
- * for data retrieval operations. It encapsulates details about which page to fetch,
- * the number of elements per page, and sorting configurations for the data.
+ * The web-side counterpart of [com.github.joaoseidel.ktor.toolkit.paginator.data.Pagination]: build
+ * one with [from] and convert it with `toPagination()` before handing it to a repository.
  *
- * @property page Specifies the pagination details, including the page index and the size of the page.
- * @property sortBy A list of sorting criteria, where each criterion specifies the property
- * and the direction (ascending or descending) to sort by.
+ * @property page The page index and size to read, within this endpoint's bounds.
+ * @property sortBy Sorting criteria, in order of precedence, in the order the client listed them.
  */
 @Serializable
 data class PaginationRequest(

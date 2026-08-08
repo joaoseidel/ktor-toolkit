@@ -10,6 +10,22 @@ import kotlinx.serialization.json.JsonEncoder
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
+/**
+ * Serializes an [Expandable] as either its reference string or the object it resolved to.
+ *
+ * JSON only: both directions work in `JsonElement`, because a field that is a string in one
+ * response and an object in the next has no fixed shape to describe. A non-JSON format therefore
+ * fails with a `ClassCastException` on the encoder, and the descriptor stays an empty class — it
+ * exists to satisfy the interface, not to describe the output.
+ *
+ * Deserialization is lossy by design: a string comes back as [Expandable.Ref] and an object as
+ * [Expandable.Resolved], so an [Expandable.Partial] read back is indistinguishable from an object
+ * that was simply small. Nothing round-trips a projection, and a client has no use for the
+ * distinction.
+ *
+ * @param contentSerializer Serializes the resolved value. The kotlinx.serialization plugin supplies
+ *   it wherever an `Expandable<T>` appears in a `@Serializable` class.
+ */
 class ExpandableSerializer<T>(
     private val contentSerializer: KSerializer<T>,
 ) : KSerializer<Expandable<T>> {

@@ -3,17 +3,16 @@ package com.github.joaoseidel.ktor.toolkit.validator.data
 import kotlinx.serialization.Serializable
 
 /**
- * Represents a validation error associated with a specific property.
+ * One thing found wrong with the object under validation, and where.
  *
- * A validation error provides details about an issue encountered during
- * the validation of an object or a particular property. It includes the
- * property path where the error occurred and a descriptive message about
- * the nature of the error.
+ * [toString] is the wire form: the reason strings a
+ * [io.ktor.server.plugins.requestvalidation.ValidationResult.Invalid] carries are these, and the
+ * problem-details module parses the backquoted path back out of them to key its response.
  *
- * @property propertyPath The path to the property where the validation error occurred. Empty for an
- * error that belongs to the object as a whole, such as one recorded by
+ * @property propertyPath The path to the offending property, such as `title`, `publisher.name` or
+ * `tags[0]`. Empty for an error that belongs to the object as a whole, such as one recorded by
  * [com.github.joaoseidel.ktor.toolkit.validator.ValidationContext.invariant].
- * @property message A descriptive message explaining the validation error.
+ * @property message What is wrong, phrased to follow the path — "should not be blank".
  */
 @Serializable
 data class ValidationError(

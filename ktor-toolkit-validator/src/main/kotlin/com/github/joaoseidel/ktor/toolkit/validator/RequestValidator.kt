@@ -1,42 +1,41 @@
 package com.github.joaoseidel.ktor.toolkit.validator
 
 /**
- * Interface for validating request objects of a specified type.
+ * The rules for one request type, in a class of their own.
  *
- * This interface defines a contract for implementing validation logic
- * on request objects by using a validation context. Validation rules
- * can be defined inside the `validate` method, allowing specific constraints
- * to be applied to the properties of the target object.
+ * The alternative is a `rulesFor<T> { }` block at the install site, which is the right shape for a
+ * couple of fields. Move to a validator once the rules outgrow that: a class is testable without a
+ * server — construct it, run it over a [ValidationContext], assert on `errors` — and one validator
+ * serves every route that accepts the same body.
  *
- * The validation process leverages the [ValidationContext] to collect errors
- * and provide a structured mechanism for validating object properties and nested
- * objects. Implementations of this interface should specify the validation rules
- * inside the `validate` method.
+ * ```kotlin
+ * class CreateBookValidator : RequestValidator<CreateBookRequest> {
+ *     override fun ValidationContext<CreateBookRequest>.validate() {
+ *         property(CreateBookRequest::title) { should notBe blank() }
+ *         nested(CreateBookRequest::publisher) {
+ *             property(Publisher::name) { should notBe blank() }
+ *         }
+ *     }
+ * }
+ *
+ * install(RequestValidation) { rulesFrom(CreateBookValidator()) }
+ * ```
+ *
+ * Implementations must be safe to share: [rulesFrom] registers one instance and every request runs
+ * against it concurrently, so a validator holding mutable state of its own will interleave. The
+ * per-request state lives in the [ValidationContext] the receiver hands you.
  *
  * @param T The type of the object to be validated.
  */
 interface RequestValidator<T> {
     /**
-     * Defines the validation logic for the target object within the context of a [ValidationContext].
+     * Asserts this validator's rules, recording what fails on the receiving context.
      *
-     * This extension function is designed to be implemented by classes conforming to the [RequestValidator]
-     * interface. It allows the specification of validation rules applied to the properties of the target object.
+     * Errors are collected rather than thrown: keep going after a failure so one request reports
+     * everything wrong with it, which is what [ValidationContext.toValidationResult] then turns
+     * into a single 400. Reach the object itself through [ValidationContext.target].
      *
-     * The validation process leverages the [ValidationContext] for accessing the target object and accumulating
-     * validation errors. Implementations can define property-level and nested object-level validations
-     * within this function.
-     *
-     * For property validations, [ValidationContext.property] can be used to specify constraints for individual
-     * properties of the target object. For nested object validations, [ValidationContext.nested] provides a way
-     * to validate properties of nested objects recursively.
-     *
-     * Any validation errors encountered during this process should be collected into the [ValidationContext],
-     * which can later be retrieved and processed by the caller.
-     *
-     * This method should not return any value. Instead, all validation feedback should be handled via the
-     * [ValidationContext].
-     *
-     * @receiver The [ValidationContext] associated with the target object of type [T].
+     * @receiver The context holding the object under validation and the errors found on it.
      */
     fun ValidationContext<T>.validate()
 }
