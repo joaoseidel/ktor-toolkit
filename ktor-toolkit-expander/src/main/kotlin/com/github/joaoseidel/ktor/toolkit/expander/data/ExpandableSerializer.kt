@@ -33,6 +33,8 @@ class ExpandableSerializer<T>(
             }
 
             is Expandable.Partial -> {
+                // Projection selects by JSON key, so the encoded value has to have keys. A
+                // primitive or a list cannot be projected, and casting says so at the point of use.
                 val fullJson = jsonEncoder.json.encodeToJsonElement(contentSerializer, value.value) as JsonObject
                 val filtered = JsonObject(fullJson.filterKeys { it.lowercase() in value.fields })
                 jsonEncoder.encodeJsonElement(filtered)
