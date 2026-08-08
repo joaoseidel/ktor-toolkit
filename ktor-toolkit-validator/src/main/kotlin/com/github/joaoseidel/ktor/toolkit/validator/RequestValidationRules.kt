@@ -21,12 +21,13 @@ import io.ktor.server.plugins.requestvalidation.ValidationResult
  * @param T The type of the request object to validate.
  * @param block The rules to assert on it, in a [ValidationContext].
  */
-inline fun <reified T : Any> RequestValidationConfig.rulesFor(noinline block: ValidationContext<T>.() -> Unit) =
+inline fun <reified T : Any> RequestValidationConfig.rulesFor(noinline block: ValidationContext<T>.() -> Unit) {
     validate<T> { request ->
         val context = ValidationContext(target = request)
         context.block()
         return@validate context.toValidationResult()
     }
+}
 
 /**
  * Takes the validation rules for requests of type [T] from a [RequestValidator].
@@ -44,9 +45,10 @@ inline fun <reified T : Any> RequestValidationConfig.rulesFor(noinline block: Va
  * @param T The type of the request object to validate.
  * @param validator The validator the rules come from.
  */
-inline fun <reified T : Any> RequestValidationConfig.rulesFrom(validator: RequestValidator<T>) =
+inline fun <reified T : Any> RequestValidationConfig.rulesFrom(validator: RequestValidator<T>) {
     validate<T> { request ->
         val context = ValidationContext(target = request)
         with(receiver = validator) { context.validate() }
         return@validate context.toValidationResult()
     }
+}

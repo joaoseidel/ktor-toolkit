@@ -31,7 +31,7 @@ internal class ResourceSerializer<T>(
         val finalJson =
             buildJsonObject {
                 contentJson.forEach { (key, value) -> put(key, value) }
-                put("_links", linksJson)
+                put(LINKS_ELEMENT, linksJson)
             }
 
         jsonEncoder.encodeJsonElement(finalJson)
@@ -41,7 +41,7 @@ internal class ResourceSerializer<T>(
         val jsonDecoder = decoder as JsonDecoder
 
         val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-        val linksJson = jsonObject["_links"]
+        val linksJson = jsonObject[LINKS_ELEMENT]
         val links =
             if (linksJson == null) {
                 emptyList()

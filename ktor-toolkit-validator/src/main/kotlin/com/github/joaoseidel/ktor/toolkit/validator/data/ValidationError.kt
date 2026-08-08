@@ -21,5 +21,5 @@ data class ValidationError(
     val message: String,
 ) {
     // An object-level error has no property to quote, so it renders as the bare message.
-    override fun toString() = if (propertyPath.isEmpty()) message else "`$propertyPath` $message"
+    override fun toString(): String = if (propertyPath.isEmpty()) message else "`$propertyPath` $message"
 }

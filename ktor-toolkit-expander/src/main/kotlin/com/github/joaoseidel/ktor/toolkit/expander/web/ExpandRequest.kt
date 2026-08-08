@@ -42,7 +42,7 @@ data class ExpandRequest(
     val isEmpty: Boolean get() = fields.isEmpty()
 
     companion object {
-        val NONE = ExpandRequest(emptyMap())
+        val NONE: ExpandRequest = ExpandRequest(emptyMap())
 
         fun from(queryParameters: Parameters): ExpandRequest {
             val raw = queryParameters["expand"] ?: return NONE

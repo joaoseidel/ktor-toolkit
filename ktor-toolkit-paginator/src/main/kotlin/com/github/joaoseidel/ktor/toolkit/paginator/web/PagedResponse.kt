@@ -62,7 +62,7 @@ data class PagedResponse<T> private constructor(
          */
         fun <T, R> from(
             paged: Paged<T>,
-            contentTransformer: (((T) -> R)?)? = null,
+            contentTransformer: ((T) -> R)? = null,
         ): PagedResponse<R> {
             val pageSpec = paged.page
             val pageNumber = pageSpec.page
@@ -83,6 +83,9 @@ data class PagedResponse<T> private constructor(
                 if (contentTransformer != null) {
                     paged.content.map(contentTransformer)
                 } else {
+                    // Sound only where `R` was inferred as `T`, which is what omitting the
+                    // transformer means. Naming both explicitly — `from<Book, BookResponse>(paged)`
+                    // — defeats it, and the heap pollution surfaces at the first read of `content`.
                     @Suppress("UNCHECKED_CAST")
                     paged.content as List<R>
                 }

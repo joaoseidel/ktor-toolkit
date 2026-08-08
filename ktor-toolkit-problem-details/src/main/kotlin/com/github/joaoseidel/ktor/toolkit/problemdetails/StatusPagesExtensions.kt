@@ -10,10 +10,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import kotlin.reflect.KClass
 
-@DslMarker
-@Target(AnnotationTarget.CLASS)
-annotation class ProblemDetailsDsl
-
 /**
  * Options for [problemDetails].
  *
