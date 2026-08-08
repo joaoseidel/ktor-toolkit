@@ -12,9 +12,7 @@
 Six small, independent libraries for building JSON APIs with [Ktor](https://ktor.io): pagination, HATEOAS links, request validation, RFC 9457 errors,
 field expansion and response caching.
 
-The repository also ships a collection of agent skills that document how the maintainers intend these APIs to be used.
-
-Every module stands alone. Nothing pulls in the others except `hateoas`, which builds on `paginator`.
+Take one or take all six. Nothing pulls in the others except `hateoas`, which builds on `paginator`.
 
 | Module                                             | What it does                                                                 |
 |----------------------------------------------------|------------------------------------------------------------------------------|
@@ -25,9 +23,15 @@ Every module stands alone. Nothing pulls in the others except `hateoas`, which b
 | [`ktor-toolkit-expander`](#expander)               | Resolves `?expand=author.books`, batching one query per field                |
 | [`ktor-toolkit-cache`](#cache)                     | Caches a response by request path and query, over any key-value store        |
 
+The repository also ships [24 agent skills](#skills) that record how these APIs are meant to be used, so an agent working in your service follows the
+same conventions you would.
+
 ## Install
 
-Published to Maven Central, so a build that already resolves anything else needs no repository changes. Take the modules you need:
+**Java 21 or newer.** On an older toolchain the dependency resolves and the compile fails with `class file has wrong version`, which reads like a
+corrupt artifact and is not one.
+
+Published to Maven Central, so a build that already resolves anything else needs no repository change:
 
 ```kotlin
 dependencies {
@@ -36,10 +40,60 @@ dependencies {
 }
 ```
 
-The modules are released together, so give them one shared version key in `gradle/libs.versions.toml` rather than one per module. Mixing versions
-across them is unsupported.
+The modules are released together. Give them one shared version key in `gradle/libs.versions.toml` rather than one per module — mixing versions across
+them is unsupported.
 
-Every merge to `main` publishes a snapshot, so an unreleased change can be consumed without building it:
+```toml
+[versions]
+ktor-toolkit = "1.0.0"
+
+[libraries]
+ktor-toolkit-paginator = { module = "io.github.joaoseidel:ktor-toolkit-paginator", version.ref = "ktor-toolkit" }
+ktor-toolkit-problem-details = { module = "io.github.joaoseidel:ktor-toolkit-problem-details", version.ref = "ktor-toolkit" }
+```
+
+### The package root is not the group id
+
+Coordinates are `io.github.joaoseidel`, because that is the only namespace Maven Central verifies from a GitHub account. **The Kotlin packages are
+`com.github.joaoseidel`**, so an import guessed from the dependency line does not resolve:
+
+```kotlin
+import com.github.joaoseidel.ktor.toolkit.paginator.pagination          // ApplicationCall.pagination
+import com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse
+import com.github.joaoseidel.ktor.toolkit.problemdetails.problemDetails // one word, unlike the artifact
+import com.github.joaoseidel.ktor.toolkit.validator.rulesFor
+import com.github.joaoseidel.ktor.toolkit.validator.validators.blank    // one import per rule you use
+```
+
+Domain types sit under `data`, wire types under `web`, and the call extensions and plugin installers at the module root.
+
+### What you also need
+
+**Ktor and kotlinx-serialization arrive transitively** — they appear in these modules' public signatures, so they are `api` dependencies.
+**ContentNegotiation does not**, and every module needs it to turn responses into JSON:
+
+```kotlin
+implementation("io.ktor:ktor-server-content-negotiation:3.4.1")
+implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.1")
+```
+
+Without it a route returning `PagedResponse` fails at runtime with "Response pipeline couldn't transform".
+
+**A dependency on its own changes nothing.** `problem-details` needs `StatusPages` with `problemDetails { }` inside it, and `validator` needs
+`RequestValidation`. `paginator`, `hateoas`, `expander` and `cache` need no plugin — they are call extensions and plain objects.
+
+**Three features compile against libraries their module deliberately does not carry**, so a project that skips the feature does not pay for it. Add
+the dependency only alongside the feature, or it fails at runtime with `NoClassDefFoundError`:
+
+| Using                              | Add                                                                          |
+|------------------------------------|------------------------------------------------------------------------------|
+| `Sort.toExposedQueryExpression(…)` | `org.jetbrains.exposed:exposed-core`                                         |
+| `Sort.toMongoSortExpression(…)`    | `org.mongodb:mongodb-driver-core` — already transitive to any MongoDB driver |
+| `LettuceCache`                     | `io.lettuce:lettuce-core`                                                    |
+
+### Snapshots
+
+Every merge to `main` publishes `1.0.0-SNAPSHOT`, so an unreleased change can be consumed without building it:
 
 ```kotlin
 repositories {
@@ -48,22 +102,27 @@ repositories {
 }
 ```
 
-For a change that is not merged yet, `make publish_local` puts the current tree in your local Maven repository.
+```kotlin
+dependencies {
+    implementation("io.github.joaoseidel:ktor-toolkit-paginator:1.0.0-SNAPSHOT")
+}
+```
 
-Ktor and kotlinx-serialization come along transitively. They appear in these modules' public signatures, so they are declared as `api` dependencies.
+Gradle caches a snapshot for 24 hours. To pick up a fresh one, either run with `--refresh-dependencies` or narrow the window for these modules alone:
 
-Three features compile against libraries their module does **not** bring with it: `Sort.toExposedQueryExpression` needs
-`org.jetbrains.exposed:exposed-core`, `Sort.toMongoSortExpression` needs `org.mongodb:mongodb-driver-core`, and `LettuceCache` needs
-`io.lettuce:lettuce-core`. Everything else works without them.
+```kotlin
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor(0, TimeUnit.SECONDS)
+}
+```
 
-A dependency on its own changes nothing. `problem-details` needs `StatusPages` with `problemDetails { }` inside it, `validator` needs
-`RequestValidation`, and any module that serializes needs `ContentNegotiation`. `paginator`, `hateoas`, `expander` and `cache` need no plugin, since
-they are call extensions and plain objects.
+For a change that is not merged yet, `make publish_local` puts the current tree in your local Maven repository; add `mavenLocal()` for that session
+and remove it in the same one.
 
 ### Let the agent do it
 
-The [skills](#skills) ship as a Claude Code plugin, from a marketplace this repository hosts itself. Register the marketplace, then install the
-collection from it:
+The [skills](#skills) ship as a Claude Code plugin, from a marketplace this repository hosts itself. Both commands are interactive and run inside a
+session:
 
 ```bash
 /plugin marketplace add joaoseidel/ktor-toolkit
@@ -73,20 +132,19 @@ collection from it:
 /plugin install ktor-toolkit@ktor-toolkit
 ```
 
-Both commands are interactive and run inside a Claude Code session. Installing the plugin this way is what keeps the `/ktor-toolkit:` prefix on every
-skill; the marketplace step only points Claude Code at this repository, and nothing is installed until the second command. For any other agent, or to
-vendor the files into the repository, the skills CLI reads the same collection:
+The marketplace step only points Claude Code at this repository; nothing is installed until the second command. Installing this way is what keeps the
+`/ktor-toolkit:` prefix on every skill. For any other agent, or to vendor the files into your repository, the skills CLI reads the same collection:
 
 ```bash
 npx skills add joaoseidel/ktor-toolkit --skill '*'
 ```
 
-Take the whole collection rather than a subset, since the skills route to each other, and prefer project scope over global. These are one project's
-conventions, and installed globally they follow you into projects that do not share them.
+Take the whole collection rather than a subset — the skills route to each other, and a partial install turns those references into dead ends. Prefer
+project scope over global: these are one project's conventions, and installed globally they follow you into projects that do not share them.
 
-With the collection in place, `/ktor-toolkit:install` performs the whole setup: it picks the modules from what the API actually does, adds the version
-catalog entries and the Gradle dependencies, installs the Ktor plugins each selected module requires, drops in the compiler opt-ins the DSLs ask for,
-and verifies the result compiles before reporting back.
+With the collection in place, `/ktor-toolkit:install` does the whole setup — picks the modules from what your API actually does, adds the catalog
+entries and dependencies, installs the Ktor plugins each selected module requires, adds the compiler opt-ins the DSLs ask for, and verifies the result
+compiles before reporting back.
 
 ```bash
 /ktor-toolkit:install
@@ -99,9 +157,9 @@ HTML instead of `problem+json`.
 
 ## Paginator
 
-Reads the pagination off the call, carries it through to your repository, and shapes what comes back. `call.pagination` never fails the request: an
-unparseable `?page=abc` falls back to the default, a negative page becomes 0, and the page size is clamped to `1..100` (`call.paginationRequest(...)`
-for other bounds).
+Reads the pagination off the call, carries it through to your repository, and shapes what comes back. **`call.pagination` never fails the request:**
+an unparseable `?page=abc` falls back to the default, a negative page becomes `0`, and the page size is clamped to `1..100`. Use
+`call.paginationRequest(…)` for other bounds.
 
 ```kotlin
 get("/books") {
@@ -123,7 +181,7 @@ val ordering = sortBy {
 }
 ```
 
-Turn a sort into a query with an explicit allow-list. Anything outside it raises `IllegalArgumentException` rather than reaching the database:
+Turn a sort into a query with an explicit allow-list. **Anything outside it raises `IllegalArgumentException` rather than reaching the database:**
 
 ```kotlin
 Books.selectAll().orderBy(*pagination.sortBy.toExposedQueryExpression(Books.title, Books.createdAt).toTypedArray())
@@ -158,21 +216,9 @@ get("/books") {
         …
     ],
     "_links": [
-        {
-            "rel": "self",
-            "href": "/books?page=0&pageSize=10",
-            "method": "GET"
-        },
-        {
-            "rel": "next",
-            "href": "/books?page=1&pageSize=10",
-            "method": "GET"
-        },
-        {
-            "rel": "last",
-            "href": "/books?page=2&pageSize=10",
-            "method": "GET"
-        }
+        { "rel": "self", "href": "/books?page=0&pageSize=10", "method": "GET" },
+        { "rel": "next", "href": "/books?page=1&pageSize=10", "method": "GET" },
+        { "rel": "last", "href": "/books?page=2&pageSize=10", "method": "GET" }
     ]
 }
 ```
@@ -191,7 +237,7 @@ call.respond(
 ## Validator
 
 Rules read as sentences and attach to properties by reference, so a rename is a compile error rather than a silently dead rule. **A rule that does not
-fit does not compile.** `should be email()` on an `Int` is an unresolved reference, and completion inside `property { }` only offers the rules that
+fit does not compile:** `should be email()` on an `Int` is an unresolved reference, and completion inside `property { }` offers only the rules that
 apply.
 
 ```kotlin
@@ -218,8 +264,8 @@ install(RequestValidation) {
 | `past`, `future`, `before`, `after`, `within`   | `LocalDate`, `LocalDateTime`, `Instant` |
 | `nil`, `satisfying`                             | any                                     |
 
-Rules are values. Combine them with `and`, `or` and `!`, write a one-off with `satisfying`, and override the default message with `describedAs`. Note
-the parentheses around a composed rule; infix calls associate to the left.
+Rules are values: combine them with `and`, `or` and `!`, write a one-off with `satisfying`, and override the default message with `describedAs`. Note
+the parentheses around a composed rule — infix calls associate to the left.
 
 ```kotlin
 property(CreateBookRequest::isbn) {
@@ -231,8 +277,8 @@ property(CreateBookRequest::authorEmail) {
 }
 ```
 
-A rule stays silent on a `null` property, so requiring a field and constraining it are two separate assertions (`should notBe nil()`, then
-`should be email()`). `each` validates collection elements as values and `eachNested` as objects, `whenever` makes a group conditional, and`invariant`
+**A rule stays silent on a `null` property**, so requiring a field and constraining it are two separate assertions — `should notBe nil()`, then
+`should be email()`. `each` validates collection elements as values and `eachNested` as objects, `whenever` makes a group conditional, and `invariant`
 states a rule no single property owns:
 
 ```kotlin
@@ -281,9 +327,13 @@ throw HttpStatusException(HttpStatusCode.NotFound, "Book not found", mapOf("id" 
 ```
 
 StatusPages resolves by nearest ancestor class, so an `on<E>` mapping wins over the catch-all whatever order it was declared in, and the request path
-fills in as `instance` unless you name one. An unhandled exception logs its stack trace and answers with a fixed message, because exception text
-routinely names the database. Set `includeExceptionMessage = true` to echo it while developing, and register `exception<T>` handlers after
-`problemDetails()` to override any of them.
+fills in as `instance` unless you name one.
+
+**An unhandled exception logs its stack trace and answers with a fixed message**, because exception text routinely names the database. Set
+`includeExceptionMessage = true` to echo it while developing, and register `exception<T>` handlers after `problemDetails()` to override any of them.
+
+Install it before you have any mappings. Covering the *unmapped* cases is the module's whole point, and a service that adds it later has already
+shipped a different error shape to its clients.
 
 ## Expander
 
@@ -321,8 +371,8 @@ type varies per row.
 
 ## Cache
 
-Caches a route's result under the request path plus its query parameters, sorted so parameter order does not matter, then hashed. A cache failure is
-logged and the request is served from the origin, though a coroutine cancellation still propagates.
+Caches a route's result under the request path plus its query parameters, sorted so parameter order does not matter, then hashed. **A cache failure is
+logged and the request is served from the origin**, though a coroutine cancellation still propagates.
 
 ```kotlin
 val cache = InMemoryCache(maxSize = 1_000, ttl = 5.minutes)
@@ -342,8 +392,8 @@ cache.invalidateNamespace("books")   // everything under the namespace
 cache.invalidateContaining(bookId)   // entries whose payload mentions this id
 ```
 
-`InMemoryCache` is LRU-bounded with an optional TTL, which suits a single node. Once more than one instance serves the same traffic, use`LettuceCache`
-over [Lettuce](https://lettuce.io). Otherwise each node holds, and invalidates, its own copy:
+`InMemoryCache` is LRU-bounded with an optional TTL, which suits a single node. **Once more than one instance serves the same traffic, use
+`LettuceCache`** over [Lettuce](https://lettuce.io) — otherwise each node holds, and invalidates, its own copy:
 
 ```kotlin
 val connection = RedisClient.create("redis://localhost:6379").connect(LettuceCache.Codec)
@@ -351,28 +401,26 @@ val cache = LettuceCache(connection.async(), ttl = 5.minutes)
 ```
 
 Nothing else changes: `withCache` and both invalidation helpers behave the same, and Redis applies the TTL itself. You own the connection, so share it
-(it is thread-safe and multiplexes) and close it on shutdown. Every key sits under `keyPrefix` (`"ktor-toolkit:"` by default), which bounds what the
+— it is thread-safe and multiplexes — and close it on shutdown. Every key sits under `keyPrefix` (`"ktor-toolkit:"` by default), which bounds what the
 invalidation helpers scan. They walk the keyspace with `SCAN`, so keep them to writes rather than requests.
 
 ---
 
 ## Skills
 
-The libraries leave the surrounding decisions open, and contributors resolve them differently: one parses `?page` by hand, another invents its own
-error envelope, another puts the repository call in the route body. The skills record the intended answer to each of those decisions, so an agent
-working in the project follows the same conventions a maintainer would.
+The libraries leave the surrounding decisions open, and everyone resolves them differently: one parses `?page` by hand, another invents its own error
+envelope, another puts the repository call in the route body. The skills record the intended answer to each, so the *n*-th endpoint in your service
+looks like the first one whoever wrote it.
 
-There are 22 of them, installed with the commands under [Install](#let-the-agent-do-it).
+They are written for the repository that installs them, not for this one. Install with the commands under [Let the agent do it](#let-the-agent-do-it).
 
-### The entrypoint
-
-**`/ktor-toolkit:start` runs first, before any Kotlin is written or changed.** It checks which toolkit modules are on the classpath, works out whether
-it is in the toolkit repo or a service consuming it, then loads the skills that apply to the request, usually two or three. Running it after the code
-is written is too late to be useful.
+**`/ktor-toolkit:start` runs first, before any Kotlin is written or changed.** It establishes which toolkit modules are on your classpath and what
+your project's build gate is, then routes the task to the skills that apply — usually two or three. Running it after the code is written is too late
+to be useful.
 
 | Skill             | What it covers                                                                          |
 |-------------------|-----------------------------------------------------------------------------------------|
-| `start`           | **Entrypoint.** Checks the project, routes the task to the skills below                 |
+| `start`           | **Entrypoint.** Orients in the project, routes the task to the skills below             |
 | `install`         | Adds the toolkit to a project: modules, Gradle wiring, Ktor plugins, these skills       |
 | `endpoint`        | A new or changed HTTP route, end to end across `-core`, `-adapters` and `-app`          |
 | `architecture`    | Ports & Adapters layout, the three-module split, where a file goes                      |
@@ -382,18 +430,23 @@ is written is too late to be useful.
 | `problem-details` | `problemDetails { }`, status codes, mapping domain exceptions                           |
 | `expand`          | `ExpandSpec`, batched resolution, the `Expandable` wire contract                        |
 | `cache`           | `withCache`, choosing a store, TTLs, who invalidates and when                           |
-| `migrations`      | Versioned SQL under Flyway, where it lives, and expand/contract schema changes          |
+| `migrations`      | Versioned SQL under Flyway, where it lives, baselining, expand/contract schema changes  |
 | `di`              | Ktor's native DI: `provide<Port> { Impl(resolve()) }`, lifetimes, test overrides        |
 | `tests`           | Kotest ShouldSpec naming, MockK, `testApplication`, Testcontainers, acceptance tests    |
-| `kover`           | The `report` aggregation module, thresholds, and the strict rule for exclusions         |
+| `kover`           | The `report` aggregation module, ratcheting a threshold, the rule for exclusions        |
 | `openapi`         | Ktor's comment-based OpenAPI generation, served through Scalar                          |
 | `logging`         | KotlinLogging idioms, correlation IDs via CallId/CallLogging, what must never be logged |
 | `healthcheck`     | Liveness and readiness probes with Cohort, and what a probe may depend on               |
 | `gradle`          | `libs.versions.toml` as the single source of versions, choosing a dependency scope      |
 | `makefile`        | The canonical target set, and a self-documenting `help`                                 |
 | `container`       | Multi-stage jlink Dockerfile, container-aware JVM ergonomics, graceful shutdown         |
-| `comments`        | Comments explain *why*; KDoc states the contract on public declarations                 |
-| `commit`          | Conventional Commits as this project writes them, and how to split work                 |
+| `codestyle`       | What a formatter cannot check: naming, immutability, invariants, coroutine failure      |
+| `comments`        | The best comment is none; KDoc states the contract, and stale comments get deleted      |
+| `changelog`       | What earns an entry, written from the caller's side, in the commit that caused it       |
+| `commit`          | Conventional Commits with a body that says what was wrong, and how to split work        |
+
+Each skill also says what to do when it describes something your repository does not have yet — a Makefile, a Dockerfile, a `CHANGELOG.md`, a coverage
+module. It proposes the file and waits for you, rather than scaffolding it unasked or quietly working around its absence.
 
 ## Development
 
@@ -406,6 +459,9 @@ make api        # refresh the public API dumps after an intentional change
 make verify     # everything a release must pass
 make docs       # Dokka HTML per module
 ```
+
+`make verify` is lint, `api_check`, build and coverage, in the order a failure is cheapest to read. Coverage is gated at 100% line and 100% branch,
+and a changed public signature carries its refreshed `api/` dump in the same commit.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [RELEASING.md](RELEASING.md) and the [CHANGELOG](CHANGELOG.md).
 
