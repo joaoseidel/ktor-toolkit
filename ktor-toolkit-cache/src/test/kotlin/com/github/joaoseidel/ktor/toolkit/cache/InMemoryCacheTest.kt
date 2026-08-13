@@ -69,6 +69,14 @@ class InMemoryCacheTest :
 
                     cache.keys() shouldContainExactlyInAnyOrder listOf("a", "b")
                 }
+
+                should("list only the live keys under a prefix") {
+                    val cache = InMemoryCache()
+                    cache.put("books.one", bytes("1"))
+                    cache.put("book-chapters.one", bytes("2"))
+
+                    cache.keys("books.") shouldContainExactlyInAnyOrder listOf("books.one")
+                }
             }
 
             context("size bound") {

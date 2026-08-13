@@ -83,8 +83,16 @@ class LettuceCache(
      * twice — duplicates are removed here — so this stays a maintenance-shaped operation, not a
      * per-request one.
      */
-    override suspend fun keys(): List<String> {
-        val args = ScanArgs.Builder.limit(scanBatchSize.toLong()).match("${keyPrefix.escapeGlob()}*")
+    override suspend fun keys(): List<String> = keys(prefix = "")
+
+    /**
+     * As [keys], but the narrowing is `SCAN MATCH`, so the server skips the keys that do not match
+     * rather than returning them to be filtered here. The sweep is still proportional to the whole
+     * keyspace under [keyPrefix] — that is what `SCAN` costs — but only the matches cross the wire.
+     */
+    override suspend fun keys(prefix: String): List<String> {
+        val pattern = "${keyPrefix.escapeGlob()}${prefix.escapeGlob()}*"
+        val args = ScanArgs.Builder.limit(scanBatchSize.toLong()).match(pattern)
         val collected = LinkedHashSet<String>()
         var cursor: KeyScanCursor<String> = commands.scan(args).await()
 

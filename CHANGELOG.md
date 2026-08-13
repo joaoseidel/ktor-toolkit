@@ -123,6 +123,10 @@ First public release. Nothing was published before this, so the breaking changes
   optional dependency — add `io.lettuce:lettuce-core`
   yourself. Redis applies the TTL, keys are namespaced by `keyPrefix`, and key listing goes through
   `SCAN` rather than `KEYS`.
+- `KeyValueCache.keys(prefix)` lists only the keys under a prefix, and `invalidateNamespace` asks for the namespace rather than fetching every key and
+  filtering them itself. `LettuceCache` narrows with `SCAN MATCH`, so invalidating one namespace no longer carries every other namespace's keys back
+  from Redis — the sweep is unchanged, what crosses the wire is not. The default implementation filters `keys()` as before, so an existing
+  `KeyValueCache` keeps working without overriding it.
 - `PaginationRequest.from` accepts `defaultPageSize` and `maxPageSize`.
 - Public API dumps under `*/api/`, enforced by `apiCheck`.
 - A `healthcheck` skill, covering health endpoints with Cohort: separate liveness and readiness registries, which dependencies may fail a probe,

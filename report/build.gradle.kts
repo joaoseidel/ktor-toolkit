@@ -43,6 +43,12 @@ kover {
                 // declaration itself; callers inline the body instead, so that copy never runs.
                 annotatedBy("com.github.joaoseidel.ktor.toolkit.cache.UnreachableBytecode")
 
+                // A Kotlin caller reaches an interface's default method directly, and an
+                // implementation that does not override it gets a bridge that does the same. The
+                // DefaultImpls trampoline beside it is emitted for Java interop and binary
+                // compatibility, so nothing on this side of the boundary can execute it.
+                classes("*\$DefaultImpls")
+
                 // Every property of PaginationRequest is optional, so kotlinx.serialization guards
                 // its generated `throwMissingFieldException` with `(0 and seen) != 0` — always
                 // false. Named precisely: PaginationRequest$Companion, which holds the parsing this

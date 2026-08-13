@@ -199,6 +199,27 @@ class LettuceCacheTest :
                     render(args.captured) shouldContain
                         "MATCH ${asByteArgument("""a\*b\[c\]:*""")}"
                 }
+
+                should("let the server skip the keys outside the requested prefix") {
+                    val commands = mockk<Commands>()
+                    val args = slot<ScanArgs>()
+                    every { commands.scan(capture(args)) } returns cursor("books:books.one")
+
+                    LettuceCache(commands, keyPrefix = "books:").keys("books.") shouldContainExactly
+                        listOf("books.one")
+
+                    render(args.captured) shouldContain "MATCH ${asByteArgument("books:books.*")}"
+                }
+
+                should("match a requested prefix containing glob metacharacters literally") {
+                    val commands = mockk<Commands>()
+                    val args = slot<ScanArgs>()
+                    every { commands.scan(capture(args)) } returns cursor()
+
+                    LettuceCache(commands, keyPrefix = "").keys("books[1].")
+
+                    render(args.captured) shouldContain "MATCH ${asByteArgument("""books\[1\].*""")}"
+                }
             }
 
             context("codec") {
