@@ -5,7 +5,6 @@ public final class com/github/joaoseidel/ktor/toolkit/cache/InMemoryCache : com/
 	public synthetic fun <init> (IJLkotlin/time/Clock;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun delete (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun get (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun keys (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun keys (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun put (Ljava/lang/String;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun size (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -20,10 +19,6 @@ public abstract interface class com/github/joaoseidel/ktor/toolkit/cache/KeyValu
 	public fun keys (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun keys (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun put (Ljava/lang/String;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
-}
-
-public final class com/github/joaoseidel/ktor/toolkit/cache/KeyValueCache$DefaultImpls {
-	public static fun keys (Lcom/github/joaoseidel/ktor/toolkit/cache/KeyValueCache;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/github/joaoseidel/ktor/toolkit/cache/KtorCacheKt {
