@@ -4,6 +4,7 @@ import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.SourcesJar
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -48,6 +49,13 @@ subprojects {
 
         compilerOptions {
             freeCompilerArgs.add("-Xjsr305=strict")
+
+            // An interface method with a body compiles to a JVM default method alone. The default
+            // is to emit a DefaultImpls trampoline beside it, for binary compatibility with code
+            // built against a Kotlin that had no default methods — code that cannot exist for a
+            // library whose first release this is. Nothing calls the copy, and dead bytecode is
+            // better deleted than explained to the coverage gate.
+            jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
         }
     }
 

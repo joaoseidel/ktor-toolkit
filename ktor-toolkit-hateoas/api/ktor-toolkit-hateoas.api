@@ -37,7 +37,6 @@ public final synthetic class com/github/joaoseidel/ktor/toolkit/hateoas/data/Lin
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
 	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/github/joaoseidel/ktor/toolkit/hateoas/data/Link;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
-	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
 public final class com/github/joaoseidel/ktor/toolkit/hateoas/data/Link$Companion {
