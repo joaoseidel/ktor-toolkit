@@ -24,4 +24,13 @@ interface KeyValueCache {
 
     /** Every live key. Used by the namespace and content invalidation helpers. */
     suspend fun keys(): List<String>
+
+    /**
+     * Every live key starting with [prefix].
+     *
+     * This is what namespace invalidation runs on, so a store that can match keys itself should
+     * override it and let the store do the narrowing — the default fetches every key and filters
+     * them here, which costs the same as [keys] however small the namespace is.
+     */
+    suspend fun keys(prefix: String): List<String> = keys().filter { it.startsWith(prefix) }
 }

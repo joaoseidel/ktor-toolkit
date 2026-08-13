@@ -102,12 +102,16 @@ suspend fun KeyValueCache.invalidateContaining(id: String): Boolean =
         }
     } ?: false
 
-/** Deletes every entry stored under [namespace]. */
+/**
+ * Deletes every entry stored under [namespace].
+ *
+ * The namespace is asked of the store rather than filtered here, so a store that can narrow keys
+ * itself only returns the ones about to be deleted.
+ */
 suspend fun KeyValueCache.invalidateNamespace(namespace: String) {
     cacheCatching("invalidateNamespace") {
         coroutineScope {
-            keys()
-                .filter { it.startsWith("$namespace.") }
+            keys("$namespace.")
                 .map { key -> async { cacheCatching("delete($key)") { delete(key) } } }
                 .awaitAll()
         }

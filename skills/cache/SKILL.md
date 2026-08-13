@@ -125,7 +125,8 @@ cache.invalidateNamespace("books")   // every entry under the namespace
 cache.invalidateContaining(bookId)   // entries whose payload mentions this id
 ```
 
-**Reach for `invalidateNamespace` first.** It matches on the key prefix and deletes in parallel.
+**Reach for `invalidateNamespace` first.** It asks the store for the keys under the prefix and deletes them in parallel — against Redis the prefix
+goes into `SCAN MATCH`, so the other namespaces' keys never cross the wire.
 
 `invalidateContaining` reads **every key and every value** in the store and does a substring match on the serialized payload. It exists for the case
 where an entity appears in entries whose keys do not name it — a book inside a cached author response — and it is honest about its cost: fine for a

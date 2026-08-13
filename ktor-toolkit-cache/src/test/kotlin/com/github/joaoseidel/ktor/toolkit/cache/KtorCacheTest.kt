@@ -2,6 +2,7 @@ package com.github.joaoseidel.ktor.toolkit.cache
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ShouldSpec
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -54,6 +55,7 @@ private fun brokenCache(failure: Throwable): KeyValueCache {
     coEvery { cache.put(any(), any()) } throws failure
     coEvery { cache.delete(any()) } throws failure
     coEvery { cache.keys() } throws failure
+    coEvery { cache.keys(any()) } throws failure
 
     return cache
 }
@@ -71,8 +73,35 @@ private fun partialCache(
     val cache = mockk<KeyValueCache>()
 
     coEvery { cache.keys() } coAnswers { delegate.keys() + awkwardKey }
+    coEvery { cache.keys(any()) } coAnswers {
+        val prefix = firstArg<String>()
+        (delegate.keys() + awkwardKey).filter { it.startsWith(prefix) }
+    }
     coEvery { cache.get(awkwardKey) } answers { read() }
     coEvery { cache.get(neq(awkwardKey)) } coAnswers { delegate.get(firstArg()) }
+    coEvery { cache.put(any(), any()) } coAnswers { delegate.put(firstArg(), secondArg()) }
+    coEvery { cache.delete(any()) } coAnswers { delegate.delete(firstArg()) }
+
+    return cache
+}
+
+/**
+ * A store that records into [asked] every prefix it was asked to narrow by, so a test can tell a
+ * store-side narrowing from a listing filtered after the fact. Everything else goes to [delegate].
+ */
+private fun narrowingCache(
+    delegate: KeyValueCache,
+    asked: MutableList<String>,
+): KeyValueCache {
+    val cache = mockk<KeyValueCache>()
+
+    coEvery { cache.keys() } coAnswers { delegate.keys() }
+    coEvery { cache.keys(any()) } coAnswers {
+        val prefix = firstArg<String>()
+        asked += prefix
+        delegate.keys(prefix)
+    }
+    coEvery { cache.get(any()) } coAnswers { delegate.get(firstArg()) }
     coEvery { cache.put(any(), any()) } coAnswers { delegate.put(firstArg(), secondArg()) }
     coEvery { cache.delete(any()) } coAnswers { delegate.delete(firstArg()) }
 
@@ -259,6 +288,27 @@ class KtorCacheTest :
                     cache.invalidateNamespace("books")
 
                     cache.keys() shouldContainExactlyInAnyOrder listOf("authors.one")
+                }
+
+                should("ask the store for the namespace, rather than for every key") {
+                    val store = InMemoryCache()
+                    store.put("books.one", ByteArray(0))
+                    store.put("authors.one", ByteArray(0))
+                    val asked = mutableListOf<String>()
+
+                    narrowingCache(store, asked).invalidateNamespace("books")
+
+                    asked shouldContainExactly listOf("books.")
+                }
+
+                should("leave a namespace the deleted one is a prefix of alone") {
+                    val cache = InMemoryCache()
+                    cache.put("books.one", ByteArray(0))
+                    cache.put("book-chapters.one", ByteArray(0))
+
+                    cache.invalidateNamespace("book")
+
+                    cache.keys() shouldContainExactlyInAnyOrder listOf("books.one", "book-chapters.one")
                 }
 
                 should("propagate cancellation instead of swallowing it") {
