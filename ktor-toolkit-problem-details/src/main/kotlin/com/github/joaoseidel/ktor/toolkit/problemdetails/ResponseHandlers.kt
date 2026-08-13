@@ -40,9 +40,8 @@ object ResponseHandlers {
     private const val ROOT_POINTER = "$"
 
     /**
-     * Matches a property-scoped reason, whose path
-     * [com.github.joaoseidel.ktor.toolkit.validator.data.ValidationError] quotes in backticks.
-     * Compiled once: this runs per reason, per failed request.
+     * Matches a property-scoped reason, whose path `ValidationError` (from the validator module)
+     * quotes in backticks. Compiled once: this runs per reason, per failed request.
      */
     private val PROPERTY_REASON = Regex("`(.*?)`\\s(.*)")
 
