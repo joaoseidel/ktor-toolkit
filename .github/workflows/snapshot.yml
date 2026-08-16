@@ -25,7 +25,7 @@ jobs:
       url: https://central.sonatype.com/repository/maven-snapshots/io/github/joaoseidel/
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 0  # the version guard below reads the tag list
