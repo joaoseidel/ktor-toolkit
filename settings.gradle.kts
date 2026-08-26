@@ -21,6 +21,7 @@ include("ktor-toolkit-problem-details")
 include("ktor-toolkit-paginator")
 include("ktor-toolkit-validator")
 include("ktor-toolkit-cache")
+include("ktor-toolkit-state-machine")
 
 // Report generator
 include("report")

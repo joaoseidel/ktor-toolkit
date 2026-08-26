@@ -11,8 +11,9 @@
             <option value="$PROJECT_DIR$/ktor-toolkit-cache" />
             <option value="$PROJECT_DIR$/ktor-toolkit-expander" />
             <option value="$PROJECT_DIR$/ktor-toolkit-hateoas" />
-            <option value="$PROJECT_DIR$/ktor-toolkit-problem-details" />
             <option value="$PROJECT_DIR$/ktor-toolkit-paginator" />
+            <option value="$PROJECT_DIR$/ktor-toolkit-problem-details" />
+            <option value="$PROJECT_DIR$/ktor-toolkit-state-machine" />
             <option value="$PROJECT_DIR$/ktor-toolkit-validator" />
             <option value="$PROJECT_DIR$/report" />
           </set>
