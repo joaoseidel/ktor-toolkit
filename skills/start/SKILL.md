@@ -9,7 +9,7 @@ description: >-
 
 # Ktor Toolkit — Start Here
 
-The six libraries are the easy part. The hard part is that everyone who touches the service solves the *surrounding* problem differently: one parses
+The seven libraries are the easy part. The hard part is that everyone who touches the service solves the *surrounding* problem differently: one parses
 `?page` by hand, one invents an error envelope, one puts the repository call in the route body. You get a codebase where every endpoint is defensible
 alone and none of them match.
 
@@ -84,6 +84,7 @@ Most tasks hit two or three rows. That is normal.
 | `_links`, `self`/`next`/`prev`, resource envelopes                        | `ktor-toolkit:hateoas`         |
 | `?expand=`, embedding a related resource, N+1 worry                       | `ktor-toolkit:expand`          |
 | Rejecting bad input, required fields, formats, rules on a request         | `ktor-toolkit:validation`      |
+| A status field with rules; "can this be cancelled yet?"; a lifecycle      | `ktor-toolkit:state-machine`   |
 | Error responses, status codes, `problem+json`, exception handling         | `ktor-toolkit:problem-details` |
 | Response caching, TTL, invalidation, Redis, "this endpoint is slow"       | `ktor-toolkit:cache`           |
 | A table, column, index or constraint; anything the schema states          | `ktor-toolkit:migrations`      |
@@ -147,6 +148,8 @@ code or reading someone else's.
 | `!!` on a field of a request DTO                                        | `ktor-toolkit:validation`      |
 | A `ConcurrentHashMap` used as a cache                                   | `ktor-toolkit:cache`           |
 | A loop that queries per row to fill in a related object                 | `ktor-toolkit:expand`          |
+| `if (order.state != PLACED) throw …` at the top of a use case           | `ktor-toolkit:state-machine`   |
+| A `when (entity.status)` deciding what is allowed to happen next        | `ktor-toolkit:state-machine`   |
 | A repository interface in the same module as its Exposed implementation | `ktor-toolkit:architecture`    |
 | `SchemaUtils.create(…)` anywhere but a test                             | `ktor-toolkit:migrations`      |
 | An edit to a migration file that has already run                        | `ktor-toolkit:migrations`      |

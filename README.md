@@ -12,7 +12,7 @@
 Six small, independent libraries for building JSON APIs with [Ktor](https://ktor.io): pagination, HATEOAS links, request validation, RFC 9457 errors,
 field expansion and response caching.
 
-Take one or take all six. Nothing pulls in the others except `hateoas`, which builds on `paginator`.
+Take one or take all seven. Nothing pulls in the others except `hateoas`, which builds on `paginator`.
 
 | Module                                             | What it does                                                                 |
 |----------------------------------------------------|------------------------------------------------------------------------------|
@@ -22,8 +22,9 @@ Take one or take all six. Nothing pulls in the others except `hateoas`, which bu
 | [`ktor-toolkit-problem-details`](#problem-details) | Turns exceptions into RFC 9457 `application/problem+json` responses          |
 | [`ktor-toolkit-expander`](#expander)               | Resolves `?expand=author.books`, batching one query per field                |
 | [`ktor-toolkit-cache`](#cache)                     | Caches a response by request path and query, over any key-value store        |
+| [`ktor-toolkit-state-machine`](#state-machine)     | Declares an aggregate's legal moves, and publishes the open ones as links    |
 
-The repository also ships [24 agent skills](#skills) that record how these APIs are meant to be used, so an agent working in your service follows the
+The repository also ships [25 agent skills](#skills) that record how these APIs are meant to be used, so an agent working in your service follows the
 same conventions you would.
 
 ## Install
@@ -400,9 +401,75 @@ val connection = RedisClient.create("redis://localhost:6379").connect(LettuceCac
 val cache = LettuceCache(connection.async(), ttl = 5.minutes)
 ```
 
-Nothing else changes: `withCache` and both invalidation helpers behave the same, and Redis applies the TTL itself. You own the connection, so share it
-— it is thread-safe and multiplexes — and close it on shutdown. Every key sits under `keyPrefix` (`"ktor-toolkit:"` by default), which bounds what the
-invalidation helpers scan. They walk the keyspace with `SCAN`, so keep them to writes rather than requests.
+Nothing else changes: `withCache` and both invalidation helpers behave the same, and Redis applies the TTL itself. You own the connection, so share
+it — it is thread-safe and multiplexes — and close it on shutdown. Every key sits under `keyPrefix` (`"ktor-toolkit:"` by default), which bounds what
+the invalidation helpers scan. They walk the keyspace with `SCAN`, so keep them to writes rather than requests.
+
+---
+
+## State Machine
+
+States an aggregate's legal moves once, in the domain, instead of leaving them spread across whichever use cases happen to touch the status field. The
+module has **no dependencies at all** — not even Ktor — so a framework-free `-core` can depend on it.
+
+```kotlin
+val orderFlow = stateMachine<OrderState, OrderEvent, Order> {
+    initial(DRAFT)
+    final(SHIPPED, CANCELLED)
+
+    state(DRAFT) {
+        on<Place>(PLACED) {
+            guard("must have at least one line") { it.lines.isNotEmpty() }
+            effect { order, event -> audit.record(order, event) }
+        }
+        on<Cancel>(CANCELLED)
+    }
+
+    state(PLACED) {
+        on<Pay>(PAID)
+        on<Cancel>(CANCELLED)
+    }
+
+    state(PAID) {
+        onEnter { order, _ -> receipts.issue(order) }
+        on<Ship>(SHIPPED) { rel = "dispatch" }
+    }
+
+    onTransition { audit.log(it) }
+}
+```
+
+**The definition is checked when it is built**, so an unreachable state, a dead end, a move to a state nobody declared or two moves one event could
+both trigger is a `StateMachineDefinitionException` at startup rather than a bug found in production.
+
+The machine never touches the subject — it reports where to go, and the caller applies it in the same unit of work that persists it:
+
+```kotlin
+when (val result = orderFlow.fire(order, order.state, Pay)) {
+    is Accepted -> repository.save(order.copy(state = result.to))
+    is Rejected -> log.info { result.reason.message }
+}
+```
+
+Where a rejection is always an error, `fireOrThrow` returns the state and raises `IllegalTransitionException` — map it to a `409` in `problemDetails
+{ }` and the handler stays one line. Guards and effects may both suspend.
+
+**A guard asks about the subject, never the event.** That is what lets the machine answer "what can this order do right now?" without being handed an
+event to test with — so the affordances and the rules that decide them cannot drift apart:
+
+```kotlin
+val moves = orderFlow.transitionLinks(order, order.state) { "/orders/${order.id}/${it.rel}" }
+
+call.respond(
+    resource(order.toResponse()) {
+        link("self", "/orders/${order.id}")
+        links(moves)
+    },
+)
+```
+
+The client stops reimplementing the lifecycle to decide whether to draw a button: it looks for a `pay` link, and the absence of one is the answer.
+`transitionLinks` is the only part that needs `ktor-toolkit-hateoas`, and it is compiled against it optionally.
 
 ---
 
@@ -430,6 +497,7 @@ to be useful.
 | `problem-details` | `problemDetails { }`, status codes, mapping domain exceptions                           |
 | `expand`          | `ExpandSpec`, batched resolution, the `Expandable` wire contract                        |
 | `cache`           | `withCache`, choosing a store, TTLs, who invalidates and when                           |
+| `state-machine`   | `stateMachine { }`, guards as affordances, transitions as `_links`                      |
 | `migrations`      | Versioned SQL under Flyway, where it lives, baselining, expand/contract schema changes  |
 | `di`              | Ktor's native DI: `provide<Port> { Impl(resolve()) }`, lifetimes, test overrides        |
 | `tests`           | Kotest ShouldSpec naming, MockK, `testApplication`, Testcontainers, acceptance tests    |

@@ -19,6 +19,7 @@ val coveredProjects =
         ":ktor-toolkit-problem-details",
         ":ktor-toolkit-paginator",
         ":ktor-toolkit-validator",
+        ":ktor-toolkit-state-machine",
     )
 
 dependencies {

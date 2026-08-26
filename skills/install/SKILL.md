@@ -37,14 +37,15 @@ Every module stands alone. Install what the project needs now; another is two li
 
 Ask in terms of what they are building, not module names — the names mean nothing before you have used them:
 
-| If the API…                                                        | Install                        |
-|--------------------------------------------------------------------|--------------------------------|
-| returns lists of anything                                          | `ktor-toolkit-paginator`       |
-| should advertise next/prev pages or related actions in the payload | `ktor-toolkit-hateoas`         |
-| accepts request bodies with rules about them                       | `ktor-toolkit-validator`       |
-| returns errors — so, every API                                     | `ktor-toolkit-problem-details` |
-| lets clients pull in related resources with `?expand=`             | `ktor-toolkit-expander`        |
-| has read endpoints worth caching                                   | `ktor-toolkit-cache`           |
+| If the API…                                                         | Install                        |
+|---------------------------------------------------------------------|--------------------------------|
+| returns lists of anything                                           | `ktor-toolkit-paginator`       |
+| should advertise next/prev pages or related actions in the payload  | `ktor-toolkit-hateoas`         |
+| accepts request bodies with rules about them                        | `ktor-toolkit-validator`       |
+| returns errors — so, every API                                      | `ktor-toolkit-problem-details` |
+| lets clients pull in related resources with `?expand=`              | `ktor-toolkit-expander`        |
+| has read endpoints worth caching                                    | `ktor-toolkit-cache`           |
+| has resources with a lifecycle — a status that may only move so far | `ktor-toolkit-state-machine`   |
 
 Two things to say while asking, because they change the answer:
 
@@ -52,6 +53,8 @@ Two things to say while asking, because they change the answer:
   complete — do not also list paginator.
 - **Default to `problem-details`.** Every service returns errors, and this is the module that decides what a client sees when one happens. Skip it and
   validation failures answer with Ktor's default HTML error page.
+- **`state-machine` has no dependencies of its own**, not even Ktor, which is why a domain module may depend on it. Its `web` package needs
+  `hateoas` — that one function is compiled against it optionally, so selecting the machine alone is complete.
 
 "All of them" is a legitimate answer for a greenfield service. Take it.
 
@@ -74,6 +77,7 @@ ktor-toolkit-validator = { module = "io.github.joaoseidel:ktor-toolkit-validator
 ktor-toolkit-problem-details = { module = "io.github.joaoseidel:ktor-toolkit-problem-details", version.ref = "ktor-toolkit" }
 ktor-toolkit-expander = { module = "io.github.joaoseidel:ktor-toolkit-expander", version.ref = "ktor-toolkit" }
 ktor-toolkit-cache = { module = "io.github.joaoseidel:ktor-toolkit-cache", version.ref = "ktor-toolkit" }
+ktor-toolkit-state-machine = { module = "io.github.joaoseidel:ktor-toolkit-state-machine", version.ref = "ktor-toolkit" }
 ```
 
 **One shared version key, not one per module.** They are released together and mixing versions across them is unsupported. Delete the aliases for
@@ -130,9 +134,11 @@ import com.github.joaoseidel.ktor.toolkit.problemdetails.problemDetails
 import com.github.joaoseidel.ktor.toolkit.validator.rulesFor
 import com.github.joaoseidel.ktor.toolkit.expander.data.ExpandSpec
 import com.github.joaoseidel.ktor.toolkit.cache.withCache
+import com.github.joaoseidel.ktor.toolkit.statemachine.stateMachine
+import com.github.joaoseidel.ktor.toolkit.statemachine.web.transitionLinks
 ```
 
-Note **`problemdetails`** — one word, no hyphen and no dot, unlike the artifact name.
+Note **`problemdetails`** and **`statemachine`** — one word each, no hyphen and no dot, unlike the artifact names.
 
 Within each module: domain types under `data`, wire types under `web`, call extensions and plugin installers at the module root. One level deeper
 matters for the validator — every rule lives in `…validator.validators`, one import per rule the file uses:
@@ -170,7 +176,8 @@ fun Application.module() {
 }
 ```
 
-**`paginator`, `hateoas`, `expander` and `cache` need no plugin** — they are call extensions and plain objects. Do not invent an `install()` for them.
+**`paginator`, `hateoas`, `expander`, `cache` and `state-machine` need no plugin** — they are call extensions and plain objects. Do not invent an
+`install()` for them. A state machine in particular is a top-level `val` in the domain, not something the application registers.
 
 **Leave `problemDetails { }` in place before any rules exist.** Covering the *unmapped* cases is the module's whole point, and a service that adds it
 later has already shipped a different error shape to its clients.
