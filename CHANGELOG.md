@@ -100,6 +100,17 @@ First public release. Nothing was published before this, so the breaking changes
 
 ### Added
 
+- **`ktor-toolkit-state-machine`, a new module.** `stateMachine<S, E, C> { }` declares an aggregate's states and the legal moves between them, with
+  suspending `guard`s, per-move `effect`s,
+  `onEnter` / `onExit` hooks and an `onTransition` listener. The definition is checked when it is built, so an unreachable state, a dead end, an
+  undeclared target or two moves one event could both trigger raise `StateMachineDefinitionException` at startup. `fire` returns
+  `Accepted` / `Rejected` and never touches the subject; `fireOrThrow` raises
+  `IllegalTransitionException`, which carries no HTTP status so the adapter can map it to a 409. The module has no dependencies of its own, so a
+  framework-free `-core` can depend on it.
+- **A machine can publish its own affordances.** Because a guard asks about the subject rather than the event, `availableFor` can report what a
+  subject may do right now, and
+  `transitionLinks` / `Resource.withTransitions` render that as HATEOAS `_links` — so the rules and the affordances derived from them cannot drift
+  apart. These live in the module's `web` package and are the only part needing `ktor-toolkit-hateoas`, which is an optional dependency.
 - Validation rules compose: `and`, `or`, `!` and `describedAs` operate on rules, and `satisfying`
   builds one from a predicate for a constraint no named rule covers.
 - `ValidationContext.each` and `eachNested` validate collection elements, reporting at `tags[0]` and

@@ -1,0 +1,123 @@
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/IllegalTransitionException : java/lang/RuntimeException {
+	public fun <init> (Ljava/lang/Object;Ljava/lang/Object;Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason;)V
+	public final fun getEvent ()Ljava/lang/Object;
+	public final fun getFrom ()Ljava/lang/Object;
+	public final fun getReason ()Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason;
+}
+
+public abstract interface class com/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason {
+	public abstract fun getMessage ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason$GuardFailed : com/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason$GuardFailed;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason$GuardFailed;Ljava/lang/String;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason$GuardFailed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getGuard ()Ljava/lang/String;
+	public fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason$NoTransition : com/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason {
+	public static final field INSTANCE Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason$NoTransition;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/StateBuilder {
+	public final fun on (Lkotlin/reflect/KClass;Ljava/lang/Object;Lkotlin/jvm/functions/Function1;)V
+	public final fun onEnter (Lkotlin/jvm/functions/Function3;)V
+	public final fun onExit (Lkotlin/jvm/functions/Function3;)V
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/StateMachine {
+	public final fun availableFor (Ljava/lang/Object;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun canFire (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun fire (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun fireOrThrow (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getInitialState ()Ljava/lang/Object;
+	public final fun getStates ()Ljava/util/Set;
+	public final fun isFinal (Ljava/lang/Object;)Z
+	public final fun reachableFrom (Ljava/lang/Object;)Ljava/util/Set;
+	public final fun transitionsFrom (Ljava/lang/Object;)Ljava/util/List;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/StateMachineBuilder {
+	public final fun final ([Ljava/lang/Object;)V
+	public final fun initial (Ljava/lang/Object;)V
+	public final fun onTransition (Lkotlin/jvm/functions/Function2;)V
+	public final fun state (Ljava/lang/Object;Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/StateMachineBuilderKt {
+	public static final fun stateMachine (Lkotlin/jvm/functions/Function1;)Lcom/github/joaoseidel/ktor/toolkit/statemachine/StateMachine;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/StateMachineDefinitionException : java/lang/IllegalStateException {
+}
+
+public abstract interface annotation class com/github/joaoseidel/ktor/toolkit/statemachine/StateMachineDsl : java/lang/annotation/Annotation {
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/Transition {
+	public final fun getEvent ()Lkotlin/reflect/KClass;
+	public final fun getFrom ()Ljava/lang/Object;
+	public final fun getRel ()Ljava/lang/String;
+	public final fun getTo ()Ljava/lang/Object;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/TransitionBuilder {
+	public final fun effect (Lkotlin/jvm/functions/Function3;)V
+	public final fun getRel ()Ljava/lang/String;
+	public final fun guard (Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
+	public final fun setRel (Ljava/lang/String;)V
+}
+
+public abstract interface class com/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult {
+	public abstract fun getEvent ()Ljava/lang/Object;
+	public abstract fun getFrom ()Ljava/lang/Object;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult$Accepted : com/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult {
+	public fun <init> (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/lang/Object;
+	public final fun component3 ()Ljava/lang/Object;
+	public final fun copy (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult$Accepted;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult$Accepted;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult$Accepted;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getEvent ()Ljava/lang/Object;
+	public fun getFrom ()Ljava/lang/Object;
+	public final fun getTo ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult$Rejected : com/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult {
+	public fun <init> (Ljava/lang/Object;Ljava/lang/Object;Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/lang/Object;
+	public final fun component3 ()Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason;
+	public final fun copy (Ljava/lang/Object;Ljava/lang/Object;Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason;)Lcom/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult$Rejected;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult$Rejected;Ljava/lang/Object;Ljava/lang/Object;Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/statemachine/TransitionResult$Rejected;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getEvent ()Ljava/lang/Object;
+	public fun getFrom ()Ljava/lang/Object;
+	public final fun getReason ()Lcom/github/joaoseidel/ktor/toolkit/statemachine/RejectionReason;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/web/TransitionLinksKt {
+	public static final fun transitionLinks (Lcom/github/joaoseidel/ktor/toolkit/statemachine/StateMachine;Ljava/lang/Object;Ljava/lang/Object;Lio/ktor/http/HttpMethod;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun transitionLinks$default (Lcom/github/joaoseidel/ktor/toolkit/statemachine/StateMachine;Ljava/lang/Object;Ljava/lang/Object;Lio/ktor/http/HttpMethod;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun withTransitions (Lcom/github/joaoseidel/ktor/toolkit/hateoas/data/Resource;Lcom/github/joaoseidel/ktor/toolkit/statemachine/StateMachine;Ljava/lang/Object;Ljava/lang/Object;Lio/ktor/http/HttpMethod;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun withTransitions$default (Lcom/github/joaoseidel/ktor/toolkit/hateoas/data/Resource;Lcom/github/joaoseidel/ktor/toolkit/statemachine/StateMachine;Ljava/lang/Object;Ljava/lang/Object;Lio/ktor/http/HttpMethod;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+

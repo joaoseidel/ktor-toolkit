@@ -126,11 +126,16 @@ com.example.catalog.core/
     ├── BookRepository.kt          driven port — an interface
     ├── BookNotFoundException.kt   domain exception
     ├── FindBooks.kt               use case
-    └── CreateBook.kt              use case
+    ├── CreateBook.kt              use case
+    └── BookFlow.kt                state machine, when the entity has a lifecycle
 ```
 
 An entity has identity and a lifecycle. A value object is defined entirely by its contents and validates itself in its constructor — prefer one over a
 `String` for anything with a rule attached, because it moves the rule to one place and makes the wrong type a compile error.
+
+When that lifecycle has rules about what may follow what, state them once as a `stateMachine { }` beside the entity rather than as a status check in
+each use case that touches it — load the `ktor-toolkit:state-machine` skill. It is a domain object: the module it comes from has no dependencies at
+all, so it is the one toolkit type `-core` can take without the Ktor grep below finding anything.
 
 Ports are interfaces named for what the domain wants, not for what implements them: `BookRepository`, never `BookDao` or `ExposedBookRepository`. The
 domain declares the interface and the adapter satisfies it; that inversion is the entire point of the split.
@@ -280,6 +285,9 @@ type even when it compiles without Ktor.
 | `ExpandRequest`                        | `-adapters` / web         | Parses `?expand=`.                                              |
 | `ExpandSpec`, `Expandable`             | `-adapters` / web         | Shapes a response for a client that asked to expand.            |
 | `ProblemDetail`, `HttpStatusException` | `-adapters` / web         | An HTTP status is a transport decision.                         |
+| `StateMachine`, `Transition`           | `-core`                   | An aggregate's legal moves are the domain's own rules.          |
+| `IllegalTransitionException`           | `-core`                   | A domain exception. The adapter picks the status, once.         |
+| `transitionLinks`, `withTransitions`   | `-adapters` / web         | Renders those moves as URLs, which the domain has no view on.   |
 | `Sort.toExposedQueryExpression(…)`     | `-adapters` / persistence | Turns a domain sort into a query.                               |
 | `KeyValueCache` implementations        | `-adapters`               | Infrastructure. Constructed in `-app`, never in a route.        |
 
