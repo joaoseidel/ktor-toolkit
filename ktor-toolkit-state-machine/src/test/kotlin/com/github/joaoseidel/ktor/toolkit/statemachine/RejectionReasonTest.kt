@@ -2,7 +2,6 @@ package com.github.joaoseidel.ktor.toolkit.statemachine
 
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
-import jdk.jpackage.internal.Arguments.CLIOptions.context
 
 class RejectionReasonTest :
     ShouldSpec(
