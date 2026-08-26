@@ -9,8 +9,6 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.ktor.http.HttpMethod
-import jdk.jpackage.internal.Arguments.CLIOptions.context
-import java.util.Collections.emptyList
 
 class TransitionLinksTest :
     ShouldSpec(
