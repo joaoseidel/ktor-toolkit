@@ -8,7 +8,6 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
-import jdk.jpackage.internal.Arguments.CLIOptions.context
 
 /** Builds a machine, so a test only has to say what is wrong with the definition. */
 private fun define(block: StateMachineBuilder<OrderState, OrderEvent, Order>.() -> Unit) = stateMachine(block)

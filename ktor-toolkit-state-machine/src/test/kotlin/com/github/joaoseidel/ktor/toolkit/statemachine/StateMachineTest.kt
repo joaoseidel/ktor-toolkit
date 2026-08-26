@@ -8,9 +8,6 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
-import jdk.jpackage.internal.Arguments.CLIOptions.context
-import java.util.Collections.emptyList
-import java.util.Collections.emptySet
 
 class StateMachineTest :
     ShouldSpec(
