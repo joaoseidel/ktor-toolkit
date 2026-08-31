@@ -30,7 +30,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0  # the version guard below reads the tag list
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
