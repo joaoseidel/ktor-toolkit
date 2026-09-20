@@ -3,8 +3,10 @@ name: tests
 description: >-
     Testing a Ktor Toolkit service — Kotest ShouldSpec with behaviour-named cases, MockK for
     collaborators, testApplication for routes, Testcontainers for real persistence, and acceptance
-    tests over the assembled app. Use when writing or reviewing any test, naming a context or a
-    should, deciding what to mock and what to run for real, or when a test is flaky.
+    tests that drive the built image over HTTP. Use when writing or reviewing any test, naming a
+    context or a should, deciding what to mock and what to run for real, choosing what a response
+    assertion should compare against, or when a test is flaky, hangs, or passes for the wrong
+    reason.
 ---
 
 # Testing
@@ -33,11 +35,13 @@ A `-core` test that starts a server, or an `-adapters` test of a domain rule, me
 `ktor-toolkit:architecture` skill.
 
 **The two Ktor tests differ only in how much they assemble.** An `-adapters` route test installs what that route needs and mocks the use case behind
-it, so a failure names the adapter. An acceptance test boots `module()` against the real graph, so a failure means the feature is broken for a client.
-`acceptance-tests` is its own module precisely so it cannot reach internals.
+it, so a failure names the adapter. An acceptance test drives the assembled service, so a failure means the feature is broken for a client.
+`acceptance-tests` is its own module precisely so it cannot reach internals: no project dependency on `-core` or `-app`, so there is nothing to assert
+on but the HTTP surface.
 
-**Where there is no `acceptance-tests` module**, offer one — a settings entry plus a build script — the first time a task needs a whole-app test, and
-wait. Until it exists, boot `module()` from an app-level test and say that is what you did.
+**Where there is no `acceptance-tests` module**, offer one the first time a task needs a whole-app test, and wait. It is more than a settings entry and
+a build script: it needs a task that builds the service's image, and the specs need to disable themselves where no Docker daemon can run it. Say so
+when offering, because it puts a daemon on the critical path of anyone who runs that module.
 
 ## The shape of a test
 
@@ -241,38 +245,87 @@ client receives.
 
 ## Testing a feature — `acceptance-tests/src/test`
 
-Same tool, everything assembled. Boot the real `module()`, so routing, DI, `problemDetails`,
-`RequestValidation` and content negotiation are exercised together:
+Everything assembled, over HTTP, as a client sees it. **Run the built image, not `testApplication`.**
+
+`testApplication { application { module() } }` is the right shape only while `module()` can boot on the classpath alone. The moment it verifies a
+database on startup, or launches background workers, that stops being true: the module fails before the first request, and the test that was supposed
+to prove the feature works proves nothing at all. A service that migrates its schema on boot cannot be acceptance-tested any other way, because the
+migration is part of what is being tested.
+
+So the subject is the artifact that ships:
 
 ```kotlin
-class CreateBookAcceptanceTest :
-    ShouldSpec({
-        context("POST /books") {
-            should("reject a blank title with a problem detail naming the field") {
-                testApplication {
-                    application { module() }
+object AcceptanceStack {
+    private val network = Network.newNetwork()
 
-                    val response = client.post("/books") {
-                        contentType(ContentType.Application.Json)
-                        setBody("""{"title": "", "isbn": "978-0261102217"}""")
-                    }
+    private val database = GenericContainer(DockerImageName.parse("postgres:17-alpine"))
+        .withNetwork(network).withNetworkAliases("db")
 
-                    response.status shouldBe HttpStatusCode.BadRequest
-                    response.contentType()?.withoutParameters() shouldBe
-                        ContentType("application", "problem+json")
-                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-                    body["properties"]!!.jsonObject.keys shouldContain "$.title"
-                }
-            }
-        }
-    })
+    private val service = GenericContainer(DockerImageName.parse(System.getenv("ACCEPTANCE_IMAGE")))
+        .withNetwork(network)
+        .withEnv("DATABASE_URL", "postgres://db:5432/app")
+        .withExposedPorts(8080)
+        // Not forListeningPort: the entrypoint migrates before it serves, so an open port
+        // is not yet a service that can answer.
+        .waitingFor(Wait.forHttp("/health").forPort(8080))
+
+    val baseUrl: String by lazy {
+        database.start()
+        service.start()
+        "http://${service.host}:${service.getMappedPort(8080)}"
+    }
+}
 ```
 
-**Send the body as a raw string, not a serialized DTO.** A DTO the service also owns cannot disagree with itself; the point is to prove the service
-handles what a client actually sends.
+**The image is built by the build, from the working tree.** A task that runs `docker build` and that the test task depends on, never a tag someone
+built by hand: otherwise the suite silently tests whatever was last built, which is the one thing an acceptance test must not do.
+
+**Start the stack once for the whole run.** A boot costs a migration and every background worker the service has; one stack per spec spends the run in
+startup and leaves several copies of every sweep racing over the same rows.
+
+**Gate the module, do not fail without Docker.** A red build on every machine that cannot run it teaches people to ignore red. Disable the specs when
+there is no daemon or no image, and keep the module out of `check` so a plain build stays fast.
+
+### What to assert against
+
+Three shapes, and they are not interchangeable.
+
+**A JSON Schema, for the response contract.** Not a handful of field reads: `body["accessToken"]` says nothing about a token that arrived empty, about
+a field renamed beside it, or about one the service started publishing that nobody meant to. A schema states the whole contract in one document a
+client author can read without opening the test, and `additionalProperties: false` turns an unannounced field into a failure.
+
+```kotlin
+should("answer a created session a client can use") {
+    val response = client.post("/api/v1/auth/sign-up") { jsonBody { put("email", "owner@example.com") } }
+
+    response.status shouldBe HttpStatusCode.Created
+    JsonSchema.assertMatches("auth/auth-response.json", response.bodyAsText())
+}
+```
+
+This is the assertion that catches a naming strategy. A DTO declaring `accessToken` is published as `access_token` by an application-wide
+`JsonNamingStrategy.SnakeCase`, and *every* test that deserializes with that DTO passes while every client breaks.
+
+**A golden file, for a document read field by field.** A validation problem+json is highlighted input by input in the panel, so the contract is the
+whole set of field paths, not a sample of it. Compare the entire body against a file, with volatile fields (ids, timestamps) replaced by a token naming
+the shape they must still have. Keep the first write loud — it exists to make a human read the diff, not to make red go away.
+
+**A status code, always explicitly.** `201` and `200` are different answers and clients branch on them.
+
+### Bodies and external dependencies
+
+**Build the request body, never hand-quote it, and never serialize the service's own DTO.** `buildJsonObject { put("email", "…") }` cannot disagree
+with itself the way the DTO can, and cannot be broken by an escaping typo the way a string literal can. The one exception is a deliberately malformed
+document — no builder produces `{ not json`, and mangled input is exactly what that case tests.
+
+**Fake external services with a real HTTP mock, not an unreachable address.** Pointing a licence server at `127.0.0.1:1` exercises exactly one branch.
+A WireMock container on the same network lets a spec put the install into a state and watch the behaviour, and lets it ask afterwards what the service
+actually sent — an outbound contract nobody asserts is one that drifts. **Keep the stubs in files**, in WireMock's own format: a mapping embedded in a
+Kotlin string loses its highlighting, its schema, and the ability to be read beside the response it fakes.
 
 This layer proves the cross-cutting wiring — that errors are `problem+json`, that validation reached the client with a usable field path, that the
-route exists at the documented path. A unit test sees none of it, and an `-adapters` test sees only the half it assembled.
+route exists at the documented path, that the image boots and migrates at all. A unit test sees none of it, and an `-adapters` test sees only the half
+it assembled.
 
 ## Testing persistence — `<service>-adapters/src/test`
 
@@ -312,6 +365,12 @@ two drift silently — load the `ktor-toolkit:migrations` skill.
 **Let each test own its data.** Insert, assert, then roll back or truncate. Shared fixtures are the usual cause of a suite that passes alone and fails
 in parallel.
 
+**When Testcontainers reports no Docker environment, read the strategy log before believing it.** The bundled docker-java negotiates an old API
+version, and a current daemon refuses it outright — `client version 1.32 is too old. Minimum supported API version is 1.40`. The daemon is fine and the
+socket is fine; the client is the problem. Fix it with `systemProperty("api.version", "1.44")` on the `Test` task, because docker-java reads that from
+the JVM's system properties: a `testcontainers.properties` configures Testcontainers, not the client underneath it. Put it on the module that needs it
+so a fresh checkout works without anyone being told to edit a file in their home directory.
+
 Testcontainers goes in the version catalog, not inline, with the dependency on `-adapters` and `acceptance-tests` — load the `ktor-toolkit:gradle`
 skill. Say so before adding it: it needs a Docker daemon on every machine that runs the suite, CI included, and a team without one gets a red build
 they did not ask for.
@@ -327,6 +386,10 @@ A flaky test is worse than no test: it trains people to re-run the build.
 - **Do not assume ordering the code does not guarantee.** `shouldContainExactlyInAnyOrder` says what you mean; `shouldContainExactly` on a `Map`'s
   values is a coin flip.
 - **Pin generated values.** Random ids and `LocalDate.now()` in a fixture make a failure unreproducible. Pass them in.
+- **Bound every test, so a stuck one fails instead of hanging.** `systemProperty("kotest.framework.timeout", "30000")` on the `Test` tasks. Without it
+  a flow test waiting on an event the code never emits stops the build rather than failing it, and CI reports a timeout with no test name in it.
+- **Never wait on an event that may not come.** Where a test collects a flow, emit the case *and then* an event the code always translates, and assert
+  on both. Waiting only for the interesting one turns "the behaviour is missing" into "the suite hangs".
 
 ## Assertions
 
@@ -341,6 +404,45 @@ Kotest matchers, chosen for what they say when they fail:
 | `shouldThrow<T> { }`               | The type of failure — assert the message too when it is the contract |
 
 `result shouldBe expected` on a data class reports the differing field. Asserting field by field gives that up and stops at the first mismatch.
+
+## The case almost nobody writes: a cancelled caller
+
+`runCatching` catches `Throwable`, and so does `catch (e: Exception)`. Both therefore catch `CancellationException`, which means a caller that walked
+away arrives as an ordinary failure and is logged, defaulted or retried like one. The work then carries on inside a coroutine that is already
+cancelled, and whatever it writes describes something nobody asked for.
+
+It is worth a case on **every suspending block wrapped in a broad catch**, because the symptom is never an exception — it is a row that is wrong
+afterwards:
+
+```kotlin
+should("let a cancellation through, rather than deleting the row it still needs") {
+    coEvery { daemon.removeSidecar(any(), any(), any()) } throws CancellationException("request abandoned")
+
+    shouldThrow<CancellationException> { disableTunnel("instance:abc", "token") }
+
+    coVerify(exactly = 0) { tunnels.delete(any(), any()) }
+}
+```
+
+The assertion is two-part on purpose: that the cancellation escapes, **and** that the destructive step after it did not run. The first alone passes on
+code that swallowed it and then failed for another reason.
+
+**A timeout is not one of these.** `TimeoutCancellationException` is a `CancellationException`, and it usually *should* become a failure: it means the
+dependency did not answer, not that the caller left. So this is a boundary rule, not a blanket one — convert a timeout into a domain failure where you
+raise it, and let everything above treat what remains as the caller's own cancellation:
+
+```kotlin
+} catch (e: TimeoutCancellationException) {
+    throw DependencyUnreachableException("$address timed out after $timeout")
+} catch (e: CancellationException) {
+    throw e
+} catch (e: Exception) {
+    …
+}
+```
+
+Check that boundary exists before writing the tests above. If a timeout can still reach the code under test as a cancellation, rethrowing it there
+turns a dependency outage into a silent no-op, which is worse than what you started with.
 
 ## Before a bug is fixed
 
@@ -362,3 +464,6 @@ acceptance test.
 | `should("test findAll")`                         | Names the method, says nothing about the behaviour                      |
 | Booting the whole `module()` for an adapter test | A failure could be anywhere in the graph; the test names nothing        |
 | `every` where `coEvery` is needed                | The stub never matches, and the mock throws on a call it never heard of |
+| `runCatching` around a suspending call, untested | A cancelled caller is logged as a failure, and the write after it still lands |
+| Asserting picked fields instead of a schema      | A renamed field, a naming strategy, an empty value: all invisible       |
+| Acceptance tests that boot `module()` in-process | Proves nothing about the image, the entrypoint, or the boot migration   |
