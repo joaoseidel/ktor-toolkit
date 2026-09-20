@@ -212,6 +212,29 @@ Use it to find what you did not think of — an uncovered branch is a case with 
 not close the last few percent with tests that assert nothing: that converts a real signal into decoration, and nobody can then tell which tests mean
 anything. Load the `ktor-toolkit:tests` skill for what makes a test worth having.
 
+## Kover and MockK: the mock that silently calls the real method
+
+Kover instruments the classes in `src/main` before MockK gets to them, and MockK then cannot intercept a **final** class: the stub is accepted, the
+call goes through to the real implementation, and nothing says so. What you see is an exception thrown from inside the class under test — usually an
+NPE on a dependency the real constructor never received — which reads exactly like a bug in the code rather than in the test setup.
+
+Byte Buddy needs both of these to attach over the instrumentation:
+
+```kotlin
+subprojects {
+    tasks.withType<Test>().configureEach {
+        jvmArgs("-XX:+EnableDynamicAgentLoading")
+        systemProperty("net.bytebuddy.experimental", "true")
+    }
+}
+```
+
+Set it once for every module rather than in the one where it first bites. The symptom is indistinguishable from a real defect, so the cost of finding
+it a second time is an afternoon.
+
+Interfaces are unaffected, which is why this stays hidden for a long time: a codebase that mocks its ports is fine until the first test mocks a use
+case or a service class.
+
 ## Failures that stay green
 
 Every one of these leaves the build passing and the number looking fine. Check them by reading, because nothing else will.
