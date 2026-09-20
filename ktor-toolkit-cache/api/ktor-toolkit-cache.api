@@ -23,6 +23,7 @@ public abstract interface class com/github/joaoseidel/ktor/toolkit/cache/KeyValu
 
 public final class com/github/joaoseidel/ktor/toolkit/cache/KtorCacheKt {
 	public static final fun buildCacheKey (Ljava/lang/String;Lio/ktor/server/request/ApplicationRequest;Ljava/util/Set;)Ljava/lang/String;
+	public static final fun buildCacheKey (Ljava/lang/String;Lio/ktor/server/request/ApplicationRequest;Ljava/util/Set;Ljava/util/Set;)Ljava/lang/String;
 	public static synthetic fun buildCacheKey$default (Ljava/lang/String;Lio/ktor/server/request/ApplicationRequest;Ljava/util/Set;ILjava/lang/Object;)Ljava/lang/String;
 	public static final fun cacheCatching (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public static final fun getCacheLogger ()Lorg/slf4j/Logger;

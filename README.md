@@ -372,14 +372,15 @@ type varies per row.
 
 ## Cache
 
-Caches a route's result under the request path plus its query parameters, sorted so parameter order does not matter, then hashed. **A cache failure is
-logged and the request is served from the origin**, though a coroutine cancellation still propagates.
+Caches a route's result under the request path plus its query parameters, sorted so parameter order does not matter, then hashed. Headers stay out
+of the key until `varyHeaders` names them, the way `Vary` does for an HTTP cache. **A cache failure is logged and the request is served from the
+origin**, though a coroutine cancellation still propagates.
 
 ```kotlin
 val cache = InMemoryCache(maxSize = 1_000, ttl = 5.minutes)
 
 get("/books") {
-    val books = call.request.withCache("books", cache, excludeQueryKeys = setOf("traceId")) {
+    val books = call.request.withCache("books", cache, excludeQueryKeys = setOf("traceId"), varyHeaders = setOf("Accept-Language")) {
         repository.findAll()
     }
     call.respond(books)

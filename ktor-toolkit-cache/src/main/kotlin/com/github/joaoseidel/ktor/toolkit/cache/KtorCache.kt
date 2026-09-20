@@ -40,7 +40,8 @@ internal inline fun <T> cacheCatching(
     }
 
 /**
- * Serves [produce] through [cache], keyed by the request path and its query parameters.
+ * Serves [produce] through [cache], keyed by the request path, its query parameters and the
+ * headers named in [varyHeaders].
  *
  * A cache failure is logged and ignored — the request is served from [produce] as if the entry
  * had simply been missing.
@@ -49,6 +50,8 @@ internal inline fun <T> cacheCatching(
  * @param cache The backing store.
  * @param json The format used to serialize the cached value.
  * @param excludeQueryKeys Query parameters that must not take part in the cache key.
+ * @param varyHeaders Request headers the response varies by, so each distinct value gets its
+ * own entry — what `Vary` declares to an HTTP cache. Names are matched case-insensitively.
  * @param produce Computes the value on a cache miss.
  */
 @UnreachableBytecode
@@ -57,9 +60,10 @@ suspend inline fun <reified T : Any> ApplicationRequest.withCache(
     cache: KeyValueCache,
     json: Json = Json.Default,
     excludeQueryKeys: Set<String> = emptySet(),
+    varyHeaders: Set<String> = emptySet(),
     produce: () -> T,
 ): T {
-    val key = buildCacheKey(namespace, this, excludeQueryKeys)
+    val key = buildCacheKey(namespace, this, excludeQueryKeys, varyHeaders)
 
     val cached =
         cacheCatching("read") {
@@ -121,10 +125,28 @@ suspend fun KeyValueCache.invalidateNamespace(namespace: String) {
 /**
  * Builds a stable cache key from [namespace], the request path and its query parameters.
  *
+ * Kept for callers that inlined [withCache] before it learned to vary by header; new code goes
+ * through the overload below.
+ */
+@PublishedApi
+internal fun buildCacheKey(
+    namespace: String,
+    request: ApplicationRequest,
+    excludeQueryKeys: Set<String> = emptySet(),
+): String = buildCacheKey(namespace, request, excludeQueryKeys, emptySet())
+
+/**
+ * Builds a stable cache key from [namespace], the request path, its query parameters and the
+ * values of [varyHeaders].
+ *
  * Parameters are sorted by name and their values sorted within each name, so the same logical
- * request produces the same key regardless of the order the client sent them in. The result is
- * hashed rather than encoded, because a key derived from a URL would otherwise be as long as the
- * URL — and a client controls how long that is.
+ * request produces the same key regardless of the order the client sent them in. Header names are
+ * lower-cased, since a client may spell them either way; a header's value is taken as sent, because
+ * a list header folds into one comma-joined value on the wire and splitting it there is not safe
+ * for every header. A header the request does not carry is left out, so its absence is one more
+ * value the key can take. The result is hashed rather than encoded, because a key derived from a
+ * URL would otherwise be as long as the URL — and a client controls how long that is; a header
+ * value is likewise client-controlled, and hashing keeps a bearer token out of the key.
  *
  * The namespace stays in the clear so [invalidateNamespace] can match on it.
  */
@@ -132,7 +154,8 @@ suspend fun KeyValueCache.invalidateNamespace(namespace: String) {
 internal fun buildCacheKey(
     namespace: String,
     request: ApplicationRequest,
-    excludeQueryKeys: Set<String> = emptySet(),
+    excludeQueryKeys: Set<String>,
+    varyHeaders: Set<String>,
 ): String {
     val params = request.queryParameters.filter { key, _ -> key !in excludeQueryKeys }
     val query =
@@ -140,7 +163,20 @@ internal fun buildCacheKey(
             .entries()
             .sortedBy { it.key }
             .joinToString("&") { "${it.key}=${it.value.sorted().joinToString(",")}" }
-    val raw = if (query.isEmpty()) request.path() else "${request.path()}?$query"
+    val headers =
+        varyHeaders
+            .map { it.lowercase() }
+            .toSortedSet()
+            .mapNotNull { name -> request.headers.getAll(name)?.let { values -> "$name=${values.sorted().joinToString(",")}" } }
+            .joinToString("\n")
+    val raw =
+        buildString {
+            append(request.path())
+            if (query.isNotEmpty()) append('?').append(query)
+            // A newline cannot appear in a request line, so the header block cannot be confused
+            // with a query that happens to look like one.
+            if (headers.isNotEmpty()) append('\n').append(headers)
+        }
     val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(UTF_8))
     return "$namespace.${Base64.getUrlEncoder().withoutPadding().encodeToString(digest)}"
 }

@@ -6,8 +6,10 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.string.shouldStartWith
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import io.ktor.server.request.ApplicationRequest
 import io.ktor.server.response.respondText
@@ -27,9 +29,10 @@ private data class Book(
     val title: String,
 )
 
-/** Runs [block] against the ApplicationRequest of a single GET to [path]. */
+/** Runs [block] against the ApplicationRequest of a single GET to [path], sent with [headers]. */
 private fun <T> withRequest(
     path: String,
+    headers: List<Pair<String, String>> = emptyList(),
     block: suspend (ApplicationRequest) -> T,
 ): T {
     var result: Result<T>? = null
@@ -41,7 +44,9 @@ private fun <T> withRequest(
                 call.respondText("ok")
             }
         }
-        client.get(path).bodyAsText()
+        client
+            .get(path) { headers.forEach { (name, value) -> header(name, value) } }
+            .bodyAsText()
     }
 
     return checkNotNull(result) { "the route never ran" }.getOrThrow()
@@ -143,16 +148,18 @@ private fun cachedBook(
         }
     }
 
-/** As [cachedBook], but with the serializer and the excluded parameters named explicitly. */
+/** As [cachedBook], but with the serializer, the excluded parameters and the varied headers named explicitly. */
 private fun cachedBook(
     path: String,
     cache: KeyValueCache,
     calls: AtomicInteger,
     json: Json = Json.Default,
     excludeQueryKeys: Set<String> = emptySet(),
+    varyHeaders: Set<String> = emptySet(),
+    headers: List<Pair<String, String>> = emptyList(),
 ): Book =
-    withRequest(path) { request ->
-        request.withCache("books", cache, json, excludeQueryKeys) {
+    withRequest(path, headers) { request ->
+        request.withCache("books", cache, json, excludeQueryKeys, varyHeaders) {
             calls.incrementAndGet()
             Book("1", "Dune")
         }
@@ -205,6 +212,64 @@ class KtorCacheTest :
                     val long = "/books?q=" + "x".repeat(5_000)
 
                     withRequest(long) { buildCacheKey("books", it) }.length shouldBe "books.".length + 43
+                }
+
+                should("ignore headers it was not told to vary by") {
+                    val a = withRequest("/books", listOf("Accept-Language" to "en")) { buildCacheKey("books", it) }
+                    val b = withRequest("/books", listOf("Accept-Language" to "pt")) { buildCacheKey("books", it) }
+
+                    a shouldBe b
+                }
+
+                should("distinguish different values of a varied header") {
+                    val vary = setOf("Accept-Language")
+                    val a = withRequest("/books", listOf("Accept-Language" to "en")) { buildCacheKey("books", it, emptySet(), vary) }
+                    val b = withRequest("/books", listOf("Accept-Language" to "pt")) { buildCacheKey("books", it, emptySet(), vary) }
+
+                    a shouldNotBe b
+                }
+
+                should("distinguish a varied header that is absent from one that is present") {
+                    val vary = setOf("Accept-Language")
+                    val a = withRequest("/books") { buildCacheKey("books", it, emptySet(), vary) }
+                    val b = withRequest("/books", listOf("Accept-Language" to "en")) { buildCacheKey("books", it, emptySet(), vary) }
+
+                    a shouldNotBe b
+                }
+
+                should("match a varied header regardless of how its name is spelled") {
+                    val a =
+                        withRequest("/books", listOf("accept-language" to "en")) { buildCacheKey("books", it, emptySet(), setOf("Accept-Language")) }
+                    val b =
+                        withRequest("/books", listOf("ACCEPT-LANGUAGE" to "en")) { buildCacheKey("books", it, emptySet(), setOf("accept-language")) }
+
+                    a shouldBe b
+                }
+
+                should("key on the raw header value, so a reordered list is another entry") {
+                    val vary = setOf("Accept-Language")
+                    val a = withRequest("/books", listOf("Accept-Language" to "en,pt")) { buildCacheKey("books", it, emptySet(), vary) }
+                    val b = withRequest("/books", listOf("Accept-Language" to "pt,en")) { buildCacheKey("books", it, emptySet(), vary) }
+
+                    a shouldNotBe b
+                }
+
+                should("keep a varied header's value out of the key") {
+                    val key =
+                        withRequest(
+                            "/books",
+                            listOf("Authorization" to "Bearer s3cret"),
+                        ) { buildCacheKey("books", it, emptySet(), setOf("Authorization")) }
+
+                    key shouldNotContain "s3cret"
+                    key.length shouldBe "books.".length + 43
+                }
+
+                should("produce the key it always did when no header is varied") {
+                    val a = withRequest("/books?page=1") { buildCacheKey("books", it) }
+                    val b = withRequest("/books?page=1") { buildCacheKey("books", it, emptySet(), emptySet()) }
+
+                    a shouldBe b
                 }
             }
 
@@ -275,6 +340,21 @@ class KtorCacheTest :
                     fetch("/books?page=1&trace=b")
 
                     calls.get() shouldBe 1
+                }
+
+                should("serve separate entries for two requests that differ in a varied header") {
+                    val cache = InMemoryCache()
+                    val calls = AtomicInteger()
+                    val fetch = { language: String ->
+                        cachedBook("/books", cache, calls, varyHeaders = setOf("Accept-Language"), headers = listOf("Accept-Language" to language))
+                    }
+
+                    fetch("en")
+                    fetch("pt")
+                    fetch("en")
+
+                    calls.get() shouldBe 2
+                    cache.keys().size shouldBe 2
                 }
             }
 

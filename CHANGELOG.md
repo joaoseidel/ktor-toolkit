@@ -138,6 +138,9 @@ First public release. Nothing was published before this, so the breaking changes
   filtering them itself. `LettuceCache` narrows with `SCAN MATCH`, so invalidating one namespace no longer carries every other namespace's keys back
   from Redis — the sweep is unchanged, what crosses the wire is not. The default implementation filters `keys()` as before, so an existing
   `KeyValueCache` keeps working without overriding it.
+- `withCache` takes `varyHeaders`, the request headers a response varies by: each distinct value of a named header gets its own entry, the way
+  `Vary` tells an HTTP cache to. Names match case-insensitively and the value is hashed with the rest of the key, so it never reaches the store in the
+  clear. Nothing changes for a call that does not name one — the key is the same as before.
 - `PaginationRequest.from` accepts `defaultPageSize` and `maxPageSize`.
 - Public API dumps under `*/api/`, enforced by `apiCheck`.
 - A `healthcheck` skill, covering health endpoints with Cohort: separate liveness and readiness registries, which dependencies may fail a probe,
