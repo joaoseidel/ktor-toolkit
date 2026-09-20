@@ -64,13 +64,28 @@ Sorting means `?a=1&b=2` and `?b=2&a=1` are one entry. The namespace stays reada
 call.request.withCache("books", cache, excludeQueryKeys = setOf("traceId", "requestId")) { … }
 ```
 
-Two things the key does **not** include, both of which will bite:
+**Path parameters are included** — they are part of `request.path()` — so `/books/1` and `/books/2` are separate entries, as you would expect.
 
-**Headers.** A response that varies by `Accept-Language`, tenant header or auth scope will be served to the wrong client. If a response depends on who
-is asking, either do not cache it or put the distinguishing value in the namespace: `withCache("books.$tenantId", cache) { … }`.
+**Headers are not, unless you name them.** A response that varies by `Accept-Language`, a tenant header or an auth scope will otherwise be served
+to the wrong client. `varyHeaders` is the toolkit's `Vary`: each distinct value of a named header gets its own entry, names are matched
+case-insensitively, and the value is hashed with the rest of the key, so a token never lands in the store in the clear.
 
-**Path parameters are included** — they are part of `request.path()` — so `/books/1` and `/books/2`
-are separate entries, as you would expect.
+```kotlin
+call.request.withCache("books", cache, varyHeaders = setOf("Accept-Language", "X-Tenant")) { … }
+```
+
+It is an include-list where `excludeQueryKeys` is an exclude-list, and the polarity is the point: query parameters define the resource, so they
+belong in by default; most headers — `User-Agent`, trace ids, cookies — are noise that would make every request a miss.
+
+Two limits, both of which follow from keying on the header as the client sent it:
+
+- **`Accept-Language` keys on the raw value, not the negotiated one.** `en-US,en;q=0.9` and `en` are two entries even when both resolve to English.
+  Where the route negotiates a language, put the *result* in the namespace instead: `withCache("books.$language", cache) { … }`.
+- **`Authorization` gives an entry per token, not per user.** Two sessions of one user miss each other, and the hit rate is whatever the token
+  lifetime allows. Where the response depends on who is asking, key on the principal — `withCache("books.$userId", cache) { … }` — and leave the
+  header out.
+
+A namespace of the form `books.$tenantId` still sits under `books.`, so `invalidateNamespace("books")` clears every tenant at once.
 
 Choose namespaces per resource, not per endpoint. Every entry a write can invalidate should share one, since `invalidateNamespace` is the cheap tool
 and it works on the prefix.
@@ -185,7 +200,8 @@ is a reason to cache at the data layer.
 | `ConcurrentHashMap` as a cache                             | No bound, no TTL, no invalidation across nodes; grows until the heap does                                    |
 | `RedisClient.connect()` without `LettuceCache.Codec`       | The connection is `<String, String>` and will not fit the constructor                                        |
 | `InMemoryCache` with several instances running             | Each node caches and invalidates its own copy; stale reads that only appear in production                    |
-| Caching a response that varies by header or caller         | Headers are not in the key — one client's data is served to another                                          |
+| Caching a response that varies by header or caller         | Headers are out of the key until `varyHeaders` names them — one client's data is served to another           |
+| `Authorization` in `varyHeaders`                           | One entry per token, so a user's sessions miss each other; key on the principal via the namespace            |
 | Trace ids left in the key                                  | Every request is a miss, and the cache is pure overhead                                                      |
 | `invalidateContaining` on the read path                    | Reads and deserializes the entire store per request                                                          |
 | Invalidation inside a use case                             | `-core` grows an infrastructure dependency and becomes untestable without one                                |
