@@ -11,6 +11,8 @@ build/
 .idea/libraries/
 .idea/workspace.xml
 .idea/json_assistant_history.xml
+# Gradle import rewrites the JPS Kotlin version from the catalog; tracking it only drifts.
+.idea/kotlinc.xml
 *.iws
 *.iml
 *.ipr
@@ -20,6 +22,9 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### Claude Code ###
+.claude/settings.local.json
 
 ### Eclipse ###
 .apt_generated
