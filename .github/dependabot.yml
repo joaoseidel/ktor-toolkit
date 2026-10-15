@@ -26,9 +26,6 @@ updates:
     labels:
       - "dependencies"
       - "gradle"
-    # These land in the published POMs, and Gradle resolves the highest version anyone asks for,
-    # so a bump here moves every consumer's app along with it. Patches flow; a minor or major is a
-    # deliberate floor change with a CHANGELOG line.
     ignore:
       - dependency-name: "io.ktor:*"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]

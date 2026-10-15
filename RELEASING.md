@@ -176,7 +176,7 @@ Three details decide whether the key parses at all:
 Both parse failures surface as the same unhelpful *Could not read PGP secret key*. Then:
 
 ```bash
-./gradlew publishToMavenLocal --no-configuration-cache
+./gradlew publishToMavenLocal
 ```
 
 ```bash
@@ -208,10 +208,6 @@ To stage a deployment for manual review in the Portal instead of releasing it au
 `mavenCentralAutomaticPublishing=false` in `gradle.properties`.
 
 ## Troubleshooting
-
-**`Configuration cache problems found`**: the publishing tasks upload over the network and are not configuration-cache compatible. `make publish` and
-`make publish_local` already pass
-`--no-configuration-cache`; a raw `./gradlew publishToMavenCentral` needs it too.
 
 **Deployment rejected for a missing signature or javadoc**: run the same path locally with
 `make publish_local` and check the artifact list. This is what CI's Publication job guards against.

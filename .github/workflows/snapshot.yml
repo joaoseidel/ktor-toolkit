@@ -8,7 +8,6 @@ on:
 permissions:
   contents: read
 
-# Snapshots are disposable — a newer commit on main makes an in-flight upload pointless.
 concurrency:
   group: snapshot
   cancel-in-progress: true
@@ -17,9 +16,6 @@ jobs:
   snapshot:
     name: Publish snapshot
     runs-on: ubuntu-latest
-
-    # Separate from the `maven-central` environment on purpose: snapshots should not need a
-    # reviewer on every merge, and release credentials stay behind their own gate.
     environment:
       name: maven-central-snapshots
       url: https://central.sonatype.com/repository/maven-snapshots/io/github/joaoseidel/
@@ -39,9 +35,6 @@ jobs:
         with:
           validate-wrappers: true
 
-      # gradle.properties holds the *next* version to be released, so main's snapshot is that
-      # version with a -SNAPSHOT suffix. If the tag already exists the version was not bumped
-      # after the release, and publishing would advertise a stale snapshot.
       - name: Resolve snapshot version
         id: version
         run: |
@@ -59,7 +52,6 @@ jobs:
         if: steps.version.outputs.skip == 'false'
         run: make verify
 
-      # Snapshots are signed like releases so consumers can verify them the same way.
       - name: Publish snapshot to Maven Central
         if: steps.version.outputs.skip == 'false'
         env:
@@ -69,7 +61,7 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
-        run: ./gradlew publishToMavenCentral -Pversion="$SNAPSHOT_VERSION" --no-configuration-cache
+        run: ./gradlew publishToMavenCentral -Pversion="$SNAPSHOT_VERSION"
 
       - name: Summary
         if: steps.version.outputs.skip == 'false'

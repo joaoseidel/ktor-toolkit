@@ -6,7 +6,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-# A newer push to the same branch makes an in-flight run irrelevant.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -22,21 +21,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Java 17 is the floor declared in build.gradle.kts. Installing it here means the
-      # foojay toolchain resolver never has to download a JDK mid-build.
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
 
-      # validate-wrappers rejects a gradle-wrapper.jar whose checksum is not a published
-      # Gradle release — the cheapest defence against a tampered wrapper in a fork's PR.
       - uses: gradle/actions/setup-gradle@v6
         with:
           validate-wrappers: true
 
-      # Split into the same targets a contributor runs, so a failure names itself in the
-      # step list instead of hiding inside one long Gradle log.
       - name: Lint
         run: make lint
 
@@ -60,8 +53,6 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # A release is the worst place to discover that a POM is incomplete or that Dokka cannot render
-  # a module. This runs the same publication path unsigned, so those break at PR time instead.
   publication:
     name: Publication
     runs-on: ubuntu-latest
@@ -81,7 +72,6 @@ jobs:
       - name: Publish to Maven local
         run: make publish_local
 
-      # Central rejects a deployment missing any of these, and it does so after the upload.
       - name: Check the expected artifacts exist
         run: |
           set -euo pipefail
