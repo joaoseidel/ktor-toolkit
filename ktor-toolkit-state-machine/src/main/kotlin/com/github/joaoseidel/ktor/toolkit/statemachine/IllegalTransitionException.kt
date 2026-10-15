@@ -9,7 +9,9 @@ package com.github.joaoseidel.ktor.toolkit.statemachine
  *
  * ```kotlin
  * problemDetails {
- *     on<IllegalTransitionException> { HttpStatusCode.Conflict }
+ *     on<IllegalTransitionException> {
+ *         ProblemDetail.fromStatus(HttpStatusCode.Conflict, "The resource cannot make that move now", mapOf("reason" to it.reason.message))
+ *     }
  * }
  * ```
  *
