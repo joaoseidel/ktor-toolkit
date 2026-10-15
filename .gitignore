@@ -10,8 +10,11 @@ build/
 .idea/libraries/
 .idea/workspace.xml
 .idea/json_assistant_history.xml
-# Gradle import rewrites the JPS Kotlin version from the catalog; tracking it only drifts.
+# Gradle import rewrites these from the build: the JPS Kotlin version from the catalog, the module list from
+# settings.gradle.kts, and the JDK from the toolchain under a machine-specific name. Tracking them only drifts.
 .idea/kotlinc.xml
+.idea/gradle.xml
+.idea/misc.xml
 *.iws
 *.iml
 *.ipr
