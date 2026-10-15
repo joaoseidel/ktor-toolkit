@@ -6,6 +6,8 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import java.io.DataInputStream
+import java.util.zip.ZipFile
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -110,6 +112,64 @@ configure(subprojects.filter { it.name.startsWith("ktor-toolkit-") }) {
     apply(plugin = "com.vanniktech.maven.publish")
 
     val moduleName = name
+
+    // A dependency bump can raise the floor without touching this file: a jar built for a newer
+    // JDK, or with Kotlin metadata a 2.3 compiler cannot read (it reads one minor ahead). Checked
+    // over what consumers resolve, so a Dependabot PR that would do that fails instead of merging.
+    val checkDependencyFloor =
+        tasks.register("checkDependencyFloor") {
+            val jars =
+                configurations.named("runtimeClasspath").map { classpath ->
+                    classpath.incoming
+                        .artifactView { componentFilter { it is ModuleComponentIdentifier } }
+                        .files
+                }
+            val maxJava = javaVersion
+            // Metadata versions compared as major * 100 + minor, so 2.4 is 204.
+            val (floorMajor, floorMinor) = kotlinFloor.version.split('.').map(String::toInt)
+            val maxKotlin = floorMajor * 100 + floorMinor + 1
+
+            inputs.files(jars)
+            doLast {
+                val offenders =
+                    jars.get().files.mapNotNull { jar ->
+                        ZipFile(jar).use { zip ->
+                            val entries = zip.entries().toList()
+
+                            val jvm =
+                                entries
+                                    .filter { it.name.endsWith(".class") && !it.name.startsWith("META-INF/versions/") }
+                                    .filterNot { it.name.endsWith("module-info.class") }
+                                    .maxOfOrNull { entry ->
+                                        DataInputStream(zip.getInputStream(entry)).use {
+                                            it.skipBytes(6)
+                                            it.readUnsignedShort() - 44
+                                        }
+                                    } ?: 0
+
+                            // A .kotlin_module starts with the length of its version array, then the version.
+                            val kotlin =
+                                entries.firstOrNull { it.name.endsWith(".kotlin_module") }?.let { entry ->
+                                    DataInputStream(zip.getInputStream(entry)).use {
+                                        it.readInt()
+                                        it.readInt() * 100 + it.readInt()
+                                    }
+                                }
+
+                            if (jvm > maxJava || (kotlin ?: 0) > maxKotlin) {
+                                "${jar.name}: Java $jvm, Kotlin metadata ${kotlin?.let { "${it / 100}.${it % 100}" } ?: "none"}"
+                            } else {
+                                null
+                            }
+                        }
+                    }
+                check(offenders.isEmpty()) {
+                    "$moduleName pulls in dependencies above its Java $maxJava / Kotlin $floorMajor.$floorMinor floor:\n" +
+                        offenders.joinToString("\n") { "  $it" }
+                }
+            }
+        }
+    tasks.named("check") { dependsOn(checkDependencyFloor) }
 
     extensions.configure<MavenPublishBaseExtension> {
         // Sources and Dokka-rendered javadoc are both required for a Central release to validate.
