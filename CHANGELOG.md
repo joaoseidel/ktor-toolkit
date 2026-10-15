@@ -59,6 +59,12 @@ First public release. Nothing was published before this, so the breaking changes
 
 ### Fixed
 
+- A request body that was valid JSON of the wrong shape — a string where an object goes, a number for a boolean — answered 400 with Ktor's
+  `Failed to convert request body` message and no property naming the field. It now answers `Malformed request body` with one property at the
+  JSON path that failed, saying what was expected there (`$.shipTo`: `Expected start of the object '{', but had '"' instead`), read from
+  kotlinx.serialization 1.11's `JsonDecodingException`. The excerpt of the input that exception carries is never part of the response.
+- The fields a `Missing required fields` response names are read from `MissingFieldException.missingFields` rather than parsed back out of the
+  message, so a `MissingFieldException` raised outside `Json` — or with no message — still names its fields, against the root when no path is known.
 - The `kover` skill's `report/build.gradle.kts` example could not compile: it omitted the `AggregationType`, `CoverageUnit` and `KoverReport` imports,
   and showed `filters { }` without saying it nests inside `reports { }` — where, at the top level, every exclusion silently applies to nothing. It is
   now one complete file.

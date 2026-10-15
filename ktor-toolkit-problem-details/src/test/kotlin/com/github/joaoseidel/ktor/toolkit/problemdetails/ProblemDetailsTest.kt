@@ -8,6 +8,7 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
+import io.kotest.matchers.string.shouldStartWith
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -31,6 +32,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -38,6 +40,12 @@ import kotlinx.serialization.json.jsonPrimitive
 private data class CreateBook(
     val title: String,
     val authorName: String,
+)
+
+/** A field that wants a scalar; handed an object, `Json` reports the failure with no path at all. */
+@Serializable
+private data class Toggle(
+    val enabled: JsonPrimitive,
 )
 
 @Serializable
@@ -376,6 +384,87 @@ class ProblemDetailsTest :
                         response.status shouldBe HttpStatusCode.Gone
                         response.contentType()?.withoutParameters() shouldBe ProblemJsonContentType
                         response.problemBody().string("detail") shouldBe "Long gone"
+                    }
+                }
+            }
+
+            context("a value of the wrong shape") {
+                should("name the path that failed and what was expected there, not the input") {
+                    problemApp(
+                        routes = {
+                            routing {
+                                post("/orders") {
+                                    call.receive<CreateOrder>()
+                                    call.respondText("ok")
+                                }
+                            }
+                        },
+                    ) {
+                        val response =
+                            client.post("/orders") {
+                                contentType(ContentType.Application.Json)
+                                setBody("""{"reference":"A-1","shipTo":"Main Street"}""")
+                            }
+
+                        response.status shouldBe HttpStatusCode.BadRequest
+
+                        val problem = response.problemBody()
+                        problem.string("detail") shouldBe "Malformed request body"
+                        problem["properties"]!!.jsonObject shouldContainKey "$.shipTo"
+                        problem.toString() shouldNotContain "Main Street"
+                    }
+                }
+
+                should("answer a pointer and no input excerpt when the JSON itself is broken") {
+                    problemApp(
+                        routes = {
+                            routing {
+                                post("/books") {
+                                    call.receive<CreateBook>()
+                                    call.respondText("ok")
+                                }
+                            }
+                        },
+                    ) {
+                        val response =
+                            client.post("/books") {
+                                contentType(ContentType.Application.Json)
+                                setBody("""{"title":"Dune",""")
+                            }
+
+                        response.status shouldBe HttpStatusCode.BadRequest
+
+                        val problem = response.problemBody()
+                        problem.string("detail") shouldBe "Malformed request body"
+                        problem["properties"]!!.jsonObject.keys.single() shouldStartWith "$"
+                        problem.toString() shouldNotContain "Dune"
+                    }
+                }
+            }
+
+            context("a value of the wrong shape that Json reports with no path") {
+                should("report it against the root") {
+                    problemApp(
+                        routes = {
+                            routing {
+                                post("/toggles") {
+                                    call.receive<Toggle>()
+                                    call.respondText("ok")
+                                }
+                            }
+                        },
+                    ) {
+                        val response =
+                            client.post("/toggles") {
+                                contentType(ContentType.Application.Json)
+                                setBody("""{"enabled":{}}""")
+                            }
+
+                        response.status shouldBe HttpStatusCode.BadRequest
+
+                        val problem = response.problemBody()
+                        problem.string("detail") shouldBe "Malformed request body"
+                        problem["properties"]!!.jsonObject.keys.single() shouldBe "$"
                     }
                 }
             }

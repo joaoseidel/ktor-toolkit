@@ -161,7 +161,7 @@ class ResponseHandlersTest :
                     }
                 }
 
-                should("name no field when the missing-field report is not phrased the way it parses") {
+                should("report a missing field against the root when its message carries no path") {
                     handlerApp(
                         boom = {
                             throw BadRequestException("Bad body", MissingFieldException("title", "CreateBook"))
@@ -172,15 +172,15 @@ class ResponseHandlersTest :
                     ) { response ->
                         response.status shouldBe HttpStatusCode.BadRequest
                         response.problem().string("detail") shouldBe "Missing required fields"
-                        response.problem().properties() shouldContainExactly emptyMap()
+                        response.problem().properties() shouldContainExactly mapOf("$.title" to "Property `title` at `$.root` is required")
                     }
                 }
 
-                should("name no field when the missing-field report carries no message at all") {
+                should("still name the field when the missing-field report carries no message at all") {
                     handlerApp(
                         boom = {
-                            // The only way to build one with a null message; the guard it exercises is
-                            // there because `Throwable.message` is nullable at all.
+                            // The only way to build one with a null message; the fields come from the
+                            // exception itself, so the message is not what the response is read from.
                             @Suppress("DEPRECATION_ERROR")
                             throw BadRequestException("Bad body", MissingFieldException(listOf("title"), null, null))
                         },
@@ -189,7 +189,7 @@ class ResponseHandlersTest :
                         },
                     ) { response ->
                         response.status shouldBe HttpStatusCode.BadRequest
-                        response.problem().properties() shouldContainExactly emptyMap()
+                        response.problem().properties() shouldContainExactly mapOf("$.title" to "Property `title` at `$.root` is required")
                     }
                 }
             }

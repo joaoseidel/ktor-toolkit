@@ -14,6 +14,7 @@ import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonDecodingException
 import kotlinx.serialization.json.JsonNamingStrategy
 
 /**
@@ -46,11 +47,11 @@ object ResponseHandlers {
     private val PROPERTY_REASON = Regex("`(.*?)`\\s(.*)")
 
     /**
-     * The two phrasings kotlinx.serialization gives a [MissingFieldException] — one missing field,
-     * or several. Compiled once, for the same reason as [PROPERTY_REASON].
+     * Where a [MissingFieldException] sits in the document. The fields it names are a property of the
+     * exception, but the path is something `Json` appends to the message on the way out and nowhere
+     * else. Compiled once, for the same reason as [PROPERTY_REASON].
      */
-    private val SINGLE_MISSING_FIELD = Regex("Field '([^']+)' is required .*? at path: (\\$\\.?\\S*)")
-    private val PLURAL_MISSING_FIELDS = Regex("Fields \\[([^]]+)] are required .*? at path: (\\$\\.?\\S*)")
+    private val MISSING_FIELD_PATH = Regex(" at path: (\\$\\.?\\S*)")
 
     /** Where one validation reason belongs in the response, and what it says. */
     private class ParsedReason(
@@ -150,9 +151,11 @@ object ResponseHandlers {
     /**
      * Handles a [BadRequestException], which Ktor raises when a request body cannot be bound.
      *
-     * When the underlying cause is a [MissingFieldException] the response names the missing fields
-     * individually; otherwise it falls back to the exception's own message, which for a binding
-     * failure describes the request rather than the server.
+     * A [MissingFieldException] underneath names every missing field at the path it sits on; a
+     * [JsonDecodingException] — malformed JSON, or a value of the wrong shape — names the path that
+     * failed and what was expected there, without the excerpt of the input the exception carries.
+     * Anything else falls back to the exception's own message, which for a binding failure describes
+     * the request rather than the server.
      *
      * @param namingStrategy Applied to the field names quoted in the response, so they match the
      *        names the client actually sent.
@@ -167,53 +170,50 @@ object ResponseHandlers {
     ) {
         // Walk the chain rather than assume a depth: how deeply Ktor wraps the serialization
         // failure depends on the content negotiation path the request took.
-        val missingFields =
-            generateSequence(cause as Throwable) { it.cause }
-                .filterIsInstance<MissingFieldException>()
-                .firstOrNull()
+        val chain = generateSequence(cause as Throwable) { it.cause }
+        val missingFields = chain.filterIsInstance<MissingFieldException>().firstOrNull()
+        val decoding = chain.filterIsInstance<JsonDecodingException>().firstOrNull()
 
         val problem =
-            if (missingFields != null) {
-                ProblemDetail.fromStatus(
-                    status = BadRequest,
-                    detail = "Missing required fields",
-                    properties = missingFieldProperties(missingFields.message, namingStrategy),
-                    instance = call.problemInstance,
-                )
-            } else {
-                ProblemDetail.fromStatus(
-                    status = BadRequest,
-                    detail = cause.message,
-                    instance = call.problemInstance,
-                )
+            when {
+                missingFields != null ->
+                    ProblemDetail.fromStatus(
+                        status = BadRequest,
+                        detail = "Missing required fields",
+                        properties = missingFieldProperties(missingFields, namingStrategy),
+                        instance = call.problemInstance,
+                    )
+                decoding != null ->
+                    ProblemDetail.fromStatus(
+                        status = BadRequest,
+                        detail = "Malformed request body",
+                        properties = mapOf((decoding.path ?: ROOT_POINTER) to decoding.shortMessage),
+                        instance = call.problemInstance,
+                    )
+                else ->
+                    ProblemDetail.fromStatus(
+                        status = BadRequest,
+                        detail = cause.message,
+                        instance = call.problemInstance,
+                    )
             }
 
         call.respondProblem(problem, json)
     }
 
     /**
-     * Extracts the offending field names out of a [MissingFieldException] message, which
-     * kotlinx.serialization phrases either as a single `Field 'x' is required` or as a plural
-     * `Fields [x, y] are required`.
+     * One entry per field the exception names, keyed by the field's pointer. A failure with no path
+     * in its message — one raised outside `Json`, or built by hand — is reported against the root.
      */
     private fun missingFieldProperties(
-        message: String?,
+        failure: MissingFieldException,
         namingStrategy: JsonNamingStrategy?,
     ): Map<String, String> {
-        val text = message.orEmpty()
-        val single = SINGLE_MISSING_FIELD.find(text)
-        val plural = PLURAL_MISSING_FIELDS.find(text)
+        val match = failure.message?.let { message -> MISSING_FIELD_PATH.find(message) }
+        val path = if (match == null) ROOT_POINTER else match.groupValues[1]
+        val readablePath = if (path == ROOT_POINTER) "$.root" else path
 
-        val (rawFields, path) =
-            when {
-                single != null -> listOf(single.groupValues[1]) to single.groupValues[2]
-                plural != null -> plural.groupValues[1].split(", ") to plural.groupValues[2]
-                else -> return emptyMap()
-            }
-
-        val readablePath = if (path == "$") "$.root" else path
-
-        return rawFields.associate { rawField ->
+        return failure.missingFields.associate { rawField ->
             val field = rawField.applyNamingStrategy(namingStrategy)
             "$path.$field" to "Property `$field` at `$readablePath` is required"
         }
