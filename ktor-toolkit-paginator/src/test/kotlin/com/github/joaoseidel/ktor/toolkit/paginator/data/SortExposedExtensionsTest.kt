@@ -32,15 +32,16 @@ class SortExposedExtensionsTest :
 
                 should("reject a property outside the allow-list, even when the table has it") {
                     val failure =
-                        shouldThrow<IllegalArgumentException> {
+                        shouldThrow<InvalidSortException> {
                             Sort("created_at", ASC).toExposedQueryExpression(listOf(Books.title))
                         }
 
+                    failure.property shouldBe "created_at"
                     failure.message shouldContain "created_at"
                 }
 
                 should("reject a property no column matches") {
-                    shouldThrow<IllegalArgumentException> {
+                    shouldThrow<InvalidSortException> {
                         Sort("nope", ASC).toExposedQueryExpression(Books)
                     }
                 }
@@ -68,7 +69,7 @@ class SortExposedExtensionsTest :
                 }
 
                 should("fail as a whole when any entry is unknown") {
-                    shouldThrow<IllegalArgumentException> {
+                    shouldThrow<InvalidSortException> {
                         listOf(Sort("title", ASC), Sort("nope", ASC)).toExposedQueryExpression(Books)
                     }
                 }

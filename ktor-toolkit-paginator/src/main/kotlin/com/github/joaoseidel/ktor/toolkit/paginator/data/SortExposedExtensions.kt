@@ -13,12 +13,12 @@ import org.jetbrains.exposed.v1.core.Table
  * Only the listed columns are sortable — this is the allow-list that keeps a client-supplied
  * `?sortBy=` from reaching a column the endpoint never meant to expose.
  *
- * @throws IllegalArgumentException if [Sort.property] does not name one of [sortableColumns].
+ * @throws InvalidSortException if [Sort.property] does not name one of [sortableColumns].
  */
 fun Sort.toExposedQueryExpression(sortableColumns: List<Column<*>>): Pair<Expression<*>, SortOrder> {
     val column =
         sortableColumns.find { it.name == property }
-            ?: throw IllegalArgumentException("Property \"$property\" does not match any sortable column. Is it misspelled?")
+            ?: throw InvalidSortException("Property \"$property\" does not match any sortable column. Is it misspelled?", property)
 
     return when (direction) {
         ASC -> column to SortOrder.ASC
@@ -29,7 +29,7 @@ fun Sort.toExposedQueryExpression(sortableColumns: List<Column<*>>): Pair<Expres
 /**
  * Converts this list of [Sort] into Exposed `ORDER BY` terms, preserving order of precedence.
  *
- * @throws IllegalArgumentException if any [Sort.property] does not name one of [sortableColumns].
+ * @throws InvalidSortException if any [Sort.property] does not name one of [sortableColumns].
  */
 fun List<Sort>.toExposedQueryExpression(sortableColumns: List<Column<*>>): List<Pair<Expression<*>, SortOrder>> =
     map { it.toExposedQueryExpression(sortableColumns) }

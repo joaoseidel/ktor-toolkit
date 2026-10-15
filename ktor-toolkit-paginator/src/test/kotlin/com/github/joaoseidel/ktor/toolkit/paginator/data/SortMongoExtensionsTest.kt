@@ -41,7 +41,7 @@ class SortMongoExtensionsTest :
 
                 should("name the offending property when it is outside the allow-list") {
                     val failure =
-                        shouldThrow<IllegalArgumentException> {
+                        shouldThrow<InvalidSortException> {
                             Sort("created_at", ASC).toMongoSortExpression(listOf("title"))
                         }
 
@@ -49,13 +49,13 @@ class SortMongoExtensionsTest :
                 }
 
                 should("reject a property no known field matches") {
-                    shouldThrow<IllegalArgumentException> {
+                    shouldThrow<InvalidSortException> {
                         Sort("nope", ASC).toMongoSortExpression(sortableFields)
                     }
                 }
 
                 should("reject a property outside a property-reference allow-list") {
-                    shouldThrow<IllegalArgumentException> {
+                    shouldThrow<InvalidSortException> {
                         Sort("createdAt", ASC).toMongoSortExpression(BookDocument::id, BookDocument::title)
                     }
                 }
@@ -81,7 +81,7 @@ class SortMongoExtensionsTest :
                 }
 
                 should("fail as a whole when any one criterion is unknown") {
-                    shouldThrow<IllegalArgumentException> {
+                    shouldThrow<InvalidSortException> {
                         listOf(Sort("title", ASC), Sort("nope", ASC)).toMongoSortExpression(sortableFields)
                     }
                 }

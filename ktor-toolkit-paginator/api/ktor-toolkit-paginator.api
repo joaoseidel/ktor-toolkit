@@ -5,6 +5,11 @@ public final class com/github/joaoseidel/ktor/toolkit/paginator/PaginationExtens
 	public static final fun toPagination (Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PaginationRequest;)Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Pagination;
 }
 
+public final class com/github/joaoseidel/ktor/toolkit/paginator/data/InvalidSortException : java/lang/IllegalArgumentException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getProperty ()Ljava/lang/String;
+}
+
 public final class com/github/joaoseidel/ktor/toolkit/paginator/data/Page {
 	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Page$Companion;
 	public fun <init> (II)V

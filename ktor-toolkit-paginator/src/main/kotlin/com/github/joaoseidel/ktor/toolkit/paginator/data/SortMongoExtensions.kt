@@ -13,12 +13,12 @@ import kotlin.reflect.KProperty1
  * `?sortBy=` from reaching a field the endpoint never meant to expose, and from asking the server
  * for an unindexed sort.
  *
- * @throws IllegalArgumentException if [Sort.property] does not name one of [sortableFields].
+ * @throws InvalidSortException if [Sort.property] does not name one of [sortableFields].
  */
 fun Sort.toMongoSortExpression(sortableFields: List<String>): Bson {
     val field =
         sortableFields.find { it == property }
-            ?: throw IllegalArgumentException("Property \"$property\" does not match any sortable field. Is it misspelled?")
+            ?: throw InvalidSortException("Property \"$property\" does not match any sortable field. Is it misspelled?", property)
 
     return when (direction) {
         ASC -> Sorts.ascending(field)
@@ -33,7 +33,7 @@ fun Sort.toMongoSortExpression(sortableFields: List<String>): Bson {
  * `find(...).sort(...)` takes. No criteria produce an empty document, which MongoDB reads as
  * "unordered".
  *
- * @throws IllegalArgumentException if any [Sort.property] does not name one of [sortableFields].
+ * @throws InvalidSortException if any [Sort.property] does not name one of [sortableFields].
  */
 fun List<Sort>.toMongoSortExpression(sortableFields: List<String>): Bson = Sorts.orderBy(map { it.toMongoSortExpression(sortableFields) })
 
