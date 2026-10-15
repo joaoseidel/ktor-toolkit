@@ -10,7 +10,6 @@ val koverSkip: Boolean = providers.gradleProperty("koverSkip").map(String::toBoo
 val koverCoverageLineRate: Int = 100
 val koverCoverageBranchRate: Int = 100
 
-/** Every library module contributes to the aggregated coverage report. */
 val coveredProjects =
     listOf(
         ":ktor-toolkit-cache",
@@ -50,8 +49,7 @@ kover {
 
                 // Every property of PaginationRequest is optional, so kotlinx.serialization guards
                 // its generated `throwMissingFieldException` with `(0 and seen) != 0` — always
-                // false. Named precisely: PaginationRequest$Companion, which holds the parsing this
-                // class is really about, stays measured.
+                // false.
                 classes("com.github.joaoseidel.ktor.toolkit.paginator.web.PaginationRequest")
             }
         }

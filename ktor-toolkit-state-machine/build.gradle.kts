@@ -3,7 +3,6 @@ plugins {
 }
 
 dependencies {
-    // See web/TransitionLinks.kt.
     compileOnly(project(":ktor-toolkit-hateoas"))
     compileOnly(libs.ktor.server.core)
 

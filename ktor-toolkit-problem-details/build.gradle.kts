@@ -3,7 +3,6 @@ plugins {
 }
 
 dependencies {
-    // Exposed in the public API: ApplicationCall, StatusPagesConfig, RequestValidationException.
     api(libs.ktor.server.core)
     api(libs.ktor.status.pages)
     api(libs.ktor.request.validation)
@@ -11,12 +10,13 @@ dependencies {
 
     testImplementation(libs.ktor.content.negotiation)
     testImplementation(libs.ktor.serialization.kotlinx.json)
+    testImplementation(project(":ktor-toolkit-validator"))
+    testImplementation(libs.ktor.server.testhost)
     testImplementation(libs.bundles.testing)
 }
 
 kotlin {
     sourceSets.all {
-        // JsonNamingStrategy is still experimental, and it appears in the problem-details config.
         languageSettings.optIn("kotlinx.serialization.ExperimentalSerializationApi")
     }
 }

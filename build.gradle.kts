@@ -8,6 +8,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import java.io.DataInputStream
 import java.util.zip.ZipFile
+import kotlin.KotlinVersion as MetadataVersion
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -19,18 +20,8 @@ plugins {
     alias(libs.plugins.maven.publish) apply false
 }
 
-/**
- * Single source of truth for the JVM target. Java 17 LTS is the floor for consumers: every
- * dependency still ships Java 8 bytecode, so this is a choice, not a constraint — and lowering it
- * later is compatible, raising it is not.
- */
 val javaVersion = 17
 
-/**
- * The oldest Kotlin a consumer can compile against. The compiler stays free to move ahead (a
- * Dependabot bump changes nothing downstream); this does not. 2.3 is where `kotlin.time.Instant`
- * and `Clock` went stable, and Ktor 3.6 and kotlinx-serialization 1.11 carry 2.3 metadata anyway.
- */
 val kotlinFloor = KotlinVersion.KOTLIN_2_3
 
 /**
@@ -44,11 +35,9 @@ val projectUrl = "https://github.com/joaoseidel/ktor-toolkit"
 allprojects {
     group = mavenGroup
 
-    // `-Pversion=` lets the snapshot workflow stamp a build without touching gradle.properties.
     version = providers.gradleProperty("version").get()
 }
 
-// Neither the umbrella project nor the coverage aggregator ships a public API.
 apiValidation {
     ignoredProjects += listOf(project.name, "report")
 }
@@ -69,11 +58,6 @@ subprojects {
             apiVersion = kotlinFloor
             freeCompilerArgs.add("-Xjsr305=strict")
 
-            // An interface method with a body compiles to a JVM default method alone. The default
-            // is to emit a DefaultImpls trampoline beside it, for binary compatibility with code
-            // built against a Kotlin that had no default methods — code that cannot exist for a
-            // library whose first release this is. Nothing calls the copy, and dead bytecode is
-            // better deleted than explained to the coverage gate.
             jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
         }
     }
@@ -102,20 +86,12 @@ subprojects {
     }
 }
 
-/**
- * The library modules are the only publishable ones — `report` exists to aggregate coverage and has
- * nothing consumers could depend on. Configuring them from here keeps one POM definition instead of
- * a copy per module.
- */
 configure(subprojects.filter { it.name.startsWith("ktor-toolkit-") }) {
     apply(plugin = "org.jetbrains.dokka")
     apply(plugin = "com.vanniktech.maven.publish")
 
     val moduleName = name
 
-    // A dependency bump can raise the floor without touching this file: a jar built for a newer
-    // JDK, or with Kotlin metadata a 2.3 compiler cannot read (it reads one minor ahead). Checked
-    // over what consumers resolve, so a Dependabot PR that would do that fails instead of merging.
     val checkDependencyFloor =
         tasks.register("checkDependencyFloor") {
             val jars =
@@ -125,9 +101,8 @@ configure(subprojects.filter { it.name.startsWith("ktor-toolkit-") }) {
                         .files
                 }
             val maxJava = javaVersion
-            // Metadata versions compared as major * 100 + minor, so 2.4 is 204.
             val (floorMajor, floorMinor) = kotlinFloor.version.split('.').map(String::toInt)
-            val maxKotlin = floorMajor * 100 + floorMinor + 1
+            val newestReadableKotlin = MetadataVersion(floorMajor, floorMinor + 1)
 
             inputs.files(jars)
             doLast {
@@ -152,12 +127,12 @@ configure(subprojects.filter { it.name.startsWith("ktor-toolkit-") }) {
                                 entries.firstOrNull { it.name.endsWith(".kotlin_module") }?.let { entry ->
                                     DataInputStream(zip.getInputStream(entry)).use {
                                         it.readInt()
-                                        it.readInt() * 100 + it.readInt()
+                                        MetadataVersion(it.readInt(), it.readInt())
                                     }
                                 }
 
-                            if (jvm > maxJava || (kotlin ?: 0) > maxKotlin) {
-                                "${jar.name}: Java $jvm, Kotlin metadata ${kotlin?.let { "${it / 100}.${it % 100}" } ?: "none"}"
+                            if (jvm > maxJava || (kotlin != null && kotlin > newestReadableKotlin)) {
+                                "${jar.name}: Java $jvm, Kotlin metadata ${kotlin?.let { "${it.major}.${it.minor}" } ?: "none"}"
                             } else {
                                 null
                             }
@@ -181,8 +156,7 @@ configure(subprojects.filter { it.name.startsWith("ktor-toolkit-") }) {
         )
 
         // Whether the deployment is auto-released and whether it is signed come from
-        // gradle.properties (`mavenCentralAutomaticPublishing`, `signAllPublications`), so CI can
-        // turn signing off for an unsigned smoke test with `-PsignAllPublications=false`.
+        // gradle.properties (`mavenCentralAutomaticPublishing`, `signAllPublications`).
         publishToMavenCentral()
 
         coordinates(mavenGroup, moduleName, version.toString())

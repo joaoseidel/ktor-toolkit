@@ -14,7 +14,6 @@ dependencyResolutionManagement {
     }
 }
 
-// Production code
 include("ktor-toolkit-expander")
 include("ktor-toolkit-filter")
 include("ktor-toolkit-hateoas")
@@ -24,5 +23,4 @@ include("ktor-toolkit-validator")
 include("ktor-toolkit-cache")
 include("ktor-toolkit-state-machine")
 
-// Report generator
 include("report")
