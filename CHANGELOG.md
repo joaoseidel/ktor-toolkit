@@ -106,6 +106,12 @@ First public release. Nothing was published before this, so the breaking changes
 
 ### Added
 
+- **`ktor-toolkit-filter`, a new module.** `call.filters` reads `?filterBy=price:gte:1000,title:like:kotlin` — `property:operator:value`
+  conditions that must all hold, with `eq`, `notEq`, `gt`, `gte`, `lt`, `lte`, `like`, `notLike`, `in`, `notIn` and `exists` — into a list of
+  `Filter`. Unlike paging, a malformed condition fails the request: `InvalidFilterException` extends `IllegalArgumentException`, so the 400 mapping
+  already recommended for an unknown sort key covers it. `toExposedCondition` applies the filters through an explicit column allow-list, typing each
+  value by its column; `toMongoFilter` does the same through `filterableFields { }`, which declares each field's type. Both reject a property outside
+  the allow-list or a value of the wrong type as `InvalidFilterException`, and both let `notEq`, `notLike` and `notIn` match a missing value.
 - **`ktor-toolkit-state-machine`, a new module.** `stateMachine<S, E, C> { }` declares an aggregate's states and the legal moves between them, with
   suspending `guard`s, per-move `effect`s,
   `onEnter` / `onExit` hooks and an `onTransition` listener. The definition is checked when it is built, so an unreachable state, a dead end, an

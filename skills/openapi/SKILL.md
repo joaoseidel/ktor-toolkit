@@ -4,7 +4,7 @@ description: >-
     API docs from KDoc above route handlers, served through Scalar — Tag / Path / Query / Body /
     Responses with fully-qualified types in brackets, the ktor { openApi { } } config, and the
     /docs.json + /scalar routes. Use when adding or changing any endpoint's public contract, and to
-    document what the compiler cannot infer: ?page, ?sortBy, ?expand and the problem+json errors.
+    document what the compiler cannot infer: ?page, ?sortBy, ?filterBy, ?expand and the problem+json errors.
 ---
 
 # OpenAPI
@@ -290,8 +290,8 @@ Reach for that only when inference has genuinely failed. Read the generated docu
 
 What it cannot see is the larger half, and all of it matters to a client:
 
-**Query parameters the toolkit reads for you.** `call.pagination` and `call.expand` consume `?page`, `?pageSize`, `?sortBy` and `?expand` without
-those strings appearing in your handler, so nothing infers them. A collection endpoint that skips them is undocumented in the way clients notice.
+**Query parameters the toolkit reads for you.** `call.pagination`, `call.filters` and `call.expand` consume `?page`, `?pageSize`, `?sortBy`,
+`?filterBy` and `?expand` without those strings appearing in your handler, so nothing infers them. A collection endpoint that skips them is undocumented in the way clients notice.
 
 **Anything thrown rather than responded.** `HttpStatusException`, a domain exception mapped in `problemDetails { }`, a validation failure — none reach
 a `call.respond` the compiler can read. Every non-200 you care about is a line you write.
@@ -313,11 +313,14 @@ Because the toolkit's parameters are invisible to inference, a paged collection 
  * Query: page [Int] Zero-based page index. Defaults to 0.
  * Query: pageSize [Int] Items per page. Defaults to 10, capped at 100.
  * Query: sortBy [String] Comma-separated fields, `-` prefix for descending. Sortable: `title`, `createdAt`.
+ * Query: filterBy [String] Comma-separated `property:operator:value` conditions, all of which must hold, e.g.
+ *   `price:gte:1000,title:like:kotlin`. Filterable: `title`, `price`, `status`.
  * Query: expand [String] Comma-separated fields to embed. Supported: `author`.
  *
  * Responses:
  *  - 200 application/json A page of books. `content` holds the rows, `metadata` the counts.
- *  - 400 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail] An unknown sort field.
+ *  - 400 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail] An unknown sort field, or a filter
+ *    that is malformed, names a field that cannot be filtered, or carries a value of the wrong type.
  */
 ```
 
@@ -335,7 +338,7 @@ Three things there are the point of this skill:
 **The defaults and the cap are stated.** They are enforced silently — `?pageSize=5000` returns 100 without complaint — so a client that does not read
 them quietly gets less than it asked for and never learns why.
 
-**The sortable fields are listed.** The allow-list is unguessable, and guessing wrong is a 400 (or a 500 if the mapping from the
+**The sortable and filterable fields are listed.** The allow-lists are unguessable, and guessing wrong is a 400 (or a 500 if the mapping from the
 `ktor-toolkit:pagination` skill was never added).
 
 **`totalPages` is explained.** It is a count, not an index — the single most commonly misread field in the whole response.

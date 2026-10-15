@@ -63,6 +63,18 @@ to reassemble what it already had.
 
 `count()` is separate because the repository is the only thing that can answer it, and because some endpoints will want to skip it (see below).
 
+A listing the client can narrow takes its filters through the same port, and **`count` takes them too** — a total over the unfiltered table makes
+every page number in `metadata` wrong:
+
+```kotlin
+interface BookRepository {
+    suspend fun findAll(filters: List<Filter>, pagination: Pagination): List<Book>
+    suspend fun count(filters: List<Filter>): Long
+}
+```
+
+The `ktor-toolkit:filtering` skill owns `?filterBy=` end to end — load it.
+
 ### 2. The use case — `-core`
 
 ```kotlin
@@ -243,3 +255,4 @@ Do not pass a fabricated total. Every downstream number in `metadata` is derived
 | Hand-built `{ items, total, page }` response                                 | Loses `hasNext`/`totalPages`, and no two endpoints agree                |
 | Treating `totalPages` as the last page index                                 | Off-by-one at the end of every collection                               |
 | `count()` inside the row-mapping loop                                        | One count query per row                                                 |
+| `count()` ignoring the filters `findAll` applied                             | `totalElements` counts rows no page will ever show                      |

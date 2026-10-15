@@ -40,6 +40,7 @@ Ask in terms of what they are building, not module names — the names mean noth
 | If the API…                                                         | Install                        |
 |---------------------------------------------------------------------|--------------------------------|
 | returns lists of anything                                           | `ktor-toolkit-paginator`       |
+| lets clients narrow those lists with `?filterBy=`                   | `ktor-toolkit-filter`          |
 | should advertise next/prev pages or related actions in the payload  | `ktor-toolkit-hateoas`         |
 | accepts request bodies with rules about them                        | `ktor-toolkit-validator`       |
 | returns errors — so, every API                                      | `ktor-toolkit-problem-details` |
@@ -72,6 +73,7 @@ ktor-toolkit = "1.0.0"
 
 [libraries]
 ktor-toolkit-paginator = { module = "io.github.joaoseidel:ktor-toolkit-paginator", version.ref = "ktor-toolkit" }
+ktor-toolkit-filter = { module = "io.github.joaoseidel:ktor-toolkit-filter", version.ref = "ktor-toolkit" }
 ktor-toolkit-hateoas = { module = "io.github.joaoseidel:ktor-toolkit-hateoas", version.ref = "ktor-toolkit" }
 ktor-toolkit-validator = { module = "io.github.joaoseidel:ktor-toolkit-validator", version.ref = "ktor-toolkit" }
 ktor-toolkit-problem-details = { module = "io.github.joaoseidel:ktor-toolkit-problem-details", version.ref = "ktor-toolkit" }
@@ -108,13 +110,15 @@ implementation(libs.ktor.serialization.kotlinx.json)
 
 Without it a route returning `PagedResponse` fails at runtime with "Response pipeline couldn't transform", which reads like a toolkit bug and is not.
 
-**Optional integrations.** Three features compile `compileOnly` against libraries their module deliberately does not carry, so projects that skip the
+**Optional integrations.** Five features compile `compileOnly` against libraries their module deliberately does not carry, so projects that skip the
 feature do not pay for it. Add the dependency only alongside the feature:
 
 | Using                              | Add                                                                          |
 |------------------------------------|------------------------------------------------------------------------------|
 | `Sort.toExposedQueryExpression(…)` | `org.jetbrains.exposed:exposed-core`                                         |
 | `Sort.toMongoSortExpression(…)`    | `org.mongodb:mongodb-driver-core` — already transitive to any MongoDB driver |
+| `Filter.toExposedCondition(…)`     | `org.jetbrains.exposed:exposed-core`                                         |
+| `Filter.toMongoFilter(…)`          | `org.mongodb:mongodb-driver-core` — already transitive to any MongoDB driver |
 | `LettuceCache`                     | `io.lettuce:lettuce-core`                                                    |
 
 These fail with `NoClassDefFoundError` at runtime, not at compile time: the module compiled fine against a class the consumer never supplied.
@@ -129,6 +133,8 @@ resolve:
 import com.github.joaoseidel.ktor.toolkit.paginator.pagination          // ApplicationCall.pagination
 import com.github.joaoseidel.ktor.toolkit.paginator.data.Pagination
 import com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse
+import com.github.joaoseidel.ktor.toolkit.filter.filters                 // ApplicationCall.filters
+import com.github.joaoseidel.ktor.toolkit.filter.data.toExposedCondition
 import com.github.joaoseidel.ktor.toolkit.hateoas.data.resource
 import com.github.joaoseidel.ktor.toolkit.problemdetails.problemDetails
 import com.github.joaoseidel.ktor.toolkit.validator.rulesFor
@@ -176,7 +182,7 @@ fun Application.module() {
 }
 ```
 
-**`paginator`, `hateoas`, `expander`, `cache` and `state-machine` need no plugin** — they are call extensions and plain objects. Do not invent an
+**`paginator`, `filter`, `hateoas`, `expander`, `cache` and `state-machine` need no plugin** — they are call extensions and plain objects. Do not invent an
 `install()` for them. A state machine in particular is a top-level `val` in the domain, not something the application registers.
 
 **Leave `problemDetails { }` in place before any rules exist.** Covering the *unmapped* cases is the module's whole point, and a service that adds it

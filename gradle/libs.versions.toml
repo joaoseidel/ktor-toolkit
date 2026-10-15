@@ -6,6 +6,7 @@ kotlinx-coroutines = "1.11.0"
 kotlinx-serialization-json = "1.11.0"
 exposed = "1.5.1"
 mongodb = "5.13.0"
+h2 = "2.5.252"
 ktor = "3.6.0"
 lettuce = "7.8.0.RELEASE"
 koin = "4.2.2"
@@ -35,6 +36,8 @@ exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datet
 # MongoDB
 mongodb-driver-core = { module = "org.mongodb:mongodb-driver-core", version.ref = "mongodb" }
 mongodb-driver-kotlin-coroutine = { module = "org.mongodb:mongodb-driver-kotlin-coroutine", version.ref = "mongodb" }
+# H2
+h2 = { module = "com.h2database:h2", version.ref = "h2" }
 # Ktor
 ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
 ktor-server-cio = { module = "io.ktor:ktor-server-cio-jvm", version.ref = "ktor" }

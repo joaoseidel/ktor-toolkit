@@ -281,6 +281,8 @@ type even when it compiles without Ktor.
 | `Paged<T>`                             | `-core`                   | A slice plus its total. Use cases return this.                  |
 | `PaginationRequest`                    | `-adapters` / web         | Parses `?page` and `?pageSize`.                                 |
 | `PagedResponse<T>`                     | `-adapters` / web         | The wire shape, with `metadata`. Framework-free, still a DTO.   |
+| `Filter`                               | `-core`                   | A condition on what to read. Ports take these too.              |
+| `FilterQuery`, `call.filters`          | `-adapters` / web         | Parses `?filterBy=`.                                            |
 | `Resource`, `Link`                     | `-adapters` / web         | Links are URLs — a transport concern the domain has no view on. |
 | `ExpandRequest`                        | `-adapters` / web         | Parses `?expand=`.                                              |
 | `ExpandSpec`, `Expandable`             | `-adapters` / web         | Shapes a response for a client that asked to expand.            |
@@ -289,6 +291,7 @@ type even when it compiles without Ktor.
 | `IllegalTransitionException`           | `-core`                   | A domain exception. The adapter picks the status, once.         |
 | `transitionLinks`, `withTransitions`   | `-adapters` / web         | Renders those moves as URLs, which the domain has no view on.   |
 | `Sort.toExposedQueryExpression(…)`     | `-adapters` / persistence | Turns a domain sort into a query.                               |
+| `toExposedCondition`, `toMongoFilter`  | `-adapters` / persistence | Turns domain filters into a query, through an allow-list.       |
 | `KeyValueCache` implementations        | `-adapters`               | Infrastructure. Constructed in `-app`, never in a route.        |
 
 That first row is why `-core` carries `compileOnly(libs.ktor.toolkit.paginator)` while `-app` carries it as `implementation`: the domain genuinely
@@ -302,9 +305,10 @@ The `ktor-toolkit:install` skill has the full map — load it.
 
 Two consequences people get wrong:
 
-**Ports take `Pagination` and return `List<T>` or `Paged<T>`.** Paging is a domain-level concern — the domain really does want "the first 20 by
-title" — while `?page=` syntax is not. So
-`findAll(pagination: Pagination): List<Book>` is right, and `findAll(page: Int, size: Int)` throws away the sort model for nothing.
+**Ports take `Pagination`, plus `List<Filter>` when the listing can be narrowed, and return `List<T>` or `Paged<T>`.** Paging and filtering are
+domain-level concerns — the domain really does want "the first 20 in print, by title" — while `?page=` and `?filterBy=` syntax are not. So
+`findAll(filters: List<Filter>, pagination: Pagination): List<Book>` is right, and `findAll(page: Int, size: Int, status: String?)` throws away the
+sort and filter models for nothing.
 
 **Core never throws `HttpStatusException`.** It throws `BookNotFoundException`, which it owns and can be tested against. Mapping that to a 404 happens
 once, in `problemDetails { }` — load the

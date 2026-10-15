@@ -16,6 +16,7 @@ dependencyResolutionManagement {
 
 // Production code
 include("ktor-toolkit-expander")
+include("ktor-toolkit-filter")
 include("ktor-toolkit-hateoas")
 include("ktor-toolkit-problem-details")
 include("ktor-toolkit-paginator")

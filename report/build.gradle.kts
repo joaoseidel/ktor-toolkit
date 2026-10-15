@@ -15,6 +15,7 @@ val coveredProjects =
     listOf(
         ":ktor-toolkit-cache",
         ":ktor-toolkit-expander",
+        ":ktor-toolkit-filter",
         ":ktor-toolkit-hateoas",
         ":ktor-toolkit-problem-details",
         ":ktor-toolkit-paginator",
@@ -42,7 +43,10 @@ kover {
             excludes {
                 // The compiler emits a non-inlined copy of a public inline function for the
                 // declaration itself; callers inline the body instead, so that copy never runs.
-                annotatedBy("com.github.joaoseidel.ktor.toolkit.cache.UnreachableBytecode")
+                annotatedBy(
+                    "com.github.joaoseidel.ktor.toolkit.cache.UnreachableBytecode",
+                    "com.github.joaoseidel.ktor.toolkit.filter.UnreachableBytecode",
+                )
 
                 // Every property of PaginationRequest is optional, so kotlinx.serialization guards
                 // its generated `throwMissingFieldException` with `(0 and seen) != 0` — always

@@ -46,6 +46,7 @@ layers depend on — discovering pagination after the port is written means rewr
 |-----------------------------------------------------------|--------------------------------------------------|
 | Does it return more than one of something?                | `ktor-toolkit:pagination`                        |
 | Can the client choose the order?                          | `ktor-toolkit:pagination` — `Sort` is part of it |
+| Can the client narrow it, `?filterBy=`?                   | `ktor-toolkit:filtering`                         |
 | Should the payload carry `next`/`prev`/`self` links?      | `ktor-toolkit:hateoas`                           |
 | May the client pull in related resources with `?expand=`? | `ktor-toolkit:expand`                            |
 | Does it accept a body, or query parameters with rules?    | `ktor-toolkit:validation`                        |

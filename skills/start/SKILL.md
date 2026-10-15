@@ -9,7 +9,7 @@ description: >-
 
 # Ktor Toolkit — Start Here
 
-The seven libraries are the easy part. The hard part is that everyone who touches the service solves the *surrounding* problem differently: one parses
+The eight libraries are the easy part. The hard part is that everyone who touches the service solves the *surrounding* problem differently: one parses
 `?page` by hand, one invents an error envelope, one puts the repository call in the route body. You get a codebase where every endpoint is defensible
 alone and none of them match.
 
@@ -81,6 +81,7 @@ Most tasks hit two or three rows. That is normal.
 | A new or changed HTTP route, of any kind                                  | `ktor-toolkit:endpoint`        |
 | Where a file goes; layering; ports; "is this the right place?"            | `ktor-toolkit:architecture`    |
 | Lists, `?page`, `?pageSize`, `?sortBy`, offsets, "return all X"           | `ktor-toolkit:pagination`      |
+| Narrowing a list: `?filterBy=`, `?status=`, search, "only the X ones"     | `ktor-toolkit:filtering`       |
 | `_links`, `self`/`next`/`prev`, resource envelopes                        | `ktor-toolkit:hateoas`         |
 | `?expand=`, embedding a related resource, N+1 worry                       | `ktor-toolkit:expand`          |
 | Rejecting bad input, required fields, formats, rules on a request         | `ktor-toolkit:validation`      |
@@ -141,6 +142,7 @@ code or reading someone else's.
 |-------------------------------------------------------------------------|--------------------------------|
 | `call.request.queryParameters["page"]?.toIntOrNull() ?: 0`              | `ktor-toolkit:pagination`      |
 | A `data class` with `page`, `total`, `items` fields                     | `ktor-toolkit:pagination`      |
+| `queryParameters["status"]` turned into a `WHERE` clause                | `ktor-toolkit:filtering`       |
 | String-concatenating a `?page=` URL for a next-page link                | `ktor-toolkit:hateoas`         |
 | `call.respond(HttpStatusCode.BadRequest, mapOf("error" to …))`          | `ktor-toolkit:problem-details` |
 | `try { … } catch (e: Exception) { call.respond(500) }` in a route       | `ktor-toolkit:problem-details` |

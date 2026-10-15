@@ -9,14 +9,15 @@
 [![Ktor](https://img.shields.io/badge/Ktor-3.4.1-087CFA)](https://ktor.io)
 [![Java](https://img.shields.io/badge/Java-21+-ED8B00?logo=openjdk&logoColor=white)](https://adoptium.net)
 
-Six small, independent libraries for building JSON APIs with [Ktor](https://ktor.io): pagination, HATEOAS links, request validation, RFC 9457 errors,
-field expansion and response caching.
+Eight small, independent libraries for building JSON APIs with [Ktor](https://ktor.io): pagination, filtering, HATEOAS links, request validation,
+RFC 9457 errors, field expansion, response caching and aggregate state machines.
 
-Take one or take all seven. Nothing pulls in the others except `hateoas`, which builds on `paginator`.
+Take one or take all eight. Nothing pulls in the others except `hateoas`, which builds on `paginator`.
 
 | Module                                             | What it does                                                                 |
 |----------------------------------------------------|------------------------------------------------------------------------------|
 | [`ktor-toolkit-paginator`](#paginator)             | Parses `?page`/`?pageSize`/`?sortBy`, and shapes the paged response          |
+| [`ktor-toolkit-filter`](#filter)                   | Parses `?filterBy=price:gte:1000`, and applies it through an allow-list      |
 | [`ktor-toolkit-hateoas`](#hateoas)                 | Wraps a response in a `_links` envelope, with pagination links built for you |
 | [`ktor-toolkit-validator`](#validator)             | A type-safe `should be` / `should notBe` DSL over Ktor's RequestValidation   |
 | [`ktor-toolkit-problem-details`](#problem-details) | Turns exceptions into RFC 9457 `application/problem+json` responses          |
@@ -24,7 +25,7 @@ Take one or take all seven. Nothing pulls in the others except `hateoas`, which 
 | [`ktor-toolkit-cache`](#cache)                     | Caches a response by request path and query, over any key-value store        |
 | [`ktor-toolkit-state-machine`](#state-machine)     | Declares an aggregate's legal moves, and publishes the open ones as links    |
 
-The repository also ships [25 agent skills](#skills) that record how these APIs are meant to be used, so an agent working in your service follows the
+The repository also ships [26 agent skills](#skills) that record how these APIs are meant to be used, so an agent working in your service follows the
 same conventions you would.
 
 ## Install
@@ -81,15 +82,17 @@ implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.1")
 Without it a route returning `PagedResponse` fails at runtime with "Response pipeline couldn't transform".
 
 **A dependency on its own changes nothing.** `problem-details` needs `StatusPages` with `problemDetails { }` inside it, and `validator` needs
-`RequestValidation`. `paginator`, `hateoas`, `expander` and `cache` need no plugin — they are call extensions and plain objects.
+`RequestValidation`. `paginator`, `filter`, `hateoas`, `expander` and `cache` need no plugin — they are call extensions and plain objects.
 
-**Three features compile against libraries their module deliberately does not carry**, so a project that skips the feature does not pay for it. Add
+**Five features compile against libraries their module deliberately does not carry**, so a project that skips the feature does not pay for it. Add
 the dependency only alongside the feature, or it fails at runtime with `NoClassDefFoundError`:
 
 | Using                              | Add                                                                          |
 |------------------------------------|------------------------------------------------------------------------------|
 | `Sort.toExposedQueryExpression(…)` | `org.jetbrains.exposed:exposed-core`                                         |
 | `Sort.toMongoSortExpression(…)`    | `org.mongodb:mongodb-driver-core` — already transitive to any MongoDB driver |
+| `Filter.toExposedCondition(…)`     | `org.jetbrains.exposed:exposed-core`                                         |
+| `Filter.toMongoFilter(…)`          | `org.mongodb:mongodb-driver-core` — already transitive to any MongoDB driver |
 | `LettuceCache`                     | `io.lettuce:lettuce-core`                                                    |
 
 ### Snapshots
@@ -192,6 +195,58 @@ collection.find().sort(pagination.sortBy.toMongoSortExpression(BookDocument::tit
 
 The response carries a `metadata` block: `page`, `pageSize`, `totalPages` (a count, so the last page index is `totalPages - 1`), `totalElements`,
 `hasNext`, `hasPrevious`, `isSorted` and `sortCriteria`.
+
+## Filter
+
+Reads `?filterBy=` off the call and applies it in your repository. Each condition is `property:operator:value`; conditions are separated by `,` (or
+by repeating the parameter) and must all hold:
+
+```
+?filterBy=price:gte:1000,title:like:kotlin
+?filterBy=status:in:draft|published
+?filterBy=subtitle:exists:false
+```
+
+| Operator                         | Means                                       |
+|----------------------------------|---------------------------------------------|
+| `eq` `notEq`                     | Equal, not equal                            |
+| `gt` `gte` `lt` `lte`            | Ordering                                    |
+| `like` `notLike`                 | Contains the text, ignoring case            |
+| `in` `notIn`                     | Any or none of a `\|`-separated list        |
+| `exists`                         | `true`: has a value; `false`: has none      |
+
+The value is everything after the second `:`, and `\` makes the next character literal, so `title:eq:Hello\, world` is one condition.
+`notEq`, `notLike` and `notIn` also match a row with no value, as MongoDB does; on its own, SQL's `NULL <> x` would drop it.
+
+**Unlike paging, a bad filter fails the request.** A filter is data: dropping one would answer with rows the client asked to exclude. Malformed
+syntax, a property outside the allow-list and a value of the wrong type all raise `InvalidFilterException`, an `IllegalArgumentException`, so one
+`problemDetails { }` mapping turns them into a 400.
+
+```kotlin
+get("/books") {
+    val filters = call.filters
+    val pagination = call.pagination
+    val books = repository.findAll(filters, pagination)
+    val paged = Paged(pagination.page, pagination.sortBy, books, repository.count(filters))
+
+    call.respond(PagedResponse.from(paged) { it.toResponse() })
+}
+```
+
+Apply the filters with an explicit allow-list. In SQL each value is typed by the column it targets; MongoDB has no schema, so the allow-list declares
+the types:
+
+```kotlin
+Books.selectAll().where(filters.toExposedCondition(Books.title, Books.price, Books.status))
+
+val filterable = filterableFields {
+    field(BookDocument::title)
+    field(BookDocument::price)
+}
+collection.find(filters.toMongoFilter(filterable))
+```
+
+HATEOAS page links carry `filterBy` over, so a filtered listing stays filtered as the client follows `next`.
 
 ## HATEOAS
 
@@ -493,6 +548,7 @@ to be useful.
 | `endpoint`        | A new or changed HTTP route, end to end across `-core`, `-adapters` and `-app`          |
 | `architecture`    | Ports & Adapters layout, the three-module split, where a file goes                      |
 | `pagination`      | `?page`, `?pageSize`, `?sortBy`, carrying `Pagination` into the persistence adapter     |
+| `filtering`       | `?filterBy=`, the 400 contract, allow-lists, counting with the same filters             |
 | `hateoas`         | `_links`, page links, the `resource { }` builder                                        |
 | `validation`      | `rulesFor<T>`, syntactic vs business rules, the nullable-DTO convention                 |
 | `problem-details` | `problemDetails { }`, status codes, mapping domain exceptions                           |

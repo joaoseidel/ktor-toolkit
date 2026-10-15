@@ -10,6 +10,7 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/ktor-toolkit-cache" />
             <option value="$PROJECT_DIR$/ktor-toolkit-expander" />
+            <option value="$PROJECT_DIR$/ktor-toolkit-filter" />
             <option value="$PROJECT_DIR$/ktor-toolkit-hateoas" />
             <option value="$PROJECT_DIR$/ktor-toolkit-paginator" />
             <option value="$PROJECT_DIR$/ktor-toolkit-problem-details" />
