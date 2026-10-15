@@ -57,8 +57,8 @@ val orderFlow = stateMachine<OrderState, OrderEvent, Order> { … }
 ```
 
 The module has **no dependencies at all**, no Ktor and no serialization, so it is one of the few toolkit modules `-core` may depend on without the
-`ktor-toolkit:architecture` grep lighting up. The `web` package is the exception: `transitionLinks` needs `ktor-toolkit-hateoas`, and it is imported
-from `-adapters/web`, never from `-core`.
+`ktor-toolkit:architecture` grep lighting up. Publishing the moves as links takes a separate artifact,
+`ktor-toolkit-state-machine-hateoas`. Only `-adapters/web` depends on it, never `-core`.
 
 Declaring it at the top level is not a style preference. The definition is checked when it is built, so a top-level `val` fails at class-load, on
 startup and in CI, while one built inside a function fails on the first request that calls it.

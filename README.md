@@ -12,7 +12,8 @@
 Eight small, independent libraries for building JSON APIs with [Ktor](https://ktor.io): pagination, filtering, HATEOAS links, request validation,
 RFC 9457 errors, field expansion, response caching and aggregate state machines.
 
-Take one or take all eight. Nothing pulls in the others except `hateoas`, which builds on `paginator`.
+Take one or take all eight. Nothing pulls in the others except `hateoas`, which builds on `paginator`. Database and Redis
+integrations ship as their own artifacts, so a module never carries a driver you do not use.
 
 | Module                                             | What it does                                                                 |
 |----------------------------------------------------|------------------------------------------------------------------------------|
@@ -23,7 +24,13 @@ Take one or take all eight. Nothing pulls in the others except `hateoas`, which 
 | [`ktor-toolkit-problem-details`](#problem-details) | Turns exceptions into RFC 9457 `application/problem+json` responses          |
 | [`ktor-toolkit-expander`](#expander)               | Resolves `?expand=author.books`, batching one query per field                |
 | [`ktor-toolkit-cache`](#cache)                     | Caches a response by request path and query, over any key-value store        |
-| [`ktor-toolkit-state-machine`](#state-machine)     | Declares an aggregate's legal moves, and publishes the open ones as links    |
+| [`ktor-toolkit-state-machine`](#state-machine)     | Declares an aggregate's legal moves, and checks each one before it happens   |
+| `ktor-toolkit-paginator-exposed`                   | Applies `sortBy` to an Exposed query                                         |
+| `ktor-toolkit-paginator-mongo`                     | Applies `sortBy` to a MongoDB `find`                                         |
+| `ktor-toolkit-filter-exposed`                      | Applies `filterBy` to an Exposed query                                       |
+| `ktor-toolkit-filter-mongo`                        | Applies `filterBy` to a MongoDB `find`                                       |
+| `ktor-toolkit-cache-lettuce`                       | A Redis-backed cache store, over Lettuce                                     |
+| `ktor-toolkit-state-machine-hateoas`               | Publishes an aggregate's open moves as `_links`                              |
 
 The repository also ships [26 agent skills](#skills) that record how these APIs are meant to be used, so an agent working in your service follows the
 same conventions you would.
@@ -60,14 +67,15 @@ Coordinates are `io.github.joaoseidel`, because that is the only namespace Maven
 `com.github.joaoseidel`**, so an import guessed from the dependency line does not resolve:
 
 ```kotlin
-import com.github.joaoseidel.ktor.toolkit.paginator.pagination          // ApplicationCall.pagination
-import com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse
-import com.github.joaoseidel.ktor.toolkit.problemdetails.problemDetails // one word, unlike the artifact
-import com.github.joaoseidel.ktor.toolkit.validator.rulesFor
-import com.github.joaoseidel.ktor.toolkit.validator.validators.blank    // one import per rule you use
+import com.github.joaoseidel.ktor.toolkit.paginator.api.pagination          // ApplicationCall.pagination
+import com.github.joaoseidel.ktor.toolkit.paginator.api.web.PagedResponse
+import com.github.joaoseidel.ktor.toolkit.problemdetails.api.problemDetails // one word, unlike the artifact
+import com.github.joaoseidel.ktor.toolkit.validator.api.rulesFor
+import com.github.joaoseidel.ktor.toolkit.validator.api.validators.blank    // one import per rule you use
 ```
 
-Domain types sit under `data`, wire types under `web`, and the call extensions and plugin installers at the module root.
+Everything you import sits under the module's `api` package: domain types under `api.data`, wire types under `api.web`, exceptions under
+`api.error`, and the call extensions and plugin installers at `api` itself. `runtime` packages hold internal code and are never public.
 
 ### What you also need
 
@@ -86,16 +94,18 @@ Without it a route returning `PagedResponse` fails at runtime with "Response pip
 **A dependency on its own changes nothing.** `problem-details` needs `StatusPages` with `problemDetails { }` inside it, and `validator` needs
 `RequestValidation`. `paginator`, `filter`, `hateoas`, `expander` and `cache` need no plugin. They are call extensions and plain objects.
 
-**Five features compile against libraries their module deliberately does not carry**, so a project that skips the feature does not pay for it. Add
-the dependency only alongside the feature, or it fails at runtime with `NoClassDefFoundError`:
+**Database and Redis integrations are separate artifacts.** Each one depends on the module it extends and uses the driver your project already
+has, at your version. The versions it is built and tested against are the `exposed`, `mongodb` and `lettuce` entries in
+[`gradle/libs.versions.toml`](gradle/libs.versions.toml). Older versions are untested.
 
-| Using                              | Add                                                                         |
-|------------------------------------|-----------------------------------------------------------------------------|
-| `Sort.toExposedQueryExpression(…)` | `org.jetbrains.exposed:exposed-core`                                        |
-| `Sort.toMongoSortExpression(…)`    | `org.mongodb:mongodb-driver-core`, already transitive to any MongoDB driver |
-| `Filter.toExposedCondition(…)`     | `org.jetbrains.exposed:exposed-core`                                        |
-| `Filter.toMongoFilter(…)`          | `org.mongodb:mongodb-driver-core`, already transitive to any MongoDB driver |
-| `LettuceCache`                     | `io.lettuce:lettuce-core`                                                   |
+| Using                                | Add                                  |
+|--------------------------------------|--------------------------------------|
+| `Sort.toExposedQueryExpression(…)`   | `ktor-toolkit-paginator-exposed`     |
+| `Sort.toMongoSortExpression(…)`      | `ktor-toolkit-paginator-mongo`       |
+| `Filter.toExposedCondition(…)`       | `ktor-toolkit-filter-exposed`        |
+| `Filter.toMongoFilter(…)`            | `ktor-toolkit-filter-mongo`          |
+| `LettuceCache`                       | `ktor-toolkit-cache-lettuce`         |
+| `transitionLinks`, `withTransitions` | `ktor-toolkit-state-machine-hateoas` |
 
 ### Snapshots
 
@@ -189,7 +199,8 @@ column's SQL name, or a MongoDB field as stored. With snake_case columns the cli
 snake_case response.
 
 The repository resolves the sort against an explicit allow-list. **Anything outside it raises `InvalidSortException` rather than reaching the
-database.** Give every listing a default order and a unique tie-breaker, or rows repeat and vanish between pages:
+database.** The conversions come from `ktor-toolkit-paginator-exposed` and `ktor-toolkit-paginator-mongo`. Give every listing a default order and a
+unique tie-breaker, or rows repeat and vanish between pages:
 
 ```kotlin
 override suspend fun findAll(pagination: Pagination): List<Book> =
@@ -259,8 +270,8 @@ class FindBooks(private val books: BookRepository) {
 }
 ```
 
-The repository applies them through an explicit allow-list. In SQL each value is typed by the column it targets; MongoDB has no schema, so the
-allow-list declares the types:
+The repository applies them through an explicit allow-list, with `ktor-toolkit-filter-exposed` or `ktor-toolkit-filter-mongo`. In SQL each value is
+typed by the column it targets; MongoDB has no schema, so the allow-list declares the types:
 
 ```kotlin
 private val filterable = listOf(Books.title, Books.price, Books.status)
@@ -514,7 +525,7 @@ post("/books") {
 `invalidateContaining(id)` also exists, for an entity that appears in entries whose keys do not name it; it reads every entry, so prefer namespaces.
 
 `InMemoryCache` is LRU-bounded with an optional TTL, which suits a single node. **Once more than one instance serves the same traffic, use
-`LettuceCache`** over [Lettuce](https://lettuce.io). Otherwise each node holds, and invalidates, its own copy:
+`LettuceCache`** from `ktor-toolkit-cache-lettuce`, over [Lettuce](https://lettuce.io). Otherwise each node holds, and invalidates, its own copy:
 
 ```kotlin
 val connection = RedisClient.create("redis://localhost:6379").connect(LettuceCache.Codec)
@@ -592,7 +603,7 @@ call.respond(
 ```
 
 The client stops reimplementing the lifecycle to decide whether to draw a button: it looks for a `pay` link, and the absence of one is the answer.
-`transitionLinks` is the only part that needs `ktor-toolkit-hateoas`, and it is compiled against it optionally.
+`transitionLinks` and `withTransitions` come from `ktor-toolkit-state-machine-hateoas`, so the machine itself carries no HATEOAS dependency.
 
 ---
 

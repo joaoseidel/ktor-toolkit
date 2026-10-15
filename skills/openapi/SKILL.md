@@ -218,8 +218,8 @@ fun Route.bookRoutes() {
      *
      * Responses:
      *  - 201 application/json [com.example.catalog.adapters.web.book.BookResponse] The created book.
-     *  - 400 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail] Validation failed; `properties` names each field.
-     *  - 409 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail] That ISBN is already registered.
+     *  - 400 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.api.data.ProblemDetail] Validation failed; `properties` names each field.
+     *  - 409 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.api.data.ProblemDetail] That ISBN is already registered.
      */
     post("/books") {
         val book = createBook(call.receive<CreateBookRequest>().toDomain())
@@ -250,11 +250,11 @@ fully-qualified name resolves from anywhere and survives that.
 
 The toolkit types you will name most often:
 
-| Type              | Write                                                                  |
-|-------------------|------------------------------------------------------------------------|
-| `ProblemDetail`   | `com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail` |
-| `Link`            | `com.github.joaoseidel.ktor.toolkit.hateoas.data.Link`                 |
-| `ValidationError` | `com.github.joaoseidel.ktor.toolkit.validator.data.ValidationError`    |
+| Type              | Write                                                                      |
+|-------------------|----------------------------------------------------------------------------|
+| `ProblemDetail`   | `com.github.joaoseidel.ktor.toolkit.problemdetails.api.data.ProblemDetail` |
+| `Link`            | `com.github.joaoseidel.ktor.toolkit.hateoas.api.data.Link`                 |
+| `ValidationError` | `com.github.joaoseidel.ktor.toolkit.validator.api.data.ValidationError`    |
 
 `PagedResponse` and `Resource` are deliberately absent: both are generic, and naming either is the mistake the next section is about.
 
@@ -263,7 +263,7 @@ reference that cannot quietly lose a schema, and it makes review mechanical: che
 
 ### Never name a generic type in brackets
 
-`[com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse]` on a collection route is the one reference that does not fail quietly. Inference
+`[com.github.joaoseidel.ktor.toolkit.paginator.api.web.PagedResponse]` on a collection route is the one reference that does not fail quietly. Inference
 resolves it to `PagedResponse<T>`, asks kotlinx-serialization for a serializer, and gets a `SerializationException`, because nothing supplies an
 element type through a KDoc link. The comment path does not catch it, so the exception escapes and **`/docs.json` returns 500 for the entire API**.
 Not one missing schema: no document at all, taking every other endpoint's documentation with it.
@@ -330,7 +330,7 @@ Because the toolkit's parameters are invisible to inference, a paged collection 
  *
  * Responses:
  *  - 200 application/json A page of books. `content` holds the rows, `metadata` the counts.
- *  - 400 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail] An unknown sort field, or a filter
+ *  - 400 application/problem+json [com.github.joaoseidel.ktor.toolkit.problemdetails.api.data.ProblemDetail] An unknown sort field, or a filter
  *    that is malformed, names a field that cannot be filtered, or carries a value of the wrong type.
  */
 ```
@@ -360,7 +360,7 @@ promise you do not want to make.
 ## Errors and examples
 
 Document every status a client should handle, and say what causes it. A bare `400 Bad Request` tells a caller nothing they did not already know.
-Always name `application/problem+json` on error responses, paired with `[com.github.joaoseidel.ktor.toolkit.problemdetails.data.ProblemDetail]`:
+Always name `application/problem+json` on error responses, paired with `[com.github.joaoseidel.ktor.toolkit.problemdetails.api.data.ProblemDetail]`:
 clients that branch on `Content-Type` need to know the error shape differs from the success shape. That type is the single most common place the
 simple name fails to resolve, because error responses are produced by the mapper rather than by the route.
 

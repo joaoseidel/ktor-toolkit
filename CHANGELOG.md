@@ -10,6 +10,15 @@ First public release. Nothing was published before this, so the breaking changes
 
 ### Breaking
 
+- **Every public package moved under `api`.** `…toolkit.paginator.data.Pagination` is now `…toolkit.paginator.api.data.Pagination`, and the
+  same for every module: `<module>` becomes `<module>.api`, `<module>.data` becomes `<module>.api.data`, `<module>.web` becomes `<module>.api.web`.
+  Every exception moved to `<module>.api.error`: `InvalidFilterException`, `InvalidSortException`, `HttpStatusException`,
+  `IllegalTransitionException` and `StateMachineDefinitionException`. Internal machinery sits under `<module>.runtime` and is not public.
+- **Store integrations are separate artifacts.** The Exposed, MongoDB and Lettuce functions and the state machine's HATEOAS links moved out of
+  the base modules, so `ktor-toolkit-filter` no longer compiles against two database drivers. Add the artifact for the store you use; it runs on
+  your own driver, at your version:
+  `ktor-toolkit-paginator-exposed`, `-paginator-mongo`, `-filter-exposed`, `-filter-mongo`, `-cache-lettuce` and `-state-machine-hateoas`.
+  Their packages are `…toolkit.<feature>.<store>.api`, for example `…toolkit.filter.exposed.api.toExposedCondition`.
 - **The group id is `io.github.joaoseidel` and the base package moved to `com.github.joaoseidel`.**
   Dependencies are now `io.github.joaoseidel:ktor-toolkit-*` — the group has to sit under
   `io.github.<user>` because that is the only namespace Maven Central verifies from a GitHub account. Every import changes from

@@ -48,14 +48,25 @@ Ask in terms of what they are building, not module names. The names mean nothing
 | has read endpoints worth caching                                   | `ktor-toolkit-cache`           |
 | has resources with a lifecycle, a status that may only move so far | `ktor-toolkit-state-machine`   |
 
+Then one integration per store the project uses. Each brings the module it extends and uses the project's own driver, at the project's version:
+
+| If the project…                                          | Add                                  |
+|----------------------------------------------------------|--------------------------------------|
+| sorts with Exposed                                       | `ktor-toolkit-paginator-exposed`     |
+| sorts with MongoDB                                       | `ktor-toolkit-paginator-mongo`       |
+| filters with Exposed                                     | `ktor-toolkit-filter-exposed`        |
+| filters with MongoDB                                     | `ktor-toolkit-filter-mongo`          |
+| caches in Redis                                          | `ktor-toolkit-cache-lettuce`         |
+| publishes state-machine moves as links                   | `ktor-toolkit-state-machine-hateoas` |
+
 Three things to say while asking, because they change the answer:
 
 - **`hateoas` brings `paginator` with it** as an `api` dependency, because `PagedResponse` is in `toResource`'s signature. Selecting hateoas alone is
   complete; do not also list paginator.
 - **Default to `problem-details`.** Every service returns errors, and this is the module that decides what a client sees when one happens. Skip it
   and validation failures answer with Ktor's default HTML error page.
-- **`state-machine` has no dependencies of its own**, not even Ktor, which is why a domain module may depend on it. Its `web` package needs
-  `hateoas`. That one function is compiled against it optionally, so selecting the machine alone is complete.
+- **`state-machine` has no dependencies of its own**, not even Ktor, which is why a domain module may depend on it. Publishing its moves as
+  links is `ktor-toolkit-state-machine-hateoas`, which keeps that dependency out of the domain.
 
 "All of them" is a legitimate answer for a greenfield service. Take it.
 
@@ -80,6 +91,12 @@ ktor-toolkit-problem-details = { module = "io.github.joaoseidel:ktor-toolkit-pro
 ktor-toolkit-expander = { module = "io.github.joaoseidel:ktor-toolkit-expander", version.ref = "ktor-toolkit" }
 ktor-toolkit-cache = { module = "io.github.joaoseidel:ktor-toolkit-cache", version.ref = "ktor-toolkit" }
 ktor-toolkit-state-machine = { module = "io.github.joaoseidel:ktor-toolkit-state-machine", version.ref = "ktor-toolkit" }
+ktor-toolkit-paginator-exposed = { module = "io.github.joaoseidel:ktor-toolkit-paginator-exposed", version.ref = "ktor-toolkit" }
+ktor-toolkit-paginator-mongo = { module = "io.github.joaoseidel:ktor-toolkit-paginator-mongo", version.ref = "ktor-toolkit" }
+ktor-toolkit-filter-exposed = { module = "io.github.joaoseidel:ktor-toolkit-filter-exposed", version.ref = "ktor-toolkit" }
+ktor-toolkit-filter-mongo = { module = "io.github.joaoseidel:ktor-toolkit-filter-mongo", version.ref = "ktor-toolkit" }
+ktor-toolkit-cache-lettuce = { module = "io.github.joaoseidel:ktor-toolkit-cache-lettuce", version.ref = "ktor-toolkit" }
+ktor-toolkit-state-machine-hateoas = { module = "io.github.joaoseidel:ktor-toolkit-state-machine-hateoas", version.ref = "ktor-toolkit" }
 ```
 
 **One shared version key, not one per module.** They are released together and mixing versions across them is unsupported. Delete the aliases for
@@ -110,18 +127,16 @@ implementation(libs.ktor.serialization.kotlinx.json)
 
 Without it a route returning `PagedResponse` fails at runtime with "Response pipeline couldn't transform", which reads like a toolkit bug and is not.
 
-**Optional integrations.** Five features compile `compileOnly` against libraries their module deliberately does not carry, so projects that skip the
-feature do not pay for it. Add the dependency only alongside the feature:
+**Integrations are their own artifacts.** The store-specific functions live outside the base modules. When one does not resolve, add its artifact:
 
-| Using                              | Add                                                                         |
-|------------------------------------|-----------------------------------------------------------------------------|
-| `Sort.toExposedQueryExpression(…)` | `org.jetbrains.exposed:exposed-core`                                        |
-| `Sort.toMongoSortExpression(…)`    | `org.mongodb:mongodb-driver-core`, already transitive to any MongoDB driver |
-| `Filter.toExposedCondition(…)`     | `org.jetbrains.exposed:exposed-core`                                        |
-| `Filter.toMongoFilter(…)`          | `org.mongodb:mongodb-driver-core`, already transitive to any MongoDB driver |
-| `LettuceCache`                     | `io.lettuce:lettuce-core`                                                   |
-
-These fail with `NoClassDefFoundError` at runtime, not at compile time: the module compiled fine against a class the consumer never supplied.
+| Unresolved                           | Add                                  |
+|--------------------------------------|--------------------------------------|
+| `Sort.toExposedQueryExpression(…)`   | `ktor-toolkit-paginator-exposed`     |
+| `Sort.toMongoSortExpression(…)`      | `ktor-toolkit-paginator-mongo`       |
+| `Filter.toExposedCondition(…)`       | `ktor-toolkit-filter-exposed`        |
+| `Filter.toMongoFilter(…)`            | `ktor-toolkit-filter-mongo`          |
+| `LettuceCache`                       | `ktor-toolkit-cache-lettuce`         |
+| `transitionLinks`, `withTransitions` | `ktor-toolkit-state-machine-hateoas` |
 
 ## Step 5: Import from the right package
 
@@ -130,27 +145,28 @@ through a GitHub account. The Kotlin packages are `com.github.joaoseidel.ktor.to
 resolve:
 
 ```kotlin
-import com.github.joaoseidel.ktor.toolkit.paginator.pagination          // ApplicationCall.pagination
-import com.github.joaoseidel.ktor.toolkit.paginator.data.Pagination
-import com.github.joaoseidel.ktor.toolkit.paginator.web.PagedResponse
-import com.github.joaoseidel.ktor.toolkit.filter.filters                 // ApplicationCall.filters
-import com.github.joaoseidel.ktor.toolkit.filter.data.toExposedCondition
-import com.github.joaoseidel.ktor.toolkit.hateoas.data.resource
-import com.github.joaoseidel.ktor.toolkit.problemdetails.problemDetails
-import com.github.joaoseidel.ktor.toolkit.validator.rulesFor
-import com.github.joaoseidel.ktor.toolkit.expander.data.ExpandSpec
-import com.github.joaoseidel.ktor.toolkit.cache.withCache
-import com.github.joaoseidel.ktor.toolkit.statemachine.stateMachine
-import com.github.joaoseidel.ktor.toolkit.statemachine.web.transitionLinks
+import com.github.joaoseidel.ktor.toolkit.paginator.api.pagination          // ApplicationCall.pagination
+import com.github.joaoseidel.ktor.toolkit.paginator.api.data.Pagination
+import com.github.joaoseidel.ktor.toolkit.paginator.api.web.PagedResponse
+import com.github.joaoseidel.ktor.toolkit.filter.api.filters                 // ApplicationCall.filters
+import com.github.joaoseidel.ktor.toolkit.filter.exposed.api.toExposedCondition
+import com.github.joaoseidel.ktor.toolkit.hateoas.api.data.resource
+import com.github.joaoseidel.ktor.toolkit.problemdetails.api.problemDetails
+import com.github.joaoseidel.ktor.toolkit.validator.api.rulesFor
+import com.github.joaoseidel.ktor.toolkit.expander.api.data.ExpandSpec
+import com.github.joaoseidel.ktor.toolkit.cache.api.withCache
+import com.github.joaoseidel.ktor.toolkit.statemachine.api.stateMachine
+import com.github.joaoseidel.ktor.toolkit.statemachine.hateoas.api.transitionLinks
 ```
 
 Note **`problemdetails`** and **`statemachine`**: one word each, no hyphen and no dot, unlike the artifact names.
 
-Within each module: domain types under `data`, wire types under `web`, call extensions and plugin installers at the module root. One level deeper
-matters for the validator. Every rule lives in `…validator.validators`, one import per rule the file uses:
+Within each module everything you import is under `api`: domain types under `api.data`, wire types under `api.web`, exceptions under
+`api.error`, call extensions and plugin installers at `api` itself. Nothing under `runtime` is public. One level deeper matters for the validator. Every rule lives in
+`…validator.api.validators`, one import per rule the file uses:
 
 ```kotlin
-import com.github.joaoseidel.ktor.toolkit.validator.validators.blank    // should notBe blank()
+import com.github.joaoseidel.ktor.toolkit.validator.api.validators.blank    // should notBe blank()
 ```
 
 Two receivers are easy to get wrong: `withCache` extends **`ApplicationRequest`**, so it is `call.request.withCache(…)`, and `toResource` takes the
@@ -256,18 +272,18 @@ Keep it short. The user asked for a working project, and the evidence is the com
 
 ## When it goes wrong
 
-| Symptom                                                           | Cause                                                             |
-|-------------------------------------------------------------------|-------------------------------------------------------------------|
-| `class file has wrong version 61.0`                               | The project targets below Java 17 (Step 1)                        |
-| `compiled with an incompatible version of Kotlin`                 | The project compiles with Kotlin below 2.3 (Step 1)               |
-| `Could not find io.github.joaoseidel:...`                         | `mavenCentral()` missing from the build's repositories (Step 3)   |
-| Unresolved reference on `import io.github.joaoseidel...`          | The packages are `com.github.joaoseidel...` (Step 5)              |
-| Unresolved reference on `blank()`, `email()`, `size()`            | Each rule is its own import from `…validator.validators` (Step 5) |
-| `Response pipeline couldn't transform`                            | ContentNegotiation missing (Step 4)                               |
-| `NoClassDefFoundError` on Exposed / Lettuce / MongoDB classes     | Optional integration used without its dependency (Step 4)         |
-| Validation failures return HTML, not `problem+json`               | `problemDetails { }` missing from StatusPages (Step 6)            |
-| `JsonNamingStrategy` is experimental and its usage must be marked | Opt-in missing (Step 6)                                           |
-| Skills resolve as `/start` instead of `/ktor-toolkit:start`       | Installed via the skills CLI rather than as a Claude Code plugin  |
+| Symptom                                                           | Cause                                                                 |
+|-------------------------------------------------------------------|-----------------------------------------------------------------------|
+| `class file has wrong version 61.0`                               | The project targets below Java 17 (Step 1)                            |
+| `compiled with an incompatible version of Kotlin`                 | The project compiles with Kotlin below 2.3 (Step 1)                   |
+| `Could not find io.github.joaoseidel:...`                         | `mavenCentral()` missing from the build's repositories (Step 3)       |
+| Unresolved reference on `import io.github.joaoseidel...`          | The packages are `com.github.joaoseidel...` (Step 5)                  |
+| Unresolved reference on `blank()`, `email()`, `size()`            | Each rule is its own import from `…validator.api.validators` (Step 5) |
+| `Response pipeline couldn't transform`                            | ContentNegotiation missing (Step 4)                                   |
+| Unresolved `toExposed…`, `toMongo…`, `LettuceCache`               | The integration artifact is missing (Step 4)                          |
+| Validation failures return HTML, not `problem+json`               | `problemDetails { }` missing from StatusPages (Step 6)                |
+| `JsonNamingStrategy` is experimental and its usage must be marked | Opt-in missing (Step 6)                                               |
+| Skills resolve as `/start` instead of `/ktor-toolkit:start`       | Installed via the skills CLI rather than as a Claude Code plugin      |
 
 ## Consuming an unreleased change
 

@@ -310,9 +310,9 @@ type even when it compiles without Ktor.
 That first row is why `-core` carries `compileOnly(libs.ktor.toolkit.paginator)` while `-app` carries it as `implementation`: the domain genuinely
 speaks in pages and sorts, and only the deployable needs it on the runtime classpath.
 
-The `data` / `web` split in the table is also the package split, and the import root is **not** the group id: artifacts are `io.github.joaoseidel`,
-packages are `com.github.joaoseidel.ktor.toolkit.*`. So `-core` imports `com.github.joaoseidel.ktor.toolkit.paginator.data.Pagination` and
-`-adapters/web` imports `...paginator.web.PagedResponse`. An import from `web` in a `-core` file is the same violation as the Ktor grep above,
+The `api.data` / `api.web` split in the table is also the package split, and the import root is **not** the group id: artifacts are `io.github.joaoseidel`,
+packages are `com.github.joaoseidel.ktor.toolkit.*`. So `-core` imports `com.github.joaoseidel.ktor.toolkit.paginator.api.data.Pagination` and
+`-adapters/web` imports `...paginator.api.web.PagedResponse`. An import from `web` in a `-core` file is the same violation as the Ktor grep above,
 visible in the import list. The `ktor-toolkit:install` skill has the full map. Load it.
 
 Two consequences people get wrong:

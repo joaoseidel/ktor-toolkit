@@ -125,9 +125,9 @@ private fun List<Sort>.toOrder(): List<Pair<Expression<*>, SortOrder>> =
     toExposedQueryExpression(sortable).ifEmpty { listOf(Books.publishedAt to SortOrder.DESC) } + (Books.id to SortOrder.ASC)
 ```
 
-`toExposedQueryExpression` takes an **explicit allow-list of sortable columns**, as a vararg, a `List<Column<*>>` or a whole `Table`. Anything
-outside it raises `InvalidSortException` before a query is built. Name the columns rather than passing the table: `Books` exposes every column
-including the ones you did not mean to make sortable, and an index only covers the ones you planned for.
+`toExposedQueryExpression`, from `ktor-toolkit-paginator-exposed`, takes an **explicit allow-list of sortable columns**, as a vararg, a
+`List<Column<*>>` or a whole `Table`. Anything outside it raises `InvalidSortException` before a query is built. Name the columns rather than passing
+the table: `Books` exposes every column including the ones you did not mean to make sortable, and an index only covers the ones you planned for.
 
 **A sort key is the column's SQL name.** The allow-list matches `Column.name`, so `Books.publishedAt = date("published_at")` is sorted by
 `?sortBy=published_at`, not `publishedAt`. With snake_case columns and a snake_case JSON naming strategy, that is the name the client already reads
@@ -140,7 +140,7 @@ and another on none. The repository owns both because only it knows which column
 Every method runs in its own `suspendTransaction` against the injected `Database`. Exposed throws without a transaction in context, and a repository
 that relies on one being opened somewhere above it works until the first caller that did not.
 
-On MongoDB the adapter has the same shape, with `toMongoSortExpression`:
+On MongoDB the adapter has the same shape, with `toMongoSortExpression` from `ktor-toolkit-paginator-mongo`:
 
 ```kotlin
 class MongoBookRepository(

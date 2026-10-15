@@ -27,6 +27,9 @@ serving stale data until their TTL expires. That is not a subtle bug, but it is 
 If the answer is genuinely one instance today and more later, `InMemoryCache` now is fine: both implement `KeyValueCache`, so the swap is a line in
 the DI wiring. Say that out loud so the decision is recorded rather than forgotten.
 
+`LettuceCache` ships in its own artifact, `ktor-toolkit-cache-lettuce`, used alongside the project's own `lettuce-core`. `ktor-toolkit-cache` alone
+has no Redis dependency.
+
 ## What the module caches, and what it does not
 
 `withCache` caches **an HTTP response, keyed by the request**. It is read-through: on a miss it runs your block, stores the result, and returns it.

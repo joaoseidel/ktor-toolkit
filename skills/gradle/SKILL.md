@@ -196,9 +196,9 @@ The `testImplementation` is not optional. `compileOnly` is **not** on the test c
 for whoever forgets the runtime dependency is `NoClassDefFoundError` in production, not a compile error, so say so wherever the feature is
 documented.
 
-This is also why the toolkit's own optional features behave the way they do: `Sort.toExposedQueryExpression`, `Sort.toMongoSortExpression` and
-`LettuceCache` are each `compileOnly` against a library the module does not carry, and your build supplies it. Load the `ktor-toolkit:install` skill
-for that table.
+The toolkit puts each integration in its own artifact (`ktor-toolkit-filter-exposed`, `ktor-toolkit-cache-lettuce` and so on), still `compileOnly`
+against the driver. Only a project that already uses the driver adds the artifact, so the driver is there, at the project's version. An `api`
+driver would upgrade `exposed-core` without `exposed-jdbc`. Load the `ktor-toolkit:install` skill for that table.
 
 ### Across the service's own modules
 

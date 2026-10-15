@@ -56,8 +56,13 @@ Review that diff before committing — it is the clearest statement of what a ch
 Modules declare a dependency as `api` only when it appears in a public signature — that is what puts it in the published POM for consumers. Anything a
 module merely uses internally is `implementation`.
 
-Optional integrations (Exposed, the MongoDB driver) are `compileOnly`, so consumers who do not use them do not pay for them. Add the matching
-`testImplementation` so the code is still compiled and tested here, and document the requirement in the README.
+An integration with a third-party library (Exposed, the MongoDB driver, Lettuce) is its own module, `ktor-toolkit-<feature>-<library>`, depending on
+the feature module as `api` and the library as `compileOnly` plus `testImplementation`. The consumer's driver version wins, so the toolkit never
+upgrades one artifact of a driver family out of step with the rest. Base modules never reference a driver at all.
+
+Each module splits into two packages. `api` is what consumers import, `runtime` holds `internal` machinery. A `@PublishedApi internal` declaration is
+inlined into callers, so it is ABI and lives in `api`. `checkRuntimeNotInAbi` fails the build if a `runtime` declaration reaches a module's `.api`
+dump.
 
 ## Continuous integration
 

@@ -128,7 +128,7 @@ client to send it. Better still, apply that rule inside the repository: a scope 
 
 ### 3. The persistence adapter: `-adapters/persistence`
 
-Exposed, with an **explicit column allow-list**:
+Exposed, from `ktor-toolkit-filter-exposed`, with an **explicit column allow-list**:
 
 ```kotlin
 private val filterable = listOf(Books.title, Books.price, Books.status, Books.publishedAt)
@@ -161,7 +161,7 @@ methods, so `findAll` and `count` cannot drift apart.
 
 `toExposedCondition(Books)` accepts every column, including the ones nobody meant to expose and the ones no index covers. Name the columns.
 
-MongoDB has no schema, so its allow-list declares the types, next to the document class:
+MongoDB (`ktor-toolkit-filter-mongo`) has no schema, so its allow-list declares the types, next to the document class:
 
 ```kotlin
 private val filterable = filterableFields {
