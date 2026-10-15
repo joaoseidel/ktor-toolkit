@@ -1,7 +1,7 @@
 ---
 name: cache
 description: >-
-    Response caching with ktor-toolkit-cache — serving a route through withCache(namespace, cache),
+    Response caching with ktor-toolkit-cache: serving a route through withCache(namespace, cache),
     choosing between InMemoryCache and LettuceCache (Redis), picking a TTL, and invalidating after a
     write. Use when an endpoint is slow or its result is reusable across clients, when deciding who
     invalidates what, and whenever you see a ConcurrentHashMap used as a cache.
@@ -11,7 +11,7 @@ description: >-
 
 ## Ask first: which store
 
-This is the first question, before any code, because it is the one that is expensive to change later — it decides whether invalidation is correct on
+This is the first question, before any code, because it is the one that is expensive to change later. It decides whether invalidation is correct on
 one node or on all of them.
 
 | Option                     | Right when                                                                                                |
@@ -21,8 +21,8 @@ one node or on all of them.
 | **Custom `KeyValueCache`** | You already run a different store, or entries need behaviour the two above do not have                    |
 
 **If the user is unsure, ask one question: how many instances run in production?** More than one and the answer is Redis. With `InMemoryCache` behind
-a load balancer, each instance holds its own copy and `invalidateNamespace` only clears the node that handled the write — the other nodes keep serving
-stale data until their TTL expires. That is not a subtle bug, but it is invisible in development, where there is only ever one instance.
+a load balancer, each instance holds its own copy and `invalidateNamespace` only clears the node that handled the write, and the other nodes keep
+serving stale data until their TTL expires. That is not a subtle bug, but it is invisible in development, where there is only ever one instance.
 
 If the answer is genuinely one instance today and more later, `InMemoryCache` now is fine: both implement `KeyValueCache`, so the swap is a line in
 the DI wiring. Say that out loud so the decision is recorded rather than forgotten.
@@ -32,16 +32,26 @@ the DI wiring. Say that out loud so the decision is recorded rather than forgott
 `withCache` caches **an HTTP response, keyed by the request**. It is read-through: on a miss it runs your block, stores the result, and returns it.
 
 ```kotlin
-get {
-    val books = call.request.withCache("books", cache) {
-        findBooks(call.pagination)
+fun Route.bookRoutes() {
+    val findBooks: FindBooks by dependencies
+    val cache: KeyValueCache by dependencies
+
+    route("/books") {
+        get {
+            val response = call.request.withCache("books", cache) {
+                PagedResponse.from(findBooks(call.filters, call.pagination)) { it.toResponse() }
+            }
+            call.respond(response.toResource(call))
+        }
     }
-    call.respond(PagedResponse.from(books) { it.toResponse() })
 }
 ```
 
-There is no write-through, no automatic invalidation and no warming. Those are deliberate omissions — each depends on knowing what a write touches,
-which only your code knows. The sections below cover how to do each one.
+The cached value is the response DTO, and the block calls a use case like any handler. Links are added outside the block: they are cheap to
+derive, and the entry stays a plain DTO with no URLs baked into it.
+
+There is no write-through, no automatic invalidation and no warming. Those are deliberate omissions, because each depends on knowing what a write
+touches, which only your code knows. The sections below cover how to do each one.
 
 **A cache failure is not a request failure.** Redis being down is logged at WARN and the request is served from the origin. You never need a
 `try/catch` around `withCache`. Coroutine cancellation is the one thing that still propagates, so a client that disconnects does not leave work
@@ -49,14 +59,14 @@ running.
 
 ## The key
 
-The key is the request path plus its query parameters, sorted by name and by value, hashed with SHA-256, and prefixed with the namespace in the clear:
+The key is the request path plus its query parameters, sorted by name and by value, hashed with SHA-256, and prefixed with the namespace in the
+clear:
 
 ```
 books.mQ4v8s2R…
 ```
 
-Sorting means `?a=1&b=2` and `?b=2&a=1` are one entry. The namespace stays readable so
-`invalidateNamespace` can prefix-match it.
+Sorting means `?a=1&b=2` and `?b=2&a=1` are one entry. The namespace stays readable so `invalidateNamespace` can prefix-match it.
 
 **Exclude parameters that do not change the response**, or every distinct trace id becomes its own entry and the hit rate collapses:
 
@@ -64,7 +74,7 @@ Sorting means `?a=1&b=2` and `?b=2&a=1` are one entry. The namespace stays reada
 call.request.withCache("books", cache, excludeQueryKeys = setOf("traceId", "requestId")) { … }
 ```
 
-**Path parameters are included** — they are part of `request.path()` — so `/books/1` and `/books/2` are separate entries, as you would expect.
+**Path parameters are included.** They are part of `request.path()`, so `/books/1` and `/books/2` are separate entries, as you would expect.
 
 **Headers are not, unless you name them.** A response that varies by `Accept-Language`, a tenant header or an auth scope will otherwise be served
 to the wrong client. `varyHeaders` is the toolkit's `Vary`: each distinct value of a named header gets its own entry, names are matched
@@ -75,14 +85,14 @@ call.request.withCache("books", cache, varyHeaders = setOf("Accept-Language", "X
 ```
 
 It is an include-list where `excludeQueryKeys` is an exclude-list, and the polarity is the point: query parameters define the resource, so they
-belong in by default; most headers — `User-Agent`, trace ids, cookies — are noise that would make every request a miss.
+belong in by default; most headers, such as `User-Agent`, trace ids and cookies, are noise that would make every request a miss.
 
 Two limits, both of which follow from keying on the header as the client sent it:
 
 - **`Accept-Language` keys on the raw value, not the negotiated one.** `en-US,en;q=0.9` and `en` are two entries even when both resolve to English.
   Where the route negotiates a language, put the *result* in the namespace instead: `withCache("books.$language", cache) { … }`.
 - **`Authorization` gives an entry per token, not per user.** Two sessions of one user miss each other, and the hit rate is whatever the token
-  lifetime allows. Where the response depends on who is asking, key on the principal — `withCache("books.$userId", cache) { … }` — and leave the
+  lifetime allows. Where the response depends on who is asking, key on the principal with `withCache("books.$userId", cache) { … }` and leave the
   header out.
 
 A namespace of the form `books.$tenantId` still sits under `books.`, so `invalidateNamespace("books")` clears every tenant at once.
@@ -92,15 +102,19 @@ and it works on the prefix.
 
 ## Serialization
 
-`withCache` serializes with `Json.Default`, **not** your ContentNegotiation `Json`. If your responses depend on custom configuration — a naming
-strategy, `explicitNulls`, polymorphic modules — pass the same instance, or what comes back from the cache will not match what a miss produces:
+`withCache` serializes with `Json.Default`, **not** your ContentNegotiation `Json`. If your responses depend on a naming strategy, `explicitNulls` or
+polymorphic modules, pass the same instance, or what comes back from the cache will not match what a miss produces:
 
 ```kotlin
 call.request.withCache("books", cache, json = appJson) { … }
 ```
 
-The cached type must be `@Serializable`. Cache the domain result rather than the framework wrapper where you can: `Paged<Book>` round-trips cleanly,
-and it leaves the response mapping outside the cache so a change to `toResponse()` does not require an invalidation.
+The cached type must be `@Serializable`, so **cache the response DTO**, such as `PagedResponse<BookResponse>` or `BookResponse`, and never the domain
+entity. Making `Book` serializable to cache it puts a wire format on a `-core` type, which is the coupling the `ktor-toolkit:architecture` skill
+exists to prevent, and a field added to the entity then lands in every cache entry whether a client may see it or not.
+
+When a deploy changes the DTO, an old entry fails to decode; `withCache` logs that, serves from the origin and overwrites it. Bump the namespace to
+`books.v2` only when an old entry would still *decode* into something wrong.
 
 ## TTL
 
@@ -112,24 +126,26 @@ LettuceCache(connection.async(), ttl = 5.minutes)
 ```
 
 **Open the Redis connection with `LettuceCache.Codec`.** The cache stores raw bytes, so its constructor takes
-`RedisClusterAsyncCommands<String, ByteArray>`. A plain `connect()` gives you a `<String, String>` connection that does not fit, and the compile error
-names two Lettuce generics rather than the mistake:
+`RedisClusterAsyncCommands<String, ByteArray>`. A plain `connect()` gives you a `<String, String>` connection that does not fit, and the compile
+error names two Lettuce generics rather than the mistake:
 
 ```kotlin
 val connection = RedisClient.create("redis://localhost:6379").connect(LettuceCache.Codec)
 val cache = LettuceCache(connection.async(), ttl = 5.minutes)
 ```
 
-Both objects are built once in `-app` and registered with a `cleanup` so the connection closes on shutdown — load the `ktor-toolkit:di` skill.
+Both are built once in `-app` and registered with the DI plugin, never constructed in a route. The plugin closes `AutoCloseable` registrations on
+shutdown, which covers the connection; give the `RedisClient` a `cleanup { it.shutdown() }` so its event loops stop too. Load the `ktor-toolkit:di`
+skill.
 
 `InMemoryCache` defaults to `maxSize = 1_000` and no expiry; it is LRU-bounded, so entries leave when the bound is hit. `LettuceCache` lets Redis
 apply the expiry itself.
 
-Two caches with different TTLs is a legitimate configuration — a five-second cache for a hot list and an hour for a rarely-changing reference table
-are different objects, injected separately. Do not stretch one TTL to cover both.
+Two caches with different TTLs is a legitimate configuration. A five-second cache for a hot list and an hour for a rarely-changing reference table
+are different objects, registered under two names and injected separately. Do not stretch one TTL to cover both.
 
-**Pick a TTL you could defend to a user who saw stale data.** "Up to five minutes out of date" is a product decision, not a technical one — ask rather
-than assume. And set one even when invalidation is thorough: it is the backstop for the invalidation you forgot.
+**Pick a TTL you could defend to a user who saw stale data.** "Up to five minutes out of date" is a product decision, not a technical one, so ask
+rather than assume. And set one even when invalidation is thorough: it is the backstop for the invalidation you forgot.
 
 ## Invalidation
 
@@ -140,12 +156,13 @@ cache.invalidateNamespace("books")   // every entry under the namespace
 cache.invalidateContaining(bookId)   // entries whose payload mentions this id
 ```
 
-**Reach for `invalidateNamespace` first.** It asks the store for the keys under the prefix and deletes them in parallel — against Redis the prefix
+**Reach for `invalidateNamespace` first.** It asks the store for the keys under the prefix and deletes them in parallel. Against Redis the prefix
 goes into `SCAN MATCH`, so the other namespaces' keys never cross the wire.
 
 `invalidateContaining` reads **every key and every value** in the store and does a substring match on the serialized payload. It exists for the case
-where an entity appears in entries whose keys do not name it — a book inside a cached author response — and it is honest about its cost: fine for a
-modest in-memory cache, expensive against Redis, where `keys()` walks the keyspace with `SCAN`. Keep both off the request path; they belong on writes.
+where an entity appears in entries whose keys do not name it, such as a book inside a cached author response. It is honest about its cost: fine for a
+modest in-memory cache, expensive against Redis, where `keys()` walks the keyspace with `SCAN`. Keep both off the request path; they belong on
+writes.
 
 Because it is a substring match, it is also approximate: an id that happens to appear inside another field's text will evict an unrelated entry. That
 is a wasted recompute rather than a correctness problem, but it is a reason to prefer namespaces.
@@ -159,21 +176,27 @@ the web adapter is what invalidates it:
 post {
     val book = createBook(call.receive<CreateBookRequest>().toDomain())
     cache.invalidateNamespace("books")
+    call.response.header(HttpHeaders.Location, "/books/${book.id.value}")
     call.respond(HttpStatusCode.Created, book.toResponse())
 }
 ```
 
 `-core` must not know a cache exists. A use case that invalidates has taken on an infrastructure concern and can no longer be tested without one.
 
-Invalidate **after** the write succeeds — an exception from the use case skips it, which is what you want. And invalidate every namespace the write
-affects: creating a book may need `books` and
-`authors` cleared, and missing the second is the classic stale-data bug.
+Invalidate **after** the write succeeds. An exception from the use case skips it, which is what you want. And invalidate every namespace the write
+affects: creating a book may need `books` and `authors` cleared, and missing the second is the classic stale-data bug.
+
+There is still a window: a read that started before the write can store the old value just after the invalidation. That is the cache-aside race, and
+the TTL is what bounds it, which is one more reason never to run without one.
+
+Every route that writes a resource has to remember this. When a third one does, give the namespaces one home, a `BookCacheNamespaces` object in
+`adapters/web/book` listing what a book write invalidates, rather than a third hand-written list.
 
 ## Read-through, write-through, and warming
 
 **Read-through** is what `withCache` does; you get it for free.
 
-**Write-through** — updating the cache as part of the write rather than dropping the entry — is not provided at the response layer, and mostly should
+**Write-through**, updating the cache as part of the write rather than dropping the entry, is not provided at the response layer, and mostly should
 not be: a response body depends on the request that produced it, so there is nothing to write through to. If you genuinely need it, it belongs one
 layer down, as a decorating repository in `-adapters`:
 
@@ -185,28 +208,29 @@ class CachedBookRepository(
 ```
 
 That decorator implements the domain port, so `-core` is unchanged and the DI wiring picks which one to provide. This is also where a **data cache**
-belongs, as opposed to a response cache — reach for it when several endpoints need the same expensive lookup, rather than caching each response
+belongs, as opposed to a response cache. Reach for it when several endpoints need the same expensive lookup, rather than caching each response
 separately.
 
-**Warming** is awkward at the response layer, and it is worth knowing why rather than fighting it:
-the key is derived from an `ApplicationRequest`, so there is no request to build a key from at startup. The practical options are to issue real
-requests against the instance after it starts, or to warm the decorating repository instead, where keys are yours to choose. If warming matters, that
-is a reason to cache at the data layer.
+**Warming** is awkward at the response layer, and it is worth knowing why rather than fighting it: the key is derived from an `ApplicationRequest`,
+so there is no request to build a key from at startup. The practical options are to issue real requests against the instance after it starts, or to
+warm the decorating repository instead, where keys are yours to choose. If warming matters, that is a reason to cache at the data layer.
 
 ## Common mistakes
 
-| Mistake                                                    | Why it hurts                                                                                                 |
-|------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
-| `ConcurrentHashMap` as a cache                             | No bound, no TTL, no invalidation across nodes; grows until the heap does                                    |
-| `RedisClient.connect()` without `LettuceCache.Codec`       | The connection is `<String, String>` and will not fit the constructor                                        |
-| `InMemoryCache` with several instances running             | Each node caches and invalidates its own copy; stale reads that only appear in production                    |
-| Caching a response that varies by header or caller         | Headers are out of the key until `varyHeaders` names them — one client's data is served to another           |
-| `Authorization` in `varyHeaders`                           | One entry per token, so a user's sessions miss each other; key on the principal via the namespace            |
-| Trace ids left in the key                                  | Every request is a miss, and the cache is pure overhead                                                      |
-| `invalidateContaining` on the read path                    | Reads and deserializes the entire store per request                                                          |
-| Invalidation inside a use case                             | `-core` grows an infrastructure dependency and becomes untestable without one                                |
-| Invalidating before the write                              | An exception leaves the cache cleared but the data unchanged — merely wasteful, unless it hid a real failure |
-| Forgetting a second affected namespace                     | The classic stale-data bug; the endpoint you tested looks fine                                               |
-| Different `Json` in `withCache` than in ContentNegotiation | Hits and misses produce different payloads                                                                   |
-| No TTL because invalidation is "complete"                  | It never is; TTL is the backstop                                                                             |
-| `try/catch` around `withCache`                             | Already handled — failures fall back to the origin                                                           |
+| Mistake                                                    | Why it hurts                                                                                                |
+|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| `ConcurrentHashMap` as a cache                             | No bound, no TTL, no invalidation across nodes; grows until the heap does                                   |
+| `RedisClient.connect()` without `LettuceCache.Codec`       | The connection is `<String, String>` and will not fit the constructor                                       |
+| `InMemoryCache` with several instances running             | Each node caches and invalidates its own copy; stale reads that only appear in production                   |
+| Caching a response that varies by header or caller         | Headers are out of the key until `varyHeaders` names them; one client's data is served to another           |
+| `Authorization` in `varyHeaders`                           | One entry per token, so a user's sessions miss each other; key on the principal via the namespace           |
+| Trace ids left in the key                                  | Every request is a miss, and the cache is pure overhead                                                     |
+| `invalidateContaining` on the read path                    | Reads and deserializes the entire store per request                                                         |
+| Invalidation inside a use case                             | `-core` grows an infrastructure dependency and becomes untestable without one                               |
+| Invalidating before the write                              | An exception leaves the cache cleared but the data unchanged; merely wasteful, unless it hid a real failure |
+| Forgetting a second affected namespace                     | The classic stale-data bug; the endpoint you tested looks fine                                              |
+| Different `Json` in `withCache` than in ContentNegotiation | Hits and misses produce different payloads                                                                  |
+| No TTL because invalidation is "complete"                  | It never is; TTL is the backstop                                                                            |
+| `try/catch` around `withCache`                             | Already handled; failures fall back to the origin                                                           |
+| Caching the domain entity                                  | `-core` grows a wire format, and every field it gains lands in the cache                                    |
+| Constructing the cache inside a route                      | A new, empty cache per route registration; nothing is shared and nothing closes it                          |

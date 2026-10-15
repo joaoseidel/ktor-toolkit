@@ -5,8 +5,8 @@
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](#development)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.10-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![Ktor](https://img.shields.io/badge/Ktor-3.4.1-087CFA)](https://ktor.io)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Ktor](https://img.shields.io/badge/Ktor-3.6.0-087CFA)](https://ktor.io)
 [![Java](https://img.shields.io/badge/Java-21+-ED8B00?logo=openjdk&logoColor=white)](https://adoptium.net)
 
 Eight small, independent libraries for building JSON APIs with [Ktor](https://ktor.io): pagination, filtering, HATEOAS links, request validation,
@@ -42,7 +42,7 @@ dependencies {
 }
 ```
 
-The modules are released together. Give them one shared version key in `gradle/libs.versions.toml` rather than one per module — mixing versions across
+The modules are released together. Give them one shared version key in `gradle/libs.versions.toml` rather than one per module. Mixing versions across
 them is unsupported.
 
 ```toml
@@ -71,29 +71,31 @@ Domain types sit under `data`, wire types under `web`, and the call extensions a
 
 ### What you also need
 
-**Ktor and kotlinx-serialization arrive transitively** — they appear in these modules' public signatures, so they are `api` dependencies.
-**ContentNegotiation does not**, and every module needs it to turn responses into JSON:
+**Ktor and kotlinx-serialization arrive transitively** because they appear in these modules' public signatures, so they are `api` dependencies.
+**ContentNegotiation does not**, and every module needs it to turn responses into JSON. Pin it to the same Ktor version as the rest of your server
+(3.6 or newer), under the catalog's existing `ktor` key:
 
-```kotlin
-implementation("io.ktor:ktor-server-content-negotiation:3.4.1")
-implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.1")
+```toml
+[libraries]
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ```
 
 Without it a route returning `PagedResponse` fails at runtime with "Response pipeline couldn't transform".
 
 **A dependency on its own changes nothing.** `problem-details` needs `StatusPages` with `problemDetails { }` inside it, and `validator` needs
-`RequestValidation`. `paginator`, `filter`, `hateoas`, `expander` and `cache` need no plugin — they are call extensions and plain objects.
+`RequestValidation`. `paginator`, `filter`, `hateoas`, `expander` and `cache` need no plugin. They are call extensions and plain objects.
 
 **Five features compile against libraries their module deliberately does not carry**, so a project that skips the feature does not pay for it. Add
 the dependency only alongside the feature, or it fails at runtime with `NoClassDefFoundError`:
 
-| Using                              | Add                                                                          |
-|------------------------------------|------------------------------------------------------------------------------|
-| `Sort.toExposedQueryExpression(…)` | `org.jetbrains.exposed:exposed-core`                                         |
-| `Sort.toMongoSortExpression(…)`    | `org.mongodb:mongodb-driver-core` — already transitive to any MongoDB driver |
-| `Filter.toExposedCondition(…)`     | `org.jetbrains.exposed:exposed-core`                                         |
-| `Filter.toMongoFilter(…)`          | `org.mongodb:mongodb-driver-core` — already transitive to any MongoDB driver |
-| `LettuceCache`                     | `io.lettuce:lettuce-core`                                                    |
+| Using                              | Add                                                                         |
+|------------------------------------|-----------------------------------------------------------------------------|
+| `Sort.toExposedQueryExpression(…)` | `org.jetbrains.exposed:exposed-core`                                        |
+| `Sort.toMongoSortExpression(…)`    | `org.mongodb:mongodb-driver-core`, already transitive to any MongoDB driver |
+| `Filter.toExposedCondition(…)`     | `org.jetbrains.exposed:exposed-core`                                        |
+| `Filter.toMongoFilter(…)`          | `org.mongodb:mongodb-driver-core`, already transitive to any MongoDB driver |
+| `LettuceCache`                     | `io.lettuce:lettuce-core`                                                   |
 
 ### Snapshots
 
@@ -112,7 +114,8 @@ dependencies {
 }
 ```
 
-Gradle caches a snapshot for 24 hours. To pick up a fresh one, either run with `--refresh-dependencies` or narrow the window for these modules alone:
+Gradle caches a snapshot for 24 hours. To pick up a fresh one, run with `--refresh-dependencies`, or stop caching changing modules for as long as you
+depend on one. That setting covers every snapshot in the build, not only these:
 
 ```kotlin
 configurations.all {
@@ -143,12 +146,12 @@ The marketplace step only points Claude Code at this repository; nothing is inst
 npx skills add joaoseidel/ktor-toolkit --skill '*'
 ```
 
-Take the whole collection rather than a subset — the skills route to each other, and a partial install turns those references into dead ends. Prefer
+Take the whole collection rather than a subset. The skills route to each other, and a partial install turns those references into dead ends. Prefer
 project scope over global: these are one project's conventions, and installed globally they follow you into projects that do not share them.
 
-With the collection in place, `/ktor-toolkit:install` does the whole setup — picks the modules from what your API actually does, adds the catalog
-entries and dependencies, installs the Ktor plugins each selected module requires, adds the compiler opt-ins the DSLs ask for, and verifies the result
-compiles before reporting back.
+With the collection in place, `/ktor-toolkit:install` does the whole setup. It picks the modules from what your API actually does, adds the catalog
+entries and dependencies, installs the Ktor plugins each selected module requires, adds the compiler opt-ins the DSLs ask for, and verifies the
+result compiles before reporting back.
 
 ```bash
 /ktor-toolkit:install
@@ -161,36 +164,53 @@ HTML instead of `problem+json`.
 
 ## Paginator
 
-Reads the pagination off the call, carries it through to your repository, and shapes what comes back. **`call.pagination` never fails the request:**
-an unparseable `?page=abc` falls back to the default, a negative page becomes `0`, and the page size is clamped to `1..100`. Use
+Reads the pagination off the call, carries it through a use case to your repository, and shapes what comes back. **`call.pagination` never fails
+the request:** an unparseable `?page=abc` falls back to the default, a negative page becomes `0`, and the page size is clamped to `1..100`. Use
 `call.paginationRequest(…)` for other bounds.
+
+The route reads the call and hands a domain type inward; the use case pairs the slice with its total:
 
 ```kotlin
 get("/books") {
-    val pagination = call.pagination
-    val books = repository.findAll(pagination)
-    val paged = Paged(pagination.page, pagination.sortBy, books, repository.count())
-
+    val paged = findBooks(call.pagination)
     call.respond(PagedResponse.from(paged) { it.toResponse() })
 }
 ```
 
-`?sortBy=name,-createdAt` parses into `[Sort("name", ASC), Sort("createdAt", DESC)]`. Build a default ordering from property references, so a rename
-cannot leave a stale sort key behind:
-
 ```kotlin
-val ordering = sortBy {
-    desc(Book::publishedAt)
-    asc(Book::title)
+class FindBooks(private val books: BookRepository) {
+    suspend operator fun invoke(pagination: Pagination): Paged<Book> =
+        Paged(pagination.page, pagination.sortBy, books.findAll(pagination), books.count())
 }
 ```
 
-Turn a sort into a query with an explicit allow-list. **Anything outside it raises `IllegalArgumentException` rather than reaching the database:**
+`?sortBy=title,-published_at` parses into `[Sort("title", ASC), Sort("published_at", DESC)]`. A key is matched by the name the store uses: an Exposed
+column's SQL name, or a MongoDB field as stored. With snake_case columns the client sends `published_at`, which is also the name it reads in a
+snake_case response.
+
+The repository resolves the sort against an explicit allow-list. **Anything outside it raises `InvalidSortException` rather than reaching the
+database.** Give every listing a default order and a unique tie-breaker, or rows repeat and vanish between pages:
 
 ```kotlin
-Books.selectAll().orderBy(*pagination.sortBy.toExposedQueryExpression(Books.title, Books.createdAt).toTypedArray())
+override suspend fun findAll(pagination: Pagination): List<Book> =
+    suspendTransaction(database, readOnly = true) {
+        val (page, pageSize) = pagination.page
+        val order =
+            pagination.sortBy.toExposedQueryExpression(Books.title, Books.publishedAt)
+                .ifEmpty { listOf(Books.publishedAt to SortOrder.DESC) } + (Books.id to SortOrder.ASC)
 
-collection.find().sort(pagination.sortBy.toMongoSortExpression(BookDocument::title, BookDocument::createdAt))
+        Books.selectAll()
+            .orderBy(*order.toTypedArray())
+            .limit(pageSize)
+            .offset(page.toLong() * pageSize)
+            .map { it.toBook() }
+    }
+```
+
+On MongoDB the allow-list is the document class, whose property names are the stored field names:
+
+```kotlin
+collection.find().sort(pagination.sortBy.toMongoSortExpression(BookDocument::title, BookDocument::publishedAt))
 ```
 
 The response carries a `metadata` block: `page`, `pageSize`, `totalPages` (a count, so the last page index is `totalPages - 1`), `totalElements`,
@@ -207,42 +227,53 @@ by repeating the parameter) and must all hold:
 ?filterBy=subtitle:exists:false
 ```
 
-| Operator                         | Means                                       |
-|----------------------------------|---------------------------------------------|
-| `eq` `notEq`                     | Equal, not equal                            |
-| `gt` `gte` `lt` `lte`            | Ordering                                    |
-| `like` `notLike`                 | Contains the text, ignoring case            |
-| `in` `notIn`                     | Any or none of a `\|`-separated list        |
-| `exists`                         | `true`: has a value; `false`: has none      |
+| Operator              | Means                                  |
+|-----------------------|----------------------------------------|
+| `eq` `notEq`          | Equal, not equal                       |
+| `gt` `gte` `lt` `lte` | Ordering                               |
+| `like` `notLike`      | Contains the text, ignoring case       |
+| `in` `notIn`          | Any or none of a `\|`-separated list   |
+| `exists`              | `true`: has a value; `false`: has none |
 
 The value is everything after the second `:`, and `\` makes the next character literal, so `title:eq:Hello\, world` is one condition.
 `notEq`, `notLike` and `notIn` also match a row with no value, as MongoDB does; on its own, SQL's `NULL <> x` would drop it.
 
 **Unlike paging, a bad filter fails the request.** A filter is data: dropping one would answer with rows the client asked to exclude. Malformed
-syntax, a property outside the allow-list and a value of the wrong type all raise `InvalidFilterException`, an `IllegalArgumentException`, so one
-`problemDetails { }` mapping turns them into a 400.
+syntax, a property outside the allow-list and a value of the wrong type all raise `InvalidFilterException`, which carries the offending `property`,
+so one `problemDetails { }` mapping turns them into a 400.
+
+The filters travel the same way the page does, and **the count takes them too**, because a total over the unfiltered table makes every number in
+`metadata` wrong:
 
 ```kotlin
 get("/books") {
-    val filters = call.filters
-    val pagination = call.pagination
-    val books = repository.findAll(filters, pagination)
-    val paged = Paged(pagination.page, pagination.sortBy, books, repository.count(filters))
-
+    val paged = findBooks(call.filters, call.pagination)
     call.respond(PagedResponse.from(paged) { it.toResponse() })
 }
 ```
 
-Apply the filters with an explicit allow-list. In SQL each value is typed by the column it targets; MongoDB has no schema, so the allow-list declares
-the types:
+```kotlin
+class FindBooks(private val books: BookRepository) {
+    suspend operator fun invoke(filters: List<Filter>, pagination: Pagination): Paged<Book> =
+        Paged(pagination.page, pagination.sortBy, books.findAll(filters, pagination), books.count(filters))
+}
+```
+
+The repository applies them through an explicit allow-list. In SQL each value is typed by the column it targets; MongoDB has no schema, so the
+allow-list declares the types:
 
 ```kotlin
-Books.selectAll().where(filters.toExposedCondition(Books.title, Books.price, Books.status))
+private val filterable = listOf(Books.title, Books.price, Books.status)
 
-val filterable = filterableFields {
+Books.selectAll().where(filters.toExposedCondition(filterable))
+```
+
+```kotlin
+private val filterable = filterableFields {
     field(BookDocument::title)
     field(BookDocument::price)
 }
+
 collection.find(filters.toMongoFilter(filterable))
 ```
 
@@ -256,6 +287,7 @@ correctly percent-encoded.
 
 ```kotlin
 get("/books") {
+    val paged = findBooks(call.filters, call.pagination)
     call.respond(PagedResponse.from(paged) { it.toResponse() }.toResource(call))
 }
 ```
@@ -279,22 +311,23 @@ get("/books") {
 }
 ```
 
-For anything that is not a page, `resource` wraps content and declares its links in a block:
+For anything that is not a page, `resource` wraps content and declares its links in a block. A link is worth its bytes when it states something
+the client would otherwise compute. Here, that is whether a draft can still be deleted:
 
 ```kotlin
 call.respond(
     resource(book.toResponse()) {
         link("self", "/books/${book.id}")
-        link("delete", "/books/${book.id}", HttpMethod.Delete)
+        if (book.isDraft) link("delete", "/books/${book.id}", HttpMethod.Delete)
     },
 )
 ```
 
 ## Validator
 
-Rules read as sentences and attach to properties by reference, so a rename is a compile error rather than a silently dead rule. **A rule that does not
-fit does not compile:** `should be email()` on an `Int` is an unresolved reference, and completion inside `property { }` offers only the rules that
-apply.
+Rules read as sentences and attach to properties by reference, so a rename is a compile error rather than a silently dead rule. **A rule that does
+not fit does not compile:** `should be email()` on an `Int` is an unresolved reference, and completion inside `property { }` offers only the rules
+that apply.
 
 ```kotlin
 install(RequestValidation) {
@@ -321,7 +354,7 @@ install(RequestValidation) {
 | `nil`, `satisfying`                             | any                                     |
 
 Rules are values: combine them with `and`, `or` and `!`, write a one-off with `satisfying`, and override the default message with `describedAs`. Note
-the parentheses around a composed rule — infix calls associate to the left.
+the parentheses around a composed rule, because infix calls associate to the left.
 
 ```kotlin
 property(CreateBookRequest::isbn) {
@@ -333,20 +366,21 @@ property(CreateBookRequest::authorEmail) {
 }
 ```
 
-**A rule stays silent on a `null` property**, so requiring a field and constraining it are two separate assertions — `should notBe nil()`, then
-`should be email()`. `each` validates collection elements as values and `eachNested` as objects, `whenever` makes a group conditional, and `invariant`
-states a rule no single property owns:
+**A rule stays silent on a `null` property**, so requiring a field and constraining it are two separate assertions: `should notBe nil()`, then
+`should be email()`. That is what lets request DTOs declare every property nullable with a `= null` default, so a missing field and a malformed one
+are reported together instead of the first failing deserialization alone. `each` validates collection elements as values and `eachNested` as objects,
+`whenever` makes a group conditional, and `invariant` states a rule no single property owns:
 
 ```kotlin
 rulesFor<CreateBookRequest> {
     each(CreateBookRequest::tags) { should notBe blank() }
-    eachNested(CreateBookRequest::authors) { property(Author::email) { should be email() } }
+    eachNested(CreateBookRequest::authors) { property(AuthorRequest::email) { should be email() } }
 
-    whenever(!target.draft) {
+    whenever(target.draft != true) {
         property(CreateBookRequest::publishedAt) { should notBe nil() }
     }
 
-    invariant("should not be dated before its author was born") { it.publishedAt > it.authorBornAt }
+    invariant("should name at least one author or an editor") { !it.authors.isNullOrEmpty() || it.editor != null }
 }
 ```
 
@@ -358,15 +392,21 @@ rulesFor<CreateBookRequest> {
 One installer turns validation failures, malformed bodies, deliberate status exceptions and anything otherwise unhandled into
 `application/problem+json`.
 
+The domain throws its own exceptions and never picks a status; the web adapter maps each one once:
+
 ```kotlin
 install(StatusPages) {
     problemDetails {
         namingStrategy = JsonNamingStrategy.SnakeCase
-        on<BookNotFoundException> { ProblemDetail.fromStatus(HttpStatusCode.NotFound, "No book ${it.id}") }
+
+        on<BookNotFoundException> {
+            ProblemDetail.fromStatus(HttpStatusCode.NotFound, "No book matches that id", mapOf("id" to it.id.value))
+        }
+        on<InvalidSortException> {
+            ProblemDetail.fromStatus(HttpStatusCode.BadRequest, it.message, mapOf("sortBy" to it.property))
+        }
     }
 }
-
-throw HttpStatusException(HttpStatusCode.NotFound, "Book not found", mapOf("id" to id))
 ```
 
 ```json
@@ -374,7 +414,7 @@ throw HttpStatusException(HttpStatusCode.NotFound, "Book not found", mapOf("id" 
     "type": "about:blank",
     "title": "Not Found",
     "status": 404,
-    "detail": "Book not found",
+    "detail": "No book matches that id",
     "instance": "/books/42",
     "properties": {
         "id": "42"
@@ -383,7 +423,12 @@ throw HttpStatusException(HttpStatusCode.NotFound, "Book not found", mapOf("id" 
 ```
 
 StatusPages resolves by nearest ancestor class, so an `on<E>` mapping wins over the catch-all whatever order it was declared in, and the request path
-fills in as `instance` unless you name one.
+fills in as `instance` unless you name one. Map `InvalidSortException` and `InvalidFilterException` the first time an endpoint pages or filters, or a
+typo in `?sortBy=` answers 500. Do not map every `IllegalArgumentException` instead: a `require` that fails inside the service is a bug, and it
+should stay a 500.
+
+Where a failure genuinely is about HTTP, throw the status directly from the adapter. The domain never does:
+`throw HttpStatusException(HttpStatusCode.UnsupportedMediaType, "Covers must be image/png or image/jpeg")`.
 
 **An unhandled exception logs its stack trace and answers with a fixed message**, because exception text routinely names the database. Set
 `includeExceptionMessage = true` to echo it while developing, and register `exception<T>` handlers after `problemDetails()` to override any of them.
@@ -393,17 +438,28 @@ shipped a different error shape to its clients.
 
 ## Expander
 
-Lets a client pull in related resources without a second round trip, and without an N+1. Declare once what a response can expand:
+Lets a client pull in related resources without a second round trip, and without an N+1. Declare once what a response can expand. The spec shapes
+a response, so it lives in the web adapter and its batchers call use cases, mapping what they return to response types:
 
 ```kotlin
-val bookSpec = ExpandSpec.build<BookResponse> {
-    field("author", get = { it.author }, set = { copy(author = it) }) {
-        batch { ids, _ -> authorRepository.findAllById(ids).associateBy { it.id } }
+fun bookExpandSpec(findAuthors: FindAuthors): ExpandSpec<BookResponse> =
+    ExpandSpec.build<BookResponse> {
+        field("author", get = { it.author }, set = { copy(author = it) }) {
+            batch { ids, _ -> findAuthors(ids).associate { it.id.value to it.toResponse() } }
+        }
     }
-}
+```
+
+Build it once, at the top of the route function rather than per request, and apply it to the mapped page:
+
+```kotlin
+val bookSpec = bookExpandSpec(findAuthors)
 
 get("/books") {
-    call.respond(bookSpec.apply(repository.findAll(), call.expand))
+    val paged = findBooks(call.filters, call.pagination)
+    val content = bookSpec.apply(paged.content.map { it.toResponse() }, call.expand)
+
+    call.respond(PagedResponse.from(Paged(paged.page, paged.sortBy, content, paged.totalElements)))
 }
 ```
 
@@ -412,14 +468,16 @@ narrower query, and only that field is serialized. `?expand=author.books` nests,
 
 ```kotlin
 field("author", get = { it.author }, set = { copy(author = it) }) {
-    batch { ids, fields -> authorRepository.findAllById(ids, fields).associateBy { it.id } }
+    batch { ids, fields -> findAuthors(ids, fields).associate { it.id.value to it.toResponse() } }
     nested {
         listField("books", get = { it.books }, set = { copy(books = it) }) {
-            batch { ids, _ -> bookRepository.findAllById(ids).associateBy { it.id } }
+            batch { ids, _ -> findBooksById(ids).associate { it.id.value to it.toResponse() } }
         }
     }
 }
 ```
+
+A nested level is batched once per parent rather than once per page, so keep expansion one level deep until a client needs more.
 
 An `Expandable<T>` serializes as a bare `"author-id"` string while unresolved and as a full object once expanded, so the wire format tells the client
 which it got. `field` covers nullable fields, `listField` covers lists, and `polymorphicField` with one `case` per discriminator covers fields whose
@@ -431,42 +489,48 @@ Caches a route's result under the request path plus its query parameters, sorted
 of the key until `varyHeaders` names them, the way `Vary` does for an HTTP cache. **A cache failure is logged and the request is served from the
 origin**, though a coroutine cancellation still propagates.
 
-```kotlin
-val cache = InMemoryCache(maxSize = 1_000, ttl = 5.minutes)
+Cache the response type, which is already serializable, rather than domain entities, which should not be:
 
+```kotlin
 get("/books") {
-    val books = call.request.withCache("books", cache, excludeQueryKeys = setOf("traceId"), varyHeaders = setOf("Accept-Language")) {
-        repository.findAll()
+    val response = call.request.withCache("books", cache, excludeQueryKeys = setOf("traceId"), varyHeaders = setOf("Accept-Language")) {
+        PagedResponse.from(findBooks(call.filters, call.pagination)) { it.toResponse() }
     }
-    call.respond(books)
+    call.respond(response)
 }
 ```
 
-Invalidate on write:
+The cache is built once where the application is wired, `InMemoryCache(maxSize = 1_000, ttl = 5.minutes)`, and injected. Invalidate after a write
+succeeds, in the adapter that knows the namespace:
 
 ```kotlin
-cache.invalidateNamespace("books")   // everything under the namespace
-cache.invalidateContaining(bookId)   // entries whose payload mentions this id
+post("/books") {
+    val book = createBook(call.receive<CreateBookRequest>().toDomain())
+    cache.invalidateNamespace("books")
+    call.respond(HttpStatusCode.Created, book.toResponse())
+}
 ```
 
+`invalidateContaining(id)` also exists, for an entity that appears in entries whose keys do not name it; it reads every entry, so prefer namespaces.
+
 `InMemoryCache` is LRU-bounded with an optional TTL, which suits a single node. **Once more than one instance serves the same traffic, use
-`LettuceCache`** over [Lettuce](https://lettuce.io) — otherwise each node holds, and invalidates, its own copy:
+`LettuceCache`** over [Lettuce](https://lettuce.io). Otherwise each node holds, and invalidates, its own copy:
 
 ```kotlin
 val connection = RedisClient.create("redis://localhost:6379").connect(LettuceCache.Codec)
 val cache = LettuceCache(connection.async(), ttl = 5.minutes)
 ```
 
-Nothing else changes: `withCache` and both invalidation helpers behave the same, and Redis applies the TTL itself. You own the connection, so share
-it — it is thread-safe and multiplexes — and close it on shutdown. Every key sits under `keyPrefix` (`"ktor-toolkit:"` by default), which bounds what
-the invalidation helpers scan. They walk the keyspace with `SCAN`, so keep them to writes rather than requests.
+Nothing else changes: `withCache` and both invalidation helpers behave the same, and Redis applies the TTL itself. You own the connection. One is
+thread-safe and multiplexes, so share it, and close it on shutdown. Every key sits under `keyPrefix` (`"ktor-toolkit:"` by default), which bounds
+what the invalidation helpers scan. They walk the keyspace with `SCAN`, so keep them to writes rather than requests.
 
 ---
 
 ## State Machine
 
-States an aggregate's legal moves once, in the domain, instead of leaving them spread across whichever use cases happen to touch the status field. The
-module has **no dependencies at all** — not even Ktor — so a framework-free `-core` can depend on it.
+States an aggregate's legal moves once, in the domain, instead of leaving them spread across whichever use cases happen to touch the status field.
+The module has **no dependencies at all**, not even Ktor, so a framework-free `-core` can depend on it.
 
 ```kotlin
 val orderFlow = stateMachine<OrderState, OrderEvent, Order> {
@@ -476,7 +540,6 @@ val orderFlow = stateMachine<OrderState, OrderEvent, Order> {
     state(DRAFT) {
         on<Place>(PLACED) {
             guard("must have at least one line") { it.lines.isNotEmpty() }
-            effect { order, event -> audit.record(order, event) }
         }
         on<Cancel>(CANCELLED)
     }
@@ -487,31 +550,35 @@ val orderFlow = stateMachine<OrderState, OrderEvent, Order> {
     }
 
     state(PAID) {
-        onEnter { order, _ -> receipts.issue(order) }
         on<Ship>(SHIPPED) { rel = "dispatch" }
     }
-
-    onTransition { audit.log(it) }
 }
 ```
 
 **The definition is checked when it is built**, so an unreachable state, a dead end, a move to a state nobody declared or two moves one event could
 both trigger is a `StateMachineDefinitionException` at startup rather than a bug found in production.
 
-The machine never touches the subject — it reports where to go, and the caller applies it in the same unit of work that persists it:
+The machine never touches the subject. It reports where to go, and the use case applies it. Write the new state conditionally on the old one, so
+two concurrent requests cannot both move the same order out of `PLACED`:
 
 ```kotlin
-when (val result = orderFlow.fire(order, order.state, Pay)) {
-    is Accepted -> repository.save(order.copy(state = result.to))
-    is Rejected -> log.info { result.reason.message }
+class PayOrder(private val orders: OrderRepository) {
+    suspend operator fun invoke(id: OrderId): Order {
+        val order = orders.findById(id) ?: throw OrderNotFoundException(id)
+        val next = orderFlow.fireOrThrow(order, order.state, Pay)
+
+        return orders.moveState(order, from = order.state, to = next) ?: throw OrderChangedConcurrentlyException(id)
+    }
 }
 ```
 
-Where a rejection is always an error, `fireOrThrow` returns the state and raises `IllegalTransitionException` — map it to a `409` in `problemDetails
-{ }` and the handler stays one line. Guards and effects may both suspend.
+`fireOrThrow` raises `IllegalTransitionException` on a refused event. Map it to a `409` in `problemDetails { }`. Where a refusal is an ordinary
+outcome rather than an error, `fire` returns `Accepted` or `Rejected` to branch on instead. Guards may suspend, and so may the `effect`, `onEnter`,
+`onExit` and `onTransition` hooks, but they run before the caller persists anything, so anything that leaves the process belongs in the use case,
+after the write.
 
 **A guard asks about the subject, never the event.** That is what lets the machine answer "what can this order do right now?" without being handed an
-event to test with — so the affordances and the rules that decide them cannot drift apart:
+event to test with, so the affordances and the rules that decide them cannot drift apart:
 
 ```kotlin
 val moves = orderFlow.transitionLinks(order, order.state) { "/orders/${order.id}/${it.rel}" }
@@ -535,10 +602,11 @@ The libraries leave the surrounding decisions open, and everyone resolves them d
 envelope, another puts the repository call in the route body. The skills record the intended answer to each, so the *n*-th endpoint in your service
 looks like the first one whoever wrote it.
 
-They are written for the repository that installs them, not for this one. Install with the commands under [Let the agent do it](#let-the-agent-do-it).
+They are written for the repository that installs them, not for this one. Install with the commands under [Let the agent do
+it](#let-the-agent-do-it).
 
 **`/ktor-toolkit:start` runs first, before any Kotlin is written or changed.** It establishes which toolkit modules are on your classpath and what
-your project's build gate is, then routes the task to the skills that apply — usually two or three. Running it after the code is written is too late
+your project's build gate is, then routes the task to the skills that apply, usually two or three. Running it after the code is written is too late
 to be useful.
 
 | Skill             | What it covers                                                                          |
@@ -558,7 +626,7 @@ to be useful.
 | `migrations`      | Versioned SQL under Flyway, where it lives, baselining, expand/contract schema changes  |
 | `di`              | Ktor's native DI: `provide<Port> { Impl(resolve()) }`, lifetimes, test overrides        |
 | `tests`           | Kotest ShouldSpec naming, MockK, `testApplication`, Testcontainers, acceptance tests    |
-| `kover`           | The `report` aggregation module, ratcheting a threshold, the rule for exclusions        |
+| `kover`           | The `report` aggregation module, a threshold that only rises, the rule for exclusions   |
 | `openapi`         | Ktor's comment-based OpenAPI generation, served through Scalar                          |
 | `logging`         | KotlinLogging idioms, correlation IDs via CallId/CallLogging, what must never be logged |
 | `healthcheck`     | Liveness and readiness probes with Cohort, and what a probe may depend on               |
@@ -570,8 +638,8 @@ to be useful.
 | `changelog`       | What earns an entry, written from the caller's side, in the commit that caused it       |
 | `commit`          | Conventional Commits with a body that says what was wrong, and how to split work        |
 
-Each skill also says what to do when it describes something your repository does not have yet — a Makefile, a Dockerfile, a `CHANGELOG.md`, a coverage
-module. It proposes the file and waits for you, rather than scaffolding it unasked or quietly working around its absence.
+Each skill also says what to do when it describes something your repository does not have yet, such as a Makefile, a Dockerfile, a `CHANGELOG.md` or
+a coverage module. It proposes the file and waits for you, rather than scaffolding it unasked or quietly working around its absence.
 
 ## Development
 

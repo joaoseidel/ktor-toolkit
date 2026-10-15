@@ -1,10 +1,11 @@
 ---
 name: commit
 description: >-
-    Conventional Commits with a body that says what was wrong and why this change is the fix — the
-    type/scope/subject line, breaking-change markers, and how to split work so each commit is exactly
-    one logical change. Use before writing any commit message, when staging a change that mixes a
-    refactor with a feature or formatting with behaviour, and when a change breaks a public signature.
+    Conventional Commits with a body that says what was wrong and why this change is the fix: the
+    type/scope/subject line, breaking-change markers, and how to split work so each commit is
+    exactly one logical change. Use before writing any commit message, when staging a change that
+    mixes a refactor with a feature or formatting with behaviour, and when a change breaks a public
+    signature.
 ---
 
 # Commits
@@ -12,7 +13,7 @@ description: >-
 ## Why the bar is high
 
 A commit message is the only explanation that travels with the code. Six months on, `git blame` on a puzzling line is the fastest route to why it is
-that way — but only if the message says why. "Fix validation" answers nothing that the diff did not already show.
+that way, but only if the message says why. "Fix validation" answers nothing that the diff did not already show.
 
 So the rule: **the subject says what changed; the body says what was wrong and why this change is the fix.** The diff already shows how.
 
@@ -28,24 +29,24 @@ BREAKING CHANGE: what consumers must do differently.
 
 ### Type
 
-| Type       | For                                          |
-|------------|----------------------------------------------|
-| `feat`     | New behaviour a consumer can use             |
-| `fix`      | Behaviour that was wrong and now is not      |
-| `refactor` | Same behaviour, different shape              |
-| `test`     | Tests only                                   |
-| `docs`     | Documentation only — README, KDoc, CHANGELOG |
-| `chore`    | Build, tooling, IDE files, dependencies      |
-| `ci`       | Workflow files                               |
-| `perf`     | Faster, same behaviour                       |
+| Type       | For                                         |
+|------------|---------------------------------------------|
+| `feat`     | New behaviour a consumer can use            |
+| `fix`      | Behaviour that was wrong and now is not     |
+| `refactor` | Same behaviour, different shape             |
+| `test`     | Tests only                                  |
+| `docs`     | Documentation only: README, KDoc, CHANGELOG |
+| `chore`    | Build, tooling, IDE files, dependencies     |
+| `ci`       | Workflow files                              |
+| `perf`     | Faster, same behaviour                      |
 
 If two types both fit, the commit is doing two things. Split it.
 
 ### Scope
 
-The area the change belongs to, in parentheses. **In a service the scope is the feature** — `books`, `auth`, `search`, `orders` — because that is the
-axis someone reads history along. `build` covers the Gradle layer, `deploy` the container and pipeline. Whatever set you pick, keep using it: a scope
-vocabulary that grows one term per commit has stopped grouping anything.
+The area the change belongs to, in parentheses. **In a service the scope is the feature**, such as `books`, `auth`, `search` or `orders`, because
+that is the axis someone reads history along. `build` covers the Gradle layer, `deploy` the container and pipeline. Whatever set you pick, keep using
+it: a scope vocabulary that grows one term per commit has stopped grouping anything.
 
 Several scopes are allowed when one change genuinely lands across them, comma-separated:
 
@@ -70,7 +71,7 @@ Not `Fixed the thing.`, not `updates`, not `WIP`.
 
 ## The body
 
-**Open with what was wrong.** Not what you did — what the state of the world was that made this necessary:
+**Open with what was wrong.** Not what you did, but what the state of the world was that made this necessary:
 
 ```
 ci: add GitHub Actions build and release workflows
@@ -94,7 +95,7 @@ itself in the step list" is a decision with a reason; without it the next person
 refactor(books)!: take Pagination at the repository port
 
 `findAll(page, size)` threw the sort model away at the boundary, so every caller
-that wanted an order sorted in memory afterwards — correct for one page, wrong
+that wanted an order sorted in memory afterwards: correct for one page, wrong
 across pages, and quietly O(n) on the whole table…
 
     interface BookRepository {
@@ -111,7 +112,7 @@ Several safe-call chains are simplified along the way. Each had a second null
 check that could not fail once the first had passed… Behaviour is unchanged.
 ```
 
-**A body is optional for genuinely mechanical commits.** `chore(build): bump Ktor to 3.4.1` needs nothing more. But if you cannot write a body for a
+**A body is optional for genuinely mechanical commits.** `chore(build): bump Ktor to 3.6.0` needs nothing more. But if you cannot write a body for a
 `feat` or a `fix`, the subject is probably hiding something.
 
 Wrap the body at 72–80 columns and use bullets for a list of independent points.
@@ -121,7 +122,7 @@ Wrap the body at 72–80 columns and use bullets for a list of independent point
 Mark them twice: a `!` before the colon, and a `BREAKING CHANGE:` footer saying what the other side must now do.
 
 **In a service, "breaking" almost always means the HTTP contract**, not a Kotlin signature. A removed field, a renamed query parameter, a status code
-that moved, a response that grew an envelope — those break somebody's client, and nothing in your build will catch it:
+that moved, a response that grew an envelope: those break somebody's client, and nothing in your build will catch it:
 
 ```
 feat(books)!: page the collection response
@@ -134,7 +135,7 @@ rather than a bare JSON array. Clients reading the array directly must read
 ```
 
 The footer is for the person whose client just broke, so name the old shape and the new one. A breaking change also goes in `CHANGELOG.md` under the
-current version, in this same commit — load the `ktor-toolkit:changelog` skill.
+current version, in this same commit. Load the `ktor-toolkit:changelog` skill.
 
 An internal Kotlin signature that only your own modules call is not a breaking change; it is a `refactor`.
 
@@ -151,20 +152,21 @@ refactor(search): lift the filter parsing out of the route body
 feat(search): filter by publication year
 ```
 
-Mixed together, a reviewer cannot tell which lines are the new behaviour and which are the same code in a new place — and a diff of 400 lines gets the
+Mixed together, a reviewer cannot tell which lines are the new behaviour and which are the same code in a new place, and a diff of 400 lines gets the
 review a diff of 40 deserved.
 
 **Separate formatting from behaviour.** A `make format` run touching thirty files, committed alongside a fix, buries the fix. Reformat first, commit
 that alone, then change behaviour.
 
-**Separate mechanical renames.** A rename across forty files is its own commit, always. It is easy to review as a rename and impossible to review when
-interleaved.
+**Separate mechanical renames.** A rename across forty files is its own commit, always. It is easy to review as a rename and impossible to review
+when interleaved.
 
-**Prefer smaller.** Two commits that each make sense beat one that needs a paragraph to justify its shape. The upper bound is not lines changed; it is
-whether a single sentence describes the commit honestly without an "and".
+**Prefer smaller.** Two commits that each make sense beat one that needs a paragraph to justify its shape. The upper bound is not lines changed; it
+is whether a single sentence describes the commit honestly without an "and".
 
-If a subject needs "and", check whether it is one change described in parts — `fix: correct page arithmetic, sort parsing and null handling in the
-catalogue` is a defensible list of related corrections in one area — or two changes wearing one hat. The former is fine; the latter is the usual case.
+If a subject needs "and", check whether it is one change described in parts or two changes wearing one hat.
+`fix: correct page arithmetic, sort parsing and null handling in the catalogue` is a defensible list of related corrections in one area. The former
+is fine; the latter is the usual case.
 
 ## Before you commit
 
@@ -177,16 +179,16 @@ make build
 ```
 
 Elsewhere it is `./gradlew build`, or whatever the CI workflow calls. Load the `ktor-toolkit:makefile` skill if the project has no single command for
-this and you find yourself assembling one by hand — that absence is worth offering to fix, once, rather than working around on every commit.
+this and you find yourself assembling one by hand. That absence is worth offering to fix, once, rather than working around on every commit.
 
 **A bug fix arrives with the test that fails without it**, and a new branch of logic arrives with the test that reaches it. Load the
 `ktor-toolkit:tests` skill.
 
 **The changelog entry is part of the commit, not a follow-up.** Load the `ktor-toolkit:changelog` skill for what earns one.
 
-**If this project publishes a library**, a changed public signature also carries its refreshed `api/` dump in the same commit — it is the clearest
-statement of what a consumer will feel, and `apiCheck` fails on CI without it. Services publish nothing and have no `api/` directory; skip this unless
-the tree has one.
+**If this project publishes a library**, a changed public signature also carries its refreshed `api/` dump in the same commit. It is the clearest
+statement of what a consumer will feel, and `apiCheck` fails on CI without it. Services publish nothing and have no `api/` directory; skip this
+unless the tree has one.
 
 ## Before you write the message, check
 

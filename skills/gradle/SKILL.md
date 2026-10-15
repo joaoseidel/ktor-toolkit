@@ -1,7 +1,7 @@
 ---
 name: gradle
 description: >-
-  Gradle conventions — libs.versions.toml as the only place a version lives, convention plugins over
+  Gradle conventions: libs.versions.toml as the only place a version lives, convention plugins over
   subprojects { }, and choosing api / implementation / compileOnly / runtimeOnly deliberately rather
   than defaulting to implementation. Use when adding a dependency or a module, when a version is
   about to be written into a build script, or when organising any build.gradle.kts.
@@ -15,14 +15,14 @@ description: >-
 |-----------------------------|--------------------------------------------------------|
 | `gradle/libs.versions.toml` | Every version, alias, bundle and plugin coordinate     |
 | `settings.gradle.kts`       | What the build contains, and where things resolve from |
-| `build.gradle.kts` (root)   | Almost nothing — plugins declared `apply false`        |
+| `build.gradle.kts` (root)   | Almost nothing; plugins declared `apply false`         |
 | `<module>/build.gradle.kts` | This module's own plugins, dependencies and tasks      |
 
 A version in a module script, or a dependency block in the root, means one of these has taken on another's job.
 
 ## The version catalog
 
-**Every version lives here. No exceptions.** A literal version in a build script — including a plugin's — is the thing this file exists to prevent:
+**Every version lives here. No exceptions.** A literal version in a build script, including a plugin's, is the thing this file exists to prevent:
 
 ```kotlin
 // Wrong, even when it works
@@ -36,10 +36,10 @@ The catalog is grouped by origin, with comments, and alphabetical inside each gr
 
 ```toml
 [versions]
-kotlin = "2.3.10"
-ktor = "3.4.1"
-exposed = "1.1.1"
-kotest = "6.1.7"
+kotlin = "2.4.20"
+ktor = "3.6.0"
+exposed = "1.5.1"
+kotest = "6.2.5"
 
 [libraries]
 # Ktor
@@ -59,10 +59,10 @@ ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 chances to drift into an unsupported combination.
 
 **A bundle earns its place when the same set is declared in more than one module.** A bundle used once is indirection for its own sake, and a bundle
-so broad that modules take dependencies they do not use is worse — it hides exactly the coupling this skill is about.
+so broad that modules take dependencies they do not use is worse, because it hides exactly the coupling this skill is about.
 
-**Alias naming mirrors the coordinate**, so `libs.ktor.server.core` is guessable from
-`io.ktor:ktor-server-core`. Do not invent short names; completion is what makes the catalog usable.
+**Alias naming mirrors the coordinate**, so `libs.ktor.server.core` is guessable from `io.ktor:ktor-server-core`. Do not invent short names;
+completion is what makes the catalog usable.
 
 ## settings.gradle.kts
 
@@ -90,11 +90,11 @@ include("report", "acceptance-tests")
 stray repository appearing in one module and quietly changing what everything resolves.
 
 **Do not put `mavenLocal()` in shared configuration.** It makes the build depend on whatever is in someone's `~/.m2`, so it passes locally and fails
-in CI — or worse, passes in both while resolving different bytecode. Add it temporarily when testing an unpublished change, and remove it in the same
-session.
+in CI. Worse, it can pass in both while resolving different bytecode. Add it temporarily when testing an unpublished change, and remove it in the
+same session.
 
-**Type-safe project accessors** turn `project(":catalog-core")` into `projects.catalogCore`: a typo becomes a compile error and a renamed module fails
-loudly.
+**Type-safe project accessors** turn `project(":catalog-core")` into `projects.catalogCore`: a typo becomes a compile error and a renamed module
+fails loudly.
 
 When a module's directory does not match its name, map it explicitly:
 
@@ -105,9 +105,9 @@ project(":backend-core").projectDir = file("backend/core")
 
 The foojay resolver lets Gradle download a matching JDK, so someone with the wrong Java installed still builds.
 
-**Where there is no `gradle/libs.versions.toml` yet**, adding one is a mechanical but tree-wide change: every module script loses its literal versions
-in the same commit. Offer it as its own change rather than folding it into a feature — a half-migrated catalog, where some versions live in the file
-and some do not, is worse than either end state.
+**Where there is no `gradle/libs.versions.toml` yet**, adding one is a mechanical but tree-wide change: every module script loses its literal
+versions in the same commit. Offer it as its own change rather than folding it into a feature. A half-migrated catalog, where some versions live in
+the file and some do not, is worse than either end state.
 
 ## Shared configuration
 
@@ -151,7 +151,7 @@ simply does not apply the plugin.
 Where a build already uses `subprojects { }` and is working, migrating is a task of its own, not something to fold into a feature branch. Start new
 builds from convention plugins.
 
-The root script keeps only the plugin declarations, all `apply false`, and the group and version:
+The root script keeps only the plugin declarations, all `apply false`:
 
 ```kotlin
 plugins {
@@ -159,12 +159,9 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ktlint) apply false
 }
-
-allprojects {
-    group = "com.example.catalog"
-    version = providers.gradleProperty("version").get()
-}
 ```
+
+`group` and `version` go in `gradle.properties`, which every project reads, rather than in an `allprojects { }` block that reaches into each one.
 
 ## Choosing a dependency configuration
 
@@ -173,30 +170,31 @@ implementation detail into consumers or breaks their compile.
 
 Work down this list; the first match is the answer:
 
-| Question                                                                                                             | Configuration                                     |
-|----------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
-| Does the type appear in this module's **public** signature — a parameter, return type, supertype or public property? | `api`                                             |
-| Is it needed only at runtime — a JDBC driver, a Logback binding, an SLF4J implementation?                            | `runtimeOnly`                                     |
-| Is it an **optional integration** a consumer opts into?                                                              | `compileOnly` **+** matching `testImplementation` |
-| Does the module use it internally, and consumers need not know?                                                      | `implementation`                                  |
-| Only tests need it?                                                                                                  | `testImplementation`                              |
-| Only tests need it at runtime — a JUnit platform launcher, a driver?                                                 | `testRuntimeOnly`                                 |
-| Is it an annotation processor?                                                                                       | `ksp`                                             |
+| Question                                                                                                            | Configuration                                     |
+|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
+| Does the type appear in this module's **public** signature: a parameter, return type, supertype or public property? | `api`                                             |
+| Is it needed only at runtime, like a JDBC driver, a Logback binding or an SLF4J implementation?                     | `runtimeOnly`                                     |
+| Is it an **optional integration** a consumer opts into?                                                             | `compileOnly` **+** matching `testImplementation` |
+| Does the module use it internally, and consumers need not know?                                                     | `implementation`                                  |
+| Only tests need it?                                                                                                 | `testImplementation`                              |
+| Only tests need it at runtime, like a JUnit platform launcher or a driver?                                          | `testRuntimeOnly`                                 |
+| Is it an annotation processor?                                                                                      | `ksp`                                             |
 
-**`api` is a promise.** It puts the dependency on every downstream module's compile classpath — and in the POM, if the module is published — so
-removing it later breaks them. The rule is exact: **`api` only when the type appears in a public signature.** A module whose public functions return
+**`api` is a promise.** It puts the dependency on every downstream module's compile classpath, and in the POM if the module is published, so removing
+it later breaks them. The rule is exact: **`api` only when the type appears in a public signature.** A module whose public functions return
 `PagedResponse` needs the paginator as `api`; a module that merely calls `call.pagination` inside a route body does not.
 
-**`compileOnly` is how an optional integration stays optional.** A module that offers a Mongo-backed variant alongside a Postgres one compiles against
-both drivers without forcing either on whoever depends on it:
+**`compileOnly` is how an optional integration stays optional.** A module that offers a Mongo-backed variant alongside a Postgres one compiles
+against both drivers without forcing either on whoever depends on it:
 
 ```kotlin
 compileOnly(libs.mongodb.driver.core)
 testImplementation(libs.mongodb.driver.core)   // so the code is still compiled and tested here
 ```
 
-The `testImplementation` is not optional — `compileOnly` is **not** on the test classpath, so without it the feature ships untested. The failure mode
-for whoever forgets the runtime dependency is `NoClassDefFoundError` in production, not a compile error, so say so wherever the feature is documented.
+The `testImplementation` is not optional. `compileOnly` is **not** on the test classpath, so without it the feature ships untested. The failure mode
+for whoever forgets the runtime dependency is `NoClassDefFoundError` in production, not a compile error, so say so wherever the feature is
+documented.
 
 This is also why the toolkit's own optional features behave the way they do: `Sort.toExposedQueryExpression`, `Sort.toMongoSortExpression` and
 `LettuceCache` are each `compileOnly` against a library the module does not carry, and your build supplies it. Load the `ktor-toolkit:install` skill
@@ -204,8 +202,8 @@ for that table.
 
 ### Across the service's own modules
 
-The three production modules follow the pattern in the `ktor-toolkit:architecture` skill: `-core` and
-`-adapters` compile against their libraries, and `-app` owns them at runtime.
+The three production modules follow the pattern in the `ktor-toolkit:architecture` skill: `-core` and `-adapters` compile against their libraries,
+and `-app` owns them at runtime.
 
 ```kotlin
 // catalog-adapters/build.gradle.kts
@@ -232,7 +230,7 @@ Only the deployable assembles a runtime classpath, so a library version is decid
 dependency into the artefact.
 
 **The trap is the test classpath.** Every `compileOnly` an inner module's tests touch needs a matching `testImplementation`, and the failure is a
-`NoClassDefFoundError` in a test rather than a compile error — including for things pulled in indirectly, like a `KotlinLogging.logger {}` at file
+`NoClassDefFoundError` in a test rather than a compile error, including for things pulled in indirectly, like a `KotlinLogging.logger {}` at file
 level running as a class initialiser. When you add a `compileOnly`, add its `testImplementation` in the same edit.
 
 ## Module script order
@@ -241,7 +239,7 @@ Same order in every file, so a reader knows where to look:
 
 ```kotlin
 plugins { }          // conventions first, then module-specific
-application { }      // or ktor { }, kover { }, publishing { } — plugin extensions
+application { }      // or ktor { }, kover { }, publishing { }: plugin extensions
 dependencies { }
 tasks { }            // custom tasks and task configuration last
 ```
@@ -252,12 +250,11 @@ between groups; no comment needed for the obvious ones.
 ## Multi-module direction
 
 `-app → -adapters → -core`, never the other way, and never a cycle. Gradle detects a cycle and fails, which is the easy case; the damaging one is a
-dependency that compiles fine and inverts the design —
-`-core` depending on `-adapters` "just for one type" is how the domain acquires a database.
+dependency that compiles fine and inverts the design. `-core` depending on `-adapters` "just for one type" is how the domain acquires a database.
 
 Two rules keep it honest:
 
-- **A module exposes the minimum.** Prefer `implementation` over `api` between your own modules unless a type genuinely crosses the boundary — `api`
+- **A module exposes the minimum.** Prefer `implementation` over `api` between your own modules unless a type genuinely crosses the boundary. `api`
   makes every downstream module see the whole graph, and then nothing can be moved.
 - **Register new production modules in `report`**, or their coverage is silently uncounted (load the `ktor-toolkit:kover` skill).
 
@@ -269,10 +266,10 @@ Worth doing whenever you touch a build file:
   no upside.
 - **One declaration per plugin.** A plugin aliased in the root *and* applied in a module is a version conflict waiting for one of them to be bumped.
 - **No duplicated repositories.** They belong in `settings.gradle.kts`, once.
-- **Prefer modern APIs**: `tasks.withType<T>().configureEach { }` over `.all { }`,
-  `tasks.register` over `tasks.create`, providers over eager `get()`. These keep configuration lazy, which is most of Gradle's performance.
-- **Keep the configuration cache working.** When one task cannot support it, opt that task out —
-  `notCompatibleWithConfigurationCache("…")` — rather than disabling it for the build.
+- **Prefer modern APIs**: `tasks.withType<T>().configureEach { }` over `.all { }`, `tasks.register` over `tasks.create`, providers over eager
+  `get()`. These keep configuration lazy, which is most of Gradle's performance.
+- **Keep the configuration cache working.** When one task cannot support it, opt that task out with `notCompatibleWithConfigurationCache("…")` rather
+  than disabling it for the build.
 - **If the project publishes a library**, a public API change carries its `api/` dump in the same commit (load the `ktor-toolkit:commit` skill).
 
 ## Common mistakes
@@ -282,7 +279,7 @@ Worth doing whenever you touch a build file:
 | A literal version in a build script                 | The catalog stops being the single source; upgrades miss it            |
 | Defaulting everything to `implementation`           | Either leaks internals or breaks a consumer's compile                  |
 | `api` for something not in a public signature       | Puts it in the POM; removing it later is a breaking change             |
-| `compileOnly` with no matching `testImplementation` | The feature is never compiled into a test — it ships untested          |
+| `compileOnly` with no matching `testImplementation` | The feature is never compiled into a test; it ships untested           |
 | `mavenLocal()` in shared configuration              | Resolves differently on each machine; green locally, red in CI         |
 | Repositories in `allprojects`                       | One module can silently change what everything resolves                |
 | A separate version key per artefact of one family   | Mismatched Ktor or Kotlin versions at runtime                          |

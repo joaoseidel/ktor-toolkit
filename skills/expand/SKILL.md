@@ -1,7 +1,7 @@
 ---
 name: expand
 description: >-
-  Expandable resources with ktor-toolkit-expander — declaring an ExpandSpec so a client can ask for
+  Expandable resources with ktor-toolkit-expander: declaring an ExpandSpec so a client can ask for
   ?expand=author or ?expand=author.books, serving a whole page's references in one batched query,
   and the Expandable wire contract. Use when a response references another resource by id, when a
   client needs related data without a second round trip, and whenever you see a loop that queries
@@ -16,14 +16,14 @@ A `BookResponse` carries an author id. A client that wants author names for a pa
 `/books?includeAuthors=true`. Expansion is the general version of that: the client names what it wants, the server resolves it in one batched query,
 and the wire format says which it got.
 
-**Ask before building it.** Expansion is a permanent contract and it is not free — every expandable field is a batcher to write, a query to index, and
+**Ask before building it.** Expansion is a permanent contract and it is not free. Every expandable field is a batcher to write, a query to index, and
 a payload that varies by request. Before adding it, ask:
 
-- **Which fields do clients actually follow?** Usually one or two per resource. Making every reference expandable produces surface nobody uses.
+- **Which fields do clients actually follow?** Usually one or two per resource. Making every reference expandable produces options nobody uses.
 - **How many distinct resources does a page touch?** One batch per expandable field per page is the design point. If a field's target is itself a
   large object, the payload grows fast.
-- **How deep?** `?expand=author.books` is supported and costs meaningfully more than `?expand=author`
-  — see the performance section, which is not a formality.
+- **How deep?** `?expand=author.books` is supported and costs meaningfully more than `?expand=author`. See the performance section, which is not a
+  formality.
 - **Is a dedicated endpoint clearer?** If a client always wants the expansion, an endpoint that returns the joined shape is simpler for everyone than
   an optional parameter that is never omitted.
 
@@ -44,53 +44,61 @@ data class BookResponse(
 
 | State                    | JSON                                      | Means                                   |
 |--------------------------|-------------------------------------------|-----------------------------------------|
-| `Ref(id)`                | `"author": "auth-7"`                      | Not expanded — here is the id           |
+| `Ref(id)`                | `"author": "auth-7"`                      | Not expanded; here is the id            |
 | `Resolved(value)`        | `"author": { "id": "auth-7", "name": … }` | Expanded in full                        |
 | `Partial(value, fields)` | `"author": { "name": … }`                 | Expanded, projected to requested fields |
 
 A client can therefore branch on the JSON type rather than tracking what it asked for. Build the response with `Expandable.Ref(book.authorId)` in the
 mapper; the spec replaces it if asked.
 
-Two consequences of the serializer worth knowing: a `Ref` becomes a bare **string**, so ids must be
-`String` at this boundary; and a `Partial` cannot round-trip — deserializing an object always yields
-`Resolved`. That matters only if a service consumes its own responses.
+Two consequences of the serializer worth knowing: a `Ref` becomes a bare **string**, so ids must be `String` at this boundary; and a `Partial` cannot
+round-trip, because deserializing an object always yields `Resolved`. That matters only if a service consumes its own responses.
 
 ## Declaring a spec
 
 ```kotlin
 // -adapters/web/book/BookExpansion.kt
-fun bookExpandSpec(authors: AuthorRepository, reviews: ReviewRepository) =
+fun bookExpandSpec(
+    findAuthors: FindAuthors,
+    findReviews: FindReviews,
+): ExpandSpec<BookResponse> =
     ExpandSpec.build<BookResponse> {
-        field(
-            "author",
-            get = { it.author },
-            set = { copy(author = it) },
-        ) {
-            batch { ids, fields -> authors.findAllById(ids, fields).associateBy { it.id } }
+        field("author", get = { it.author }, set = { copy(author = it) }) {
+            batch { ids, fields -> findAuthors(ids.map(::AuthorId), fields).associate { it.id.value to it.toResponse() } }
         }
 
-        listField(
-            "reviews",
-            get = { it.reviews },
-            set = { copy(reviews = it) },
-        ) {
-            batch { ids, _ -> reviews.findAllById(ids).associateBy { it.id } }
+        listField("reviews", get = { it.reviews }, set = { copy(reviews = it) }) {
+            batch { ids, _ -> findReviews(ids.map(::ReviewId)).associate { it.id.value to it.toResponse() } }
         }
     }
 ```
 
-`field` covers a single reference, including a nullable one. `listField` covers
-`List<Expandable<F>>`. `polymorphicField` covers a field whose type varies per row, with one `case`
-per discriminator and a separate batcher for each.
+`field` covers a single reference, including a nullable one. `listField` covers `List<Expandable<F>>`. `polymorphicField` covers a field whose type
+varies per row, with one `case` per discriminator and a separate batcher for each.
 
-**`batch` is mandatory and is the whole point.** It receives *every* unresolved id on the page at once and returns a map keyed by id. One call, one
-query — that is the N+1 this module exists to prevent. Its second parameter is the projection (below); ignore it with `_` if the query cannot narrow.
+**`batch` is mandatory and is the whole point.** It receives *every* unresolved id on the page at once and returns a map from id to the **response**
+type. Map the entities with `toResponse()` on the way out, exactly as a route would. One call, one query: that is the N+1 this module exists to
+prevent. Its second parameter is the projection (below); ignore it with `_` if the query cannot narrow.
 
 The builder rejects a duplicate field name and a missing `batch` at construction time, so a spec that builds is wired correctly.
 
-**The spec belongs in `-adapters/web`, and its batcher calls a port.** The spec is about the shape of a response, so it is an adapter concern — but
-the data comes from `-core`'s repository interfaces, not from Exposed directly. Build it where the dependencies are available and hand it to the
-routes; load the `ktor-toolkit:architecture` skill for the layering.
+**The spec belongs in `-adapters/web`, and its batcher calls a use case.** The spec is about the shape of a response, so it is an adapter concern;
+the data comes through `-core` the way a route's does, through a `FindAuthors` use case, never the `AuthorRepository` port and never Exposed. A
+batcher is a route handler in all but name, and the same rule applies: the moment a rule appears about which authors a caller may see, it has to be
+in the use case for the expansion to honour it. Load the `ktor-toolkit:architecture` skill for the layering.
+
+Build it once, at the top of the route function beside the other dependencies, and close over it in the handlers:
+
+```kotlin
+fun Route.bookRoutes() {
+    val findBooks: FindBooks by dependencies
+    val findAuthors: FindAuthors by dependencies
+    val findReviews: FindReviews by dependencies
+    val bookSpec = bookExpandSpec(findAuthors, findReviews)
+
+    route("/books") { … }
+}
+```
 
 ## Applying it
 
@@ -103,7 +111,7 @@ call.respond(bookSpec.apply(book.toResponse(), call.expand))
 For a page, expand the content before wrapping it, since `PagedResponse` is the outermost shape:
 
 ```kotlin
-val paged = findBooks(call.pagination)
+val paged = findBooks(call.filters, call.pagination)
 val expanded = bookSpec.apply(paged.content.map { it.toResponse() }, call.expand)
 
 call.respond(
@@ -111,8 +119,8 @@ call.respond(
 )
 ```
 
-`apply` is `suspend` and does nothing when the client asked for nothing — an absent `?expand=`
-leaves every field a `Ref` without touching a batcher.
+`apply` is `suspend` and does nothing when the client asked for nothing. An absent `?expand=` leaves every field a `Ref` without touching a
+batcher.
 
 Field names are matched case-insensitively and trimmed, so `?expand=Author, reviews` works.
 
@@ -122,11 +130,11 @@ A field can carry its own spec, declared inline or reused:
 
 ```kotlin
 field("author", get = { it.author }, set = { copy(author = it) }) {
-    batch { ids, fields -> authors.findAllById(ids, fields).associateBy { it.id } }
+    batch { ids, fields -> findAuthors(ids.map(::AuthorId), fields).associate { it.id.value to it.toResponse() } }
 
     nested {
         listField("books", get = { it.books }, set = { copy(books = it) }) {
-            batch { ids, _ -> books.findAllById(ids).associateBy { it.id } }
+            batch { ids, _ -> findBooksById(ids.map(::BookId)).associate { it.id.value to it.toResponse() } }
         }
     }
 }
@@ -137,22 +145,23 @@ field("author", get = { it.author }, set = { copy(author = it) }) {
 
 ## Projection
 
-When a client names a field the nested spec does not know, the request is read as a **projection**
-rather than a deeper expansion:
+When a client names a field the nested spec does not know, the request is read as a **projection** rather than a deeper expansion:
 
 ```
 ?expand=author.name
 ```
 
 The `batch` lambda receives `setOf("name")` as its second parameter, so the query can select fewer columns, and the response is filtered to those
-keys — that is the `Partial` state.
+keys. That is the `Partial` state.
 
 The rule the module applies: if every key under a field is a known nested field, it nests; if any key is unknown, the whole set becomes a projection.
-So `?expand=author.name` projects, and
-`?expand=author.books` nests, without the client having to say which it meant.
+So `?expand=author.name` projects, and `?expand=author.books` nests, without the client having to say which it meant.
 
-Honour the projection in the batcher when the query can narrow. Ignoring it is correct behaviour — the response is filtered regardless — but it wastes
-the round trip the client was trying to make cheaper.
+Honour the projection in the batcher when the query can narrow. Ignoring it is correct behaviour, since the response is filtered regardless, but it
+wastes the round trip the client was trying to make cheaper.
+
+**The names are client input.** They are the response's JSON keys, lowercased, exactly as the client typed them. Resolve them against an allow-list
+in the persistence adapter, the same way sort keys are, and never splice one into a query.
 
 ## Performance: read this before nesting
 
@@ -160,13 +169,13 @@ the round trip the client was trying to make cheaper.
 and it holds.
 
 **Nested levels are batched per parent, not per page.** `?expand=author.books` resolves the 20 authors in one call, then applies the nested spec to
-*each author individually* — 20 more calls, one per author. The N+1 is gone at the top level and returns one level down.
+*each author individually*: 20 more calls, one per author. The N+1 is gone at the top level and returns one level down.
 
 This is worth planning around rather than discovering:
 
 - Keep expansion **one level deep by default**. Add a second level when a client genuinely needs it, not because the DSL supports it.
-- If a second level is required, make its batcher cheap — a cache lookup inside the batcher collapses repeated fetches across parents and is usually
-  the smallest fix (load the `ktor-toolkit:cache` skill).
+- If a second level is required, make its batcher cheap. A cache lookup inside the batcher collapses repeated fetches across parents and is usually
+  the smallest fix. Load the `ktor-toolkit:cache` skill.
 - Consider whether the nested data belongs in the parent's own query instead. A join that returns authors with their book ids already populated turns
   the nested batch into a no-op.
 - Cap the depth you support in the API documentation (load the `ktor-toolkit:openapi` skill) and mean it. `?expand=a.b.c.d` multiplies.
@@ -176,14 +185,17 @@ limit is protecting.
 
 ## Common mistakes
 
-| Mistake                                                      | Why it hurts                                                                 |
-|--------------------------------------------------------------|------------------------------------------------------------------------------|
-| A `map { repository.findById(it.authorId) }` in the route    | The N+1 this module exists to remove                                         |
-| A `batch` that queries per id internally                     | Same N+1, now hidden behind the right-looking API                            |
-| Making every reference expandable                            | Surface nobody uses, each with a batcher to maintain                         |
-| Deep nesting because the DSL allows it                       | Per-parent batching multiplies with depth                                    |
-| Ignoring the `fields` parameter on a query that could narrow | The client asked for less and paid for everything                            |
-| Non-`String` ids at the response boundary                    | A `Ref` serializes as a bare string; nothing else round-trips                |
-| Building the spec in `-core`                                 | The domain starts owning response shape                                      |
-| Constructing the spec per request                            | Rebuilds the field list on every call for no benefit — build once, inject it |
-| Expecting `Partial` to survive a round trip                  | Deserializing an object always yields `Resolved`                             |
+| Mistake                                                      | Why it hurts                                                        |
+|--------------------------------------------------------------|---------------------------------------------------------------------|
+| A `map { repository.findById(it.authorId) }` in the route    | The N+1 this module exists to remove                                |
+| A `batch` that queries per id internally                     | Same N+1, now hidden behind the right-looking API                   |
+| A `batch` calling a repository instead of a use case         | Skips whatever rule the use case applies to what a caller may see   |
+| A `batch` returning entities rather than response DTOs       | The batch must yield the response type; map with `toResponse()`     |
+| Projection names passed into a query unchecked               | The client chooses columns; resolve them through an allow-list      |
+| Making every reference expandable                            | Surface nobody uses, each with a batcher to maintain                |
+| Deep nesting because the DSL allows it                       | Per-parent batching multiplies with depth                           |
+| Ignoring the `fields` parameter on a query that could narrow | The client asked for less and paid for everything                   |
+| Non-`String` ids at the response boundary                    | A `Ref` serializes as a bare string; nothing else round-trips       |
+| Building the spec in `-core`                                 | The domain starts owning response shape                             |
+| Constructing the spec per request                            | Rebuilds the field list on every call for no benefit; build it once |
+| Expecting `Partial` to survive a round trip                  | Deserializing an object always yields `Resolved`                    |
