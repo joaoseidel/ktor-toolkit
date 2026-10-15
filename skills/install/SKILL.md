@@ -22,14 +22,14 @@ skills gives endpoints that compile and drift. Skills without libraries gives ad
 
 ## Step 1: Check the JVM target
 
-**The modules require Java 21 or newer.** On an older toolchain the dependency resolves and the *compile* fails with `class file has wrong version`,
+**The modules require Java 17 and Kotlin 2.3 or newer.** On an older JDK the dependency resolves and the *compile* fails with `class file has wrong version`,
 which reads like a corrupt artifact and is not one.
 
 ```bash
 grep -rn "jvmToolchain\|sourceCompatibility\|languageVersion" --include="*.gradle.kts" .
 ```
 
-Below 21, stop here: raise the toolchain, or tell the user the toolkit is not usable on this project. Do not spend time on the error itself.
+Below Java 17 or Kotlin 2.3, stop here: raise the toolchain, or tell the user the toolkit is not usable on this project. Do not spend time on the error itself.
 
 ## Step 2: Choose the modules
 
@@ -258,7 +258,8 @@ Keep it short. The user asked for a working project, and the evidence is the com
 
 | Symptom                                                           | Cause                                                             |
 |-------------------------------------------------------------------|-------------------------------------------------------------------|
-| `class file has wrong version 65.0`                               | The project targets below Java 21 (Step 1)                        |
+| `class file has wrong version 61.0`                               | The project targets below Java 17 (Step 1)                        |
+| `compiled with an incompatible version of Kotlin`                 | The project compiles with Kotlin below 2.3 (Step 1)               |
 | `Could not find io.github.joaoseidel:...`                         | `mavenCentral()` missing from the build's repositories (Step 3)   |
 | Unresolved reference on `import io.github.joaoseidel...`          | The packages are `com.github.joaoseidel...` (Step 5)              |
 | Unresolved reference on `blank()`, `email()`, `size()`            | Each rule is its own import from `…validator.validators` (Step 5) |

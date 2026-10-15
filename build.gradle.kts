@@ -5,6 +5,7 @@ import com.vanniktech.maven.publish.SourcesJar
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -16,8 +17,19 @@ plugins {
     alias(libs.plugins.maven.publish) apply false
 }
 
-/** Single source of truth for the JVM target. Java 21 LTS is the floor for consumers. */
-val javaVersion = 21
+/**
+ * Single source of truth for the JVM target. Java 17 LTS is the floor for consumers: every
+ * dependency still ships Java 8 bytecode, so this is a choice, not a constraint — and lowering it
+ * later is compatible, raising it is not.
+ */
+val javaVersion = 17
+
+/**
+ * The oldest Kotlin a consumer can compile against. The compiler stays free to move ahead (a
+ * Dependabot bump changes nothing downstream); this does not. 2.3 is where `kotlin.time.Instant`
+ * and `Clock` went stable, and Ktor 3.6 and kotlinx-serialization 1.11 carry 2.3 metadata anyway.
+ */
+val kotlinFloor = KotlinVersion.KOTLIN_2_3
 
 /**
  * Only `io.github.<user>` is verifiable on Maven Central via a GitHub account, so the group has to
@@ -47,7 +59,12 @@ subprojects {
     kotlin {
         jvmToolchain(javaVersion)
 
+        // Without this the POM pins kotlin-stdlib to the compiler version and drags consumers up.
+        coreLibrariesVersion = "${kotlinFloor.version}.0"
+
         compilerOptions {
+            languageVersion = kotlinFloor
+            apiVersion = kotlinFloor
             freeCompilerArgs.add("-Xjsr305=strict")
 
             // An interface method with a body compiles to a JVM default method alone. The default

@@ -55,7 +55,8 @@ First public release. Nothing was published before this, so the breaking changes
   `negativeMessage`.
 - **`PropertyValidator`'s constructor is internal** and `errors` is a read-only `List`.
 - **`inRange` takes `Number` bounds** rather than `Int`.
-- **The JVM target is Java 21.**
+- **The floor is Java 17 and Kotlin 2.3.** The published bytecode targets Java 17, and the metadata and
+  the `kotlin-stdlib` dependency target Kotlin 2.3 whatever compiler builds the release.
 
 ### Fixed
 

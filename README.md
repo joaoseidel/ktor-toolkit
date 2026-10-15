@@ -5,9 +5,9 @@
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](#development)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3+-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Ktor](https://img.shields.io/badge/Ktor-3.6.0-087CFA)](https://ktor.io)
-[![Java](https://img.shields.io/badge/Java-21+-ED8B00?logo=openjdk&logoColor=white)](https://adoptium.net)
+[![Java](https://img.shields.io/badge/Java-17+-ED8B00?logo=openjdk&logoColor=white)](https://adoptium.net)
 
 Eight small, independent libraries for building JSON APIs with [Ktor](https://ktor.io): pagination, filtering, HATEOAS links, request validation,
 RFC 9457 errors, field expansion, response caching and aggregate state machines.
@@ -30,7 +30,7 @@ same conventions you would.
 
 ## Install
 
-**Java 21 or newer.** On an older toolchain the dependency resolves and the compile fails with `class file has wrong version`, which reads like a
+**Java 17 and Kotlin 2.3 or newer.** On an older JDK the dependency resolves and the compile fails with `class file has wrong version`, which reads like a
 corrupt artifact and is not one.
 
 Published to Maven Central, so a build that already resolves anything else needs no repository change:

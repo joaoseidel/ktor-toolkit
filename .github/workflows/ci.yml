@@ -22,12 +22,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Java 21 is the floor declared in build.gradle.kts. Installing it here means the
+      # Java 17 is the floor declared in build.gradle.kts. Installing it here means the
       # foojay toolchain resolver never has to download a JDK mid-build.
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 17
 
       # validate-wrappers rejects a gradle-wrapper.jar whose checksum is not a published
       # Gradle release — the cheapest defence against a tampered wrapper in a fork's PR.
@@ -72,7 +72,7 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 17
 
       - uses: gradle/actions/setup-gradle@v6
         with:

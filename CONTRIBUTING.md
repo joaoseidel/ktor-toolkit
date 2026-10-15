@@ -2,13 +2,13 @@
 
 ## Getting set up
 
-You need a JDK 21. [mise](https://mise.jdx.dev) will install the right one:
+You need a JDK 17. [mise](https://mise.jdx.dev) will install the right one:
 
 ```bash
 mise install
 ```
 
-Gradle otherwise provisions a Java 21 toolchain itself, so a plain `./gradlew build` works too.
+Gradle otherwise provisions a Java 17 toolchain itself, so a plain `./gradlew build` works too.
 
 ## The loop
 
