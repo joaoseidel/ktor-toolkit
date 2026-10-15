@@ -26,16 +26,11 @@ class Transition<S : Any, E : Any, C> internal constructor(
     val rel: String,
     internal val guards: List<Guard<C>>,
     internal val effects: List<suspend (C, E) -> Unit>,
+    internal val exits: List<suspend (C, E) -> Unit>,
 ) {
     override fun toString(): String = "$from --$rel--> $to"
 }
 
-/**
- * A precondition on a move, together with the reason to give when it does not hold.
- *
- * A guard sees the subject and not the event on purpose — that is what lets
- * [StateMachine.availableFor] evaluate every guard without inventing an event to test with.
- */
 internal class Guard<in C>(
     val reason: String,
     val test: suspend (C) -> Boolean,

@@ -44,7 +44,7 @@ object FilterQuery {
             queryParameters
                 .getAll(PARAMETER)
                 .orEmpty()
-                .flatMap { it.splitUnescaped(',') }
+                .flatMap { it.splitKeepingEscapes(',') }
                 .map(String::trim)
                 .filter(String::isNotEmpty)
 
@@ -68,18 +68,17 @@ object FilterQuery {
                     "\"$token\" is not a filter operator. Use one of: ${Filter.Operator.entries.joinToString { it.token }}.",
                     property,
                 )
-        val values = if (operator == IN || operator == NOT_IN) value.splitUnescaped('|') else listOf(value)
+        val values = if (operator == IN || operator == NOT_IN) value.splitKeepingEscapes('|') else listOf(value)
 
         return Filter(property, operator, values.map { it.unescape() })
     }
 
-    /** Splits on [separator] where it is not escaped, keeping escapes in the pieces for a later split to honour. */
-    private fun String.splitUnescaped(separator: Char): List<String> =
+    private fun String.splitKeepingEscapes(separator: Char): List<String> =
         buildList {
             val piece = StringBuilder()
             var escaping = false
 
-            for (char in this@splitUnescaped) {
+            for (char in this@splitKeepingEscapes) {
                 when {
                     escaping -> piece.append('\\').append(char).also { escaping = false }
                     char == '\\' -> escaping = true

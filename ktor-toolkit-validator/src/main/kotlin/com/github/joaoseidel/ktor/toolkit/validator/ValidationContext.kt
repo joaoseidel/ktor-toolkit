@@ -191,7 +191,6 @@ class ValidationContext<T> internal constructor(
         return ValidationResult.Invalid(reasons = found.map(ValidationError::toString))
     }
 
-    /** Qualifies [name] with the path of the enclosing context, if there is one. */
     private fun pathOf(name: String): String =
         when {
             name.isEmpty() -> basePath

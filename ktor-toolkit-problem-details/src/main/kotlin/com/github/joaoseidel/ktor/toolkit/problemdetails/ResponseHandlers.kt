@@ -37,42 +37,31 @@ object ResponseHandlers {
         return strategy.serialNameForJson(descriptor, 0, this)
     }
 
-    /** The JSON Pointer the request body sits at, which every reported path is relative to. */
     private const val ROOT_POINTER = "$"
 
-    /**
-     * Matches a property-scoped reason, whose path `ValidationError` (from the validator module)
-     * quotes in backticks. Compiled once: this runs per reason, per failed request.
-     */
     private val PROPERTY_REASON = Regex("`(.*?)`\\s(.*)")
 
     /**
-     * Where a [MissingFieldException] sits in the document. The fields it names are a property of the
-     * exception, but the path is something `Json` appends to the message on the way out and nowhere
-     * else. Compiled once, for the same reason as [PROPERTY_REASON].
+     * The fields a [MissingFieldException] names are a property of the exception, but the path is
+     * something `Json` appends to the message on the way out and nowhere else.
      */
     private val MISSING_FIELD_PATH = Regex(" at path: (\\$\\.?\\S*)")
 
-    /** Where one validation reason belongs in the response, and what it says. */
     private class ParsedReason(
         val key: String,
         private val prefix: String?,
         val message: String,
     ) {
-        /** Renders every message recorded under [key] as the single value the key maps to. */
         fun render(messages: List<String>): String {
             val text = messages.joinToString("; ")
             return if (prefix == null) text else "$prefix $text"
         }
     }
 
-    /** Splits a reason into the path it belongs to and the message to report against it. */
     private fun parseReason(
         reason: String,
         namingStrategy: JsonNamingStrategy?,
     ): ParsedReason {
-        // An `invariant` belongs to the object rather than to any one property, so the validator
-        // renders it as the bare message — there is no path quoted in it to parse out.
         val match = PROPERTY_REASON.find(reason) ?: return ParsedReason(ROOT_POINTER, prefix = null, message = reason)
 
         val segments = match.groupValues[1].split(".")
@@ -129,8 +118,6 @@ object ResponseHandlers {
         namingStrategy: JsonNamingStrategy? = null,
         json: Json = ProblemJson,
     ) {
-        // Grouped rather than associated: `properties` holds one entry per offending path, and a
-        // property routinely breaks more than one rule — associating would keep only the last.
         val properties =
             cause.reasons
                 .map { reason -> parseReason(reason, namingStrategy) }
@@ -168,8 +155,6 @@ object ResponseHandlers {
         namingStrategy: JsonNamingStrategy? = null,
         json: Json = ProblemJson,
     ) {
-        // Walk the chain rather than assume a depth: how deeply Ktor wraps the serialization
-        // failure depends on the content negotiation path the request took.
         val chain = generateSequence(cause as Throwable) { it.cause }
         val missingFields = chain.filterIsInstance<MissingFieldException>().firstOrNull()
         val decoding = chain.filterIsInstance<JsonDecodingException>().firstOrNull()
@@ -201,15 +186,11 @@ object ResponseHandlers {
         call.respondProblem(problem, json)
     }
 
-    /**
-     * One entry per field the exception names, keyed by the field's pointer. A failure with no path
-     * in its message — one raised outside `Json`, or built by hand — is reported against the root.
-     */
     private fun missingFieldProperties(
         failure: MissingFieldException,
         namingStrategy: JsonNamingStrategy?,
     ): Map<String, String> {
-        val match = failure.message?.let { message -> MISSING_FIELD_PATH.find(message) }
+        val match = MISSING_FIELD_PATH.find(failure.message.toString())
         val path = if (match == null) ROOT_POINTER else match.groupValues[1]
         val readablePath = if (path == ROOT_POINTER) "$.root" else path
 

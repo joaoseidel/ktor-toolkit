@@ -6,6 +6,8 @@ import com.github.joaoseidel.ktor.toolkit.validator.validationRule
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toInstant
 import kotlin.time.Instant
 
 /**
@@ -24,30 +26,31 @@ import kotlin.time.Instant
 fun PropertyValidator<*, LocalDate?>.before(
     date: Any,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): ValidationRule<LocalDate?> = beforeRule(date, timeZone)
+): ValidationRule<LocalDate?> = beforeRule(date, timeZone) { it.atStartOfDayIn(timeZone) }
 
 /** Asserts that a date and time is strictly before [date]. See the [LocalDate] overload. */
 @JvmName("beforeLocalDateTime")
 fun PropertyValidator<*, LocalDateTime?>.before(
     date: Any,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): ValidationRule<LocalDateTime?> = beforeRule(date, timeZone)
+): ValidationRule<LocalDateTime?> = beforeRule(date, timeZone) { it.toInstant(timeZone) }
 
 /** Asserts that an instant is strictly before [date]. See the [LocalDate] overload. */
 @JvmName("beforeInstant")
 fun PropertyValidator<*, Instant?>.before(
     date: Any,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): ValidationRule<Instant?> = beforeRule(date, timeZone)
+): ValidationRule<Instant?> = beforeRule(date, timeZone) { it }
 
-private fun beforeRule(
+private fun <V : Any> beforeRule(
     date: Any,
     timeZone: TimeZone,
-): ValidationRule<Any?> {
+    toInstant: (V) -> Instant,
+): ValidationRule<V?> {
     val reference = requireTemporal(date, timeZone)
 
     return validationRule(
         positiveMessage = "should be before $date",
         negativeMessage = "should not be before $date",
-    ) { value -> temporalToInstant(value, timeZone)?.let { it < reference } ?: false }
+    ) { value -> toInstant(value) < reference }
 }

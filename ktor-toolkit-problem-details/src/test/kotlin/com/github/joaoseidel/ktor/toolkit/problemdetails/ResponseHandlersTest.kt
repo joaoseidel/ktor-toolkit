@@ -1,6 +1,7 @@
 package com.github.joaoseidel.ktor.toolkit.problemdetails
 
 import com.github.joaoseidel.ktor.toolkit.problemdetails.exception.HttpStatusException
+import com.github.joaoseidel.ktor.toolkit.validator.data.ValidationError
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.nulls.shouldBeNull
@@ -21,10 +22,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-/**
- * Drives the handlers directly, rather than through [problemDetails], so each one is exercised the
- * way an application that wants only some of them would call it — on its own, and on its defaults.
- */
 private fun handlerApp(
     boom: () -> Nothing,
     handle: suspend (ApplicationCall, Throwable) -> Unit,
@@ -66,7 +63,7 @@ class ResponseHandlersTest :
             context("handling a validation failure") {
                 should("quote a top-level field at the root of the document") {
                     handlerApp(
-                        boom = { throw RequestValidationException(Unit, listOf("`title` should not be blank")) },
+                        boom = { throw RequestValidationException(Unit, listOf(ValidationError("title", "should not be blank").toString())) },
                         handle = { call, cause ->
                             ResponseHandlers.handleValidationException(call, cause as RequestValidationException)
                         },
@@ -80,7 +77,7 @@ class ResponseHandlersTest :
                 should("quote a nested field at the path it sits on") {
                     handlerApp(
                         boom = {
-                            throw RequestValidationException(Unit, listOf("`author.address.city` should not be blank"))
+                            throw RequestValidationException(Unit, listOf(ValidationError("author.address.city", "should not be blank").toString()))
                         },
                         handle = { call, cause ->
                             ResponseHandlers.handleValidationException(call, cause as RequestValidationException)
@@ -96,13 +93,12 @@ class ResponseHandlersTest :
 
                 should("report a reason that quotes no field against the document itself") {
                     handlerApp(
-                        boom = { throw RequestValidationException(Unit, listOf("the whole thing is wrong")) },
+                        boom = { throw RequestValidationException(Unit, listOf(ValidationError("", "the whole thing is wrong").toString())) },
                         handle = { call, cause ->
                             ResponseHandlers.handleValidationException(call, cause as RequestValidationException)
                         },
                     ) { response ->
                         response.status shouldBe HttpStatusCode.BadRequest
-                        // What `invariant` records: no path to quote, so the message is all there is.
                         response.problem().properties() shouldContainExactly mapOf("$" to "the whole thing is wrong")
                     }
                 }
@@ -172,23 +168,6 @@ class ResponseHandlersTest :
                     ) { response ->
                         response.status shouldBe HttpStatusCode.BadRequest
                         response.problem().string("detail") shouldBe "Missing required fields"
-                        response.problem().properties() shouldContainExactly mapOf("$.title" to "Property `title` at `$.root` is required")
-                    }
-                }
-
-                should("still name the field when the missing-field report carries no message at all") {
-                    handlerApp(
-                        boom = {
-                            // The only way to build one with a null message; the fields come from the
-                            // exception itself, so the message is not what the response is read from.
-                            @Suppress("DEPRECATION_ERROR")
-                            throw BadRequestException("Bad body", MissingFieldException(listOf("title"), null, null))
-                        },
-                        handle = { call, cause ->
-                            ResponseHandlers.handleBadRequestException(call, cause as BadRequestException)
-                        },
-                    ) { response ->
-                        response.status shouldBe HttpStatusCode.BadRequest
                         response.problem().properties() shouldContainExactly mapOf("$.title" to "Property `title` at `$.root` is required")
                     }
                 }

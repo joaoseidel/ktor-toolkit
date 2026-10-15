@@ -105,7 +105,6 @@ class LettuceCache(
 
     private fun String.prefixed(): String = "$keyPrefix$this"
 
-    /** Escapes the `SCAN MATCH` metacharacters, so a prefix is matched literally. */
     private fun String.escapeGlob(): String =
         buildString(length) {
             for (character in this@escapeGlob) {

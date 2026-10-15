@@ -26,7 +26,12 @@ fun PropertyValidator<*, LocalDate?>.future(
     duration: Duration? = null,
     now: Instant = Clock.System.now(),
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): ValidationRule<LocalDate?> = futureRule(duration, now, timeZone)
+): ValidationRule<LocalDate?> =
+    futureRule(duration) { value ->
+        val today = now.toLocalDateTime(timeZone).date
+        val latest = duration?.let { now.plus(it).toLocalDateTime(timeZone).date }
+        value > today && (latest == null || value <= latest)
+    }
 
 /** Asserts that a date and time lies ahead of [now]. See the [LocalDate] overload. */
 @JvmName("futureLocalDateTime")
@@ -34,7 +39,12 @@ fun PropertyValidator<*, LocalDateTime?>.future(
     duration: Duration? = null,
     now: Instant = Clock.System.now(),
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): ValidationRule<LocalDateTime?> = futureRule(duration, now, timeZone)
+): ValidationRule<LocalDateTime?> =
+    futureRule(duration) { value ->
+        val current = now.toLocalDateTime(timeZone)
+        val latest = duration?.let { now.plus(it).toLocalDateTime(timeZone) }
+        value > current && (latest == null || value <= latest)
+    }
 
 /** Asserts that an instant lies ahead of [now]. See the [LocalDate] overload. */
 @JvmName("futureInstant")
@@ -42,42 +52,21 @@ fun PropertyValidator<*, Instant?>.future(
     duration: Duration? = null,
     now: Instant = Clock.System.now(),
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): ValidationRule<Instant?> = futureRule(duration, now, timeZone)
+): ValidationRule<Instant?> =
+    futureRule(duration) { value ->
+        val upperBound = duration?.let { now.plus(it) }
+        value > now && (upperBound == null || value <= upperBound)
+    }
 
-private fun futureRule(
+private fun <V : Any> futureRule(
     duration: Duration?,
-    now: Instant,
-    timeZone: TimeZone,
-): ValidationRule<Any?> {
+    holds: (V) -> Boolean,
+): ValidationRule<V?> {
     val described = if (duration != null) "a future date of at most $duration" else "a future date"
 
     return validationRule(
         positiveMessage = "should be $described",
         negativeMessage = "should not be $described",
-    ) { value ->
-        val upperBound = duration?.let { now.plus(it) }
-
-        when (value) {
-            is LocalDate -> {
-                val today = now.toLocalDateTime(timeZone).date
-                val latest = upperBound?.let { it.toLocalDateTime(timeZone).date }
-                value > today && (latest == null || value <= latest)
-            }
-
-            is LocalDateTime -> {
-                val current = now.toLocalDateTime(timeZone)
-                val latest = upperBound?.toLocalDateTime(timeZone)
-                value > current && (latest == null || value <= latest)
-            }
-
-            is Instant -> {
-                value > now && (upperBound == null || value <= upperBound)
-            }
-
-            // Unreachable: the receiver of every `future` overload pins the type.
-            else -> {
-                false
-            }
-        }
-    }
+        test = holds,
+    )
 }

@@ -13,26 +13,27 @@ import com.github.joaoseidel.ktor.toolkit.filter.data.Filter.Operator.NOT_IN
 import com.github.joaoseidel.ktor.toolkit.filter.data.Filter.Operator.NOT_LIKE
 import org.jetbrains.exposed.v1.core.BooleanColumnType
 import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.CustomStringFunction
 import org.jetbrains.exposed.v1.core.DecimalColumnType
 import org.jetbrains.exposed.v1.core.EnumerationColumnType
+import org.jetbrains.exposed.v1.core.EqOp
+import org.jetbrains.exposed.v1.core.Expression
+import org.jetbrains.exposed.v1.core.GreaterEqOp
+import org.jetbrains.exposed.v1.core.GreaterOp
+import org.jetbrains.exposed.v1.core.LessEqOp
+import org.jetbrains.exposed.v1.core.LessOp
 import org.jetbrains.exposed.v1.core.LikePattern
+import org.jetbrains.exposed.v1.core.NeqOp
 import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.QueryParameter
 import org.jetbrains.exposed.v1.core.StringColumnType
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.greater
-import org.jetbrains.exposed.v1.core.greaterEq
-import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.isNull
-import org.jetbrains.exposed.v1.core.less
-import org.jetbrains.exposed.v1.core.lessEq
 import org.jetbrains.exposed.v1.core.like
-import org.jetbrains.exposed.v1.core.lowerCase
-import org.jetbrains.exposed.v1.core.neq
-import org.jetbrains.exposed.v1.core.notInList
 import org.jetbrains.exposed.v1.core.notLike
+import org.jetbrains.exposed.v1.core.ops.SingleValueInListOp
 import org.jetbrains.exposed.v1.core.or
 
 /**
@@ -77,39 +78,33 @@ fun Filter.toExposedCondition(vararg filterableColumns: Column<*>): Op<Boolean> 
 /** Vararg convenience for [toExposedCondition]. */
 fun List<Filter>.toExposedCondition(vararg filterableColumns: Column<*>): Op<Boolean> = toExposedCondition(filterableColumns.asList())
 
-// Safe: every operand passed to these columns comes from operandFor, which parses it with the column's own type.
-@Suppress("UNCHECKED_CAST")
 private fun Column<*>.conditionFor(filter: Filter): Op<Boolean> {
-    val column = this as Column<Any>
-    val comparable = this as Column<Comparable<Any>>
+    fun operand(raw: String): QueryParameter<*> = operandFor(filter, raw)
 
-    fun operand(raw: String): Any = operandFor(filter, raw)
-
-    fun comparableOperand(): Comparable<Any> =
-        operand(filter.value) as? Comparable<Any>
+    fun comparableOperand(): QueryParameter<*> =
+        operand(filter.value).takeIf { it.value is Comparable<*> }
             ?: throw InvalidFilterException("\"${filter.property}\" cannot be compared with ${filter.operator.token}.", filter.property)
 
     return when (filter.operator) {
-        EQ -> column eq operand(filter.value)
-        NOT_EQ -> orNull(column neq operand(filter.value))
-        GT -> comparable greater comparableOperand()
-        GTE -> comparable greaterEq comparableOperand()
-        LT -> comparable less comparableOperand()
-        LTE -> comparable lessEq comparableOperand()
-        LIKE -> textFor(filter).lowerCase() like containing(filter.value)
-        NOT_LIKE -> orNull(textFor(filter).lowerCase() notLike containing(filter.value))
-        IN -> column inList filter.values.map(::operand)
-        NOT_IN -> orNull(column notInList filter.values.map(::operand))
-        EXISTS -> if (filter.exists) column.isNotNull() else column.isNull()
+        EQ -> EqOp(this, operand(filter.value))
+        NOT_EQ -> orNull(NeqOp(this, operand(filter.value)))
+        GT -> GreaterOp(this, comparableOperand())
+        GTE -> GreaterEqOp(this, comparableOperand())
+        LT -> LessOp(this, comparableOperand())
+        LTE -> LessEqOp(this, comparableOperand())
+        LIKE -> lowerTextFor(filter).like(containing(filter.value))
+        NOT_LIKE -> orNull(lowerTextFor(filter).notLike(containing(filter.value)))
+        IN -> SingleValueInListOp(this, filter.values.map { operand(it).value }, isInList = true)
+        NOT_IN -> orNull(SingleValueInListOp(this, filter.values.map { operand(it).value }, isInList = false))
+        EXISTS -> if (filter.exists) isNotNull() else isNull()
     }
 }
 
 private fun Column<*>.orNull(condition: Op<Boolean>): Op<Boolean> = if (columnType.nullable) condition or isNull() else condition
 
-@Suppress("UNCHECKED_CAST")
-private fun Column<*>.textFor(filter: Filter): Column<String> =
+private fun Column<*>.lowerTextFor(filter: Filter): Expression<String?> =
     if (columnType is StringColumnType) {
-        this as Column<String>
+        CustomStringFunction("LOWER", this)
     } else {
         throw InvalidFilterException("\"${filter.property}\" is not text, so it cannot be searched with ${filter.operator.token}.", filter.property)
     }
@@ -135,21 +130,25 @@ private fun containing(text: String): LikePattern {
 private fun Column<*>.operandFor(
     filter: Filter,
     raw: String,
-): Any {
-    val type = columnType
-    val value =
+): QueryParameter<*> {
+    val operand =
         try {
-            when (type) {
-                is DecimalColumnType -> raw.toBigDecimal()
-                is BooleanColumnType -> raw.toBooleanStrict()
-                is EnumerationColumnType<*> ->
-                    type.klass.java.enumConstants
-                        .firstOrNull { it.name == raw }
-                else -> type.valueFromDB(raw)
+            when (val type = columnType) {
+                is DecimalColumnType -> QueryParameter(raw.toBigDecimal(), type)
+                is BooleanColumnType -> QueryParameter(raw.toBooleanStrict(), type)
+                is EnumerationColumnType<*> -> type.constantNamed(raw)
+                else -> parameterFrom(raw)
             }
         } catch (_: Exception) {
             null
         }
 
-    return value ?: throw InvalidFilterException("\"$raw\" is not a valid value for \"${filter.property}\".", filter.property)
+    return operand ?: throw InvalidFilterException("\"$raw\" is not a valid value for \"${filter.property}\".", filter.property)
 }
+
+private fun <E : Enum<E>> EnumerationColumnType<E>.constantNamed(raw: String): QueryParameter<E>? =
+    klass.java.enumConstants
+        .firstOrNull { it.name == raw }
+        ?.let { QueryParameter(it, this) }
+
+private fun <T> Column<T>.parameterFrom(raw: String): QueryParameter<T & Any>? = columnType.valueFromDB(raw)?.let { QueryParameter(it, columnType) }

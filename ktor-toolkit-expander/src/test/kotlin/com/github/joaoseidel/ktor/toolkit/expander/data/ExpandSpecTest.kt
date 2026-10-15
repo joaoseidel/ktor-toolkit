@@ -31,7 +31,6 @@ private data class Review(
     val mentions: List<Expandable<Book>>? = null,
 )
 
-/** Its organiser is an author or a book, depending on [organiserType]. */
 private data class Report(
     val id: String,
     val organiserType: String,

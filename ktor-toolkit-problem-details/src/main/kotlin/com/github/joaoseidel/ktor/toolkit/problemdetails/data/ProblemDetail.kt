@@ -28,12 +28,6 @@ data class ProblemDetail private constructor(
     val instance: String? = null,
     val properties: Map<String, String>? = null,
 ) {
-    /**
-     * Fills in [instance] with [path] unless this problem already names one.
-     *
-     * A hand-written mapping rarely bothers with `instance`, and the request path is what it would
-     * have said. One that does name an instance keeps it.
-     */
     internal fun orInstance(path: String): ProblemDetail = if (instance != null) this else copy(instance = path)
 
     companion object {

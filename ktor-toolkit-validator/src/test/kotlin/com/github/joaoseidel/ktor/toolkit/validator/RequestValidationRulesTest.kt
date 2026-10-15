@@ -17,7 +17,6 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 
-/** Echoes the body back, or the validation reasons when the plugin rejected it. */
 private fun Application.reportValidationFailures() {
     routing {
         post("/titles") {

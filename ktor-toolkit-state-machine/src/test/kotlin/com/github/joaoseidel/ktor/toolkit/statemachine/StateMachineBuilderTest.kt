@@ -9,10 +9,8 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 
-/** Builds a machine, so a test only has to say what is wrong with the definition. */
 private fun define(block: StateMachineBuilder<OrderState, OrderEvent, Order>.() -> Unit) = stateMachine(block)
 
-/** The message of the [StateMachineDefinitionException] that [block] is expected to raise. */
 private fun refusal(block: StateMachineBuilder<OrderState, OrderEvent, Order>.() -> Unit): String =
     shouldThrow<StateMachineDefinitionException> { define(block) }.message.orEmpty()
 

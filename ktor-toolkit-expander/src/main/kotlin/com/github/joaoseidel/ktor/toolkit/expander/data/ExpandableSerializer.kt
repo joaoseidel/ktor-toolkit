@@ -1,6 +1,7 @@
 package com.github.joaoseidel.ktor.toolkit.expander.data
 
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
@@ -49,9 +50,11 @@ class ExpandableSerializer<T>(
             }
 
             is Expandable.Partial -> {
-                // Projection selects by JSON key, so the encoded value has to have keys. A
-                // primitive or a list cannot be projected, and casting says so at the point of use.
-                val fullJson = jsonEncoder.json.encodeToJsonElement(contentSerializer, value.value) as JsonObject
+                val fullJson =
+                    jsonEncoder.json.encodeToJsonElement(contentSerializer, value.value) as? JsonObject
+                        ?: throw SerializationException(
+                            "A projected Expandable needs an object value, not ${contentSerializer.descriptor.serialName}",
+                        )
                 val filtered = JsonObject(fullJson.filterKeys { it.lowercase() in value.fields })
                 jsonEncoder.encodeJsonElement(filtered)
             }

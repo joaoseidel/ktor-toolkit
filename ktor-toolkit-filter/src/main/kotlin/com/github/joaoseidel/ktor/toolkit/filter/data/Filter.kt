@@ -54,10 +54,8 @@ data class Filter(
         vararg values: String,
     ) : this(property.name, operator, values.asList())
 
-    /** The only operand, for every operator but [Operator.IN] and [Operator.NOT_IN]. */
     internal val value: String get() = values.single()
 
-    /** What an [Operator.EXISTS] condition asks for: `true` for present, `false` for absent. */
     internal val exists: Boolean get() = value == "true"
 
     /**

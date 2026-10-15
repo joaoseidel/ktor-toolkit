@@ -14,7 +14,7 @@ import com.github.joaoseidel.ktor.toolkit.validator.validationRule
 fun PropertyValidator<*, String?>.size(
     min: Int = 0,
     max: Int = Int.MAX_VALUE,
-): ValidationRule<String?> = sizeRule(min, max)
+): ValidationRule<String?> = sizeRule(min, max, String::length)
 
 /**
  * Asserts that a collection's size falls in `min..max`, both inclusive.
@@ -26,7 +26,7 @@ fun PropertyValidator<*, String?>.size(
 fun PropertyValidator<*, Collection<*>?>.size(
     min: Int = 0,
     max: Int = Int.MAX_VALUE,
-): ValidationRule<Collection<*>?> = sizeRule(min, max)
+): ValidationRule<Collection<*>?> = sizeRule(min, max, Collection<*>::size)
 
 /**
  * Asserts that a map's size falls in `min..max`, both inclusive.
@@ -38,7 +38,7 @@ fun PropertyValidator<*, Collection<*>?>.size(
 fun PropertyValidator<*, Map<*, *>?>.size(
     min: Int = 0,
     max: Int = Int.MAX_VALUE,
-): ValidationRule<Map<*, *>?> = sizeRule(min, max)
+): ValidationRule<Map<*, *>?> = sizeRule(min, max, Map<*, *>::size)
 
 /**
  * Asserts that an array's size falls in `min..max`, both inclusive.
@@ -50,29 +50,14 @@ fun PropertyValidator<*, Map<*, *>?>.size(
 fun PropertyValidator<*, Array<*>?>.size(
     min: Int = 0,
     max: Int = Int.MAX_VALUE,
-): ValidationRule<Array<*>?> = sizeRule(min, max)
+): ValidationRule<Array<*>?> = sizeRule(min, max, Array<*>::size)
 
-private fun sizeRule(
+private fun <V : Any> sizeRule(
     min: Int,
     max: Int,
-): ValidationRule<Any?> =
+    measure: (V) -> Int,
+): ValidationRule<V?> =
     validationRule(
         positiveMessage = "size should be between $min and $max",
         negativeMessage = "size should not be between $min and $max",
-    ) { value ->
-        val size =
-            when (value) {
-                is String -> value.length
-
-                is Collection<*> -> value.size
-
-                is Map<*, *> -> value.size
-
-                is Array<*> -> value.size
-
-                // Unreachable: the receiver of every `size` overload pins the type.
-                else -> return@validationRule false
-            }
-
-        size in min..max
-    }
+    ) { value -> measure(value) in min..max }

@@ -62,7 +62,6 @@ private fun filter(
     vararg values: String,
 ) = Filter(property, operator, values.asList())
 
-/** `Filters` returns opaque wrappers, so compare query documents by what they render to. */
 private infix fun Bson.shouldQuery(expected: Bson) = toBsonDocument() shouldBe expected.toBsonDocument()
 
 private fun containing(text: String) = Pattern.compile(Pattern.quote(text), Pattern.CASE_INSENSITIVE)

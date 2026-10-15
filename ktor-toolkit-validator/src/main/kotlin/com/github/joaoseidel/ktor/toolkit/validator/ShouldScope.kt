@@ -32,7 +32,6 @@ class ShouldScope<T, out V> internal constructor(
         rule: ValidationRule<V>,
         negate: Boolean,
     ): RuleOutcome {
-        // An absent optional field is nothing to say, unless the rule is about absence itself.
         if (validator.value == null && !rule.appliesToNull) return RuleOutcome(validator, errorIndex = null)
 
         val holds = rule.test(validator.value)

@@ -2,7 +2,6 @@ package com.github.joaoseidel.ktor.toolkit.expander.data
 
 import com.github.joaoseidel.ktor.toolkit.expander.web.ExpandRequest
 
-/** Resolves a set of ref IDs into `id to value`, optionally projecting down to `fields`. */
 private typealias Batch<F> = suspend (ids: Set<String>, fields: Set<String>) -> Map<String, F>
 
 /**
@@ -140,8 +139,6 @@ class ExpandSpec<T> private constructor(
         internal fun build(): ExpandSpec<T> {
             fields.forEach { require(it.name.isNotBlank()) { "An expandable field needs a name" } }
 
-            // Two fields under one key would run two batches for the same `?expand=` request, the
-            // second silently overwriting the first.
             val duplicates =
                 fields
                     .groupingBy { it.name }
@@ -158,7 +155,7 @@ class ExpandSpec<T> private constructor(
     @ExpandDsl
     class FieldBuilder<F> internal constructor() {
         private var batch: Batch<F>? = null
-        private var nested: ExpandSpec<*>? = null
+        private var nested: ExpandSpec<F>? = null
 
         /**
          * Resolves a set of ref IDs into `id to value`, in a single call for the whole page.
@@ -172,7 +169,7 @@ class ExpandSpec<T> private constructor(
         }
 
         /** Applies an existing spec to each resolved value, enabling `?expand=author.books`. */
-        fun nested(spec: ExpandSpec<out F>) {
+        fun nested(spec: ExpandSpec<F>) {
             nested = spec
         }
 
@@ -181,14 +178,11 @@ class ExpandSpec<T> private constructor(
             nested = Builder<F>().apply(configure).build()
         }
 
-        @Suppress("UNCHECKED_CAST")
         internal fun build(name: String): Pair<Batch<F>, ExpandSpec<F>?> {
             val resolve =
                 requireNotNull(batch) { "Expandable field \"$name\" needs a batch { } block to resolve its refs" }
 
-            // Safe: a spec declared for a subtype of F is only ever applied to values the batcher
-            // of that same declaration produced.
-            return resolve to nested as ExpandSpec<F>?
+            return resolve to nested
         }
     }
 
@@ -223,8 +217,6 @@ class ExpandSpec<T> private constructor(
     }
 }
 
-// Sealed interface — every field kind exposes only T, hiding F inside each implementation.
-// This lets ExpandSpec store List<ExpandFieldSpec<T>> with no casts.
 private sealed interface ExpandFieldSpec<T> {
     val name: String
 
@@ -234,7 +226,6 @@ private sealed interface ExpandFieldSpec<T> {
     ): List<T>
 }
 
-/** A single field, nullable or not: a null getter result simply leaves the item alone. */
 private class SingleFieldSpec<T, F>(
     override val name: String,
     private val getter: (T) -> Expandable<F>?,
@@ -249,7 +240,7 @@ private class SingleFieldSpec<T, F>(
         if (!expand.wants(name)) return items
 
         val childExpand = expand.child(name)
-        val projection = projectionFields(childExpand, nested)
+        val projection = projectionWhenUnregistered(childExpand, nested)
         val resolved = batch.forRefs(items.mapNotNull(getter).refIds(), projection)
 
         return items.map { item ->
@@ -273,7 +264,7 @@ private class ListFieldSpec<T, F>(
         if (!expand.wants(name)) return items
 
         val childExpand = expand.child(name)
-        val projection = projectionFields(childExpand, nested)
+        val projection = projectionWhenUnregistered(childExpand, nested)
         val resolved = batch.forRefs(items.flatMap { getter(it).orEmpty() }.refIds(), projection)
 
         return items.map { item ->
@@ -298,43 +289,34 @@ private class PolymorphicFieldSpec<T, F>(
 
         val childExpand = expand.child(name)
 
-        // One batch call per discriminator, not per item.
         val resolved = mutableMapOf<String, F>()
         for ((discriminator, group) in items.groupBy(type)) {
             val (batch, nested) = cases[discriminator] ?: continue
-            resolved += batch.forRefs(group.map(getter).refIds(), projectionFields(childExpand, nested))
+            resolved += batch.forRefs(group.map(getter).refIds(), projectionWhenUnregistered(childExpand, nested))
         }
 
         return items.map { item ->
             val (_, nested) = cases[type(item)] ?: return@map item
-            val projection = projectionFields(childExpand, nested)
+            val projection = projectionWhenUnregistered(childExpand, nested)
 
             item.setter(getter(item).resolveWith(resolved).finish(nested, projection, childExpand))
         }
     }
 }
 
-/** The IDs of every entry still awaiting resolution. */
 private fun <F> Iterable<Expandable<F>>.refIds(): Set<String> = filterIsInstance<Expandable.Ref>().mapTo(mutableSetOf()) { it.id }
 
-/** Skips the round trip when nothing needs resolving, so a batcher never sees an empty ID set. */
 private suspend fun <F> Batch<F>.forRefs(
     ids: Set<String>,
     projection: Set<String>,
 ): Map<String, F> = if (ids.isEmpty()) emptyMap() else this(ids, projection)
 
-/** Swaps a [Expandable.Ref] for its resolved value; an ID absent from [resolved] stays a ref. */
 private fun <F> Expandable<F>.resolveWith(resolved: Map<String, F>): Expandable<F> {
     if (this !is Expandable.Ref) return this
     val value = resolved[id] ?: return this
     return Expandable.Resolved(value)
 }
 
-/**
- * Applies the nested spec and the field projection to a freshly resolved value.
- *
- * Unresolved refs and already-projected values pass through untouched.
- */
 private suspend fun <F> Expandable<F>.finish(
     nested: ExpandSpec<F>?,
     projection: Set<String>,
@@ -346,13 +328,7 @@ private suspend fun <F> Expandable<F>.finish(
     return if (projection.isEmpty()) Expandable.Resolved(expanded) else Expandable.Partial(expanded, projection)
 }
 
-/**
- * The field names in [childExpand] that are not registered as expandable fields of [nestedSpec].
- *
- * Such unregistered paths are field-level projection selectors — `?expand=author.name,author.username`
- * asks for two columns of `author`, not for two nested expansions.
- */
-private fun projectionFields(
+private fun projectionWhenUnregistered(
     childExpand: ExpandRequest,
     nestedSpec: ExpandSpec<*>?,
 ): Set<String> {

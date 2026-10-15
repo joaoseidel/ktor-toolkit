@@ -65,8 +65,6 @@ class FilterTest :
                     shouldThrow<InvalidFilterException> { Filter("title", EQ, listOf("a", "b")) }
                 }
 
-                // The serialization plugin copies these checks into the constructor it decodes with, so each one is
-                // exercised through decoding as well.
                 should("be rejected on deserialization too") {
                     listOf(
                         """{"property":" ","operator":"EQ","values":["x"]}""",

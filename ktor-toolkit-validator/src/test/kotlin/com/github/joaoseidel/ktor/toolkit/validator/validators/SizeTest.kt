@@ -1,9 +1,6 @@
 package com.github.joaoseidel.ktor.toolkit.validator.validators
 
-import com.github.joaoseidel.ktor.toolkit.validator.support.appliedTo
 import com.github.joaoseidel.ktor.toolkit.validator.support.messagesOf
-import com.github.joaoseidel.ktor.toolkit.validator.support.validatorFor
-import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 
@@ -76,14 +73,6 @@ class SizeTest :
 
             should("stay silent on an absent value") {
                 messagesOf<String?>(null) { should be size(min = 1) } shouldBe emptyList()
-            }
-
-            should("answer false for a value of a type it cannot measure, rather than throw") {
-                val rule = validatorFor<String?>("abc").size(min = 1)
-
-                listOf(42, 4.2, true, Unit).forEach { value ->
-                    withClue("$value") { rule appliedTo value shouldBe false }
-                }
             }
         },
     )

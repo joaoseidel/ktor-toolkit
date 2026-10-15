@@ -31,11 +31,9 @@ class PagedResponseTest :
                                 Triple(0L, 10, 0),
                                 Triple(1L, 10, 1),
                                 Triple(9L, 10, 1),
-                                // The boundary the old implementation got wrong: an exact multiple.
                                 Triple(10L, 10, 1),
                                 Triple(11L, 10, 2),
                                 Triple(20L, 10, 2),
-                                // 25 elements over a page size of 10 spans 3 pages, not 2.
                                 Triple(25L, 10, 3),
                                 Triple(1L, 1, 1),
                                 Triple(7L, 3, 3),
@@ -44,7 +42,7 @@ class PagedResponseTest :
                         cases.forEach { (totalElements, pageSize, expectedTotalPages) ->
                             withClue("$totalElements elements over a page size of $pageSize") {
                                 PagedResponse
-                                    .from<String, String>(paged(0, pageSize, totalElements))
+                                    .from(paged(0, pageSize, totalElements))
                                     .metadata.totalPages shouldBe expectedTotalPages
                             }
                         }
@@ -53,7 +51,6 @@ class PagedResponseTest :
 
                 context("navigation flags") {
                     should("offer a next page on every page but the last") {
-                        // 25 elements over a page size of 10 means page 2 is the last one.
                         val cases =
                             listOf(
                                 Triple(0, true, false),
@@ -63,7 +60,7 @@ class PagedResponseTest :
 
                         cases.forEach { (page, expectedHasNext, expectedHasPrevious) ->
                             withClue("page $page of 25 elements over a page size of 10") {
-                                val metadata = PagedResponse.from<String, String>(paged(page, 10, 25)).metadata
+                                val metadata = PagedResponse.from(paged(page, 10, 25)).metadata
 
                                 metadata.hasNext shouldBe expectedHasNext
                                 metadata.hasPrevious shouldBe expectedHasPrevious
@@ -72,7 +69,7 @@ class PagedResponseTest :
                     }
 
                     should("offer no navigation at all when there is no data") {
-                        val metadata = PagedResponse.from<String, String>(paged(0, 10, 0)).metadata
+                        val metadata = PagedResponse.from(paged(0, 10, 0)).metadata
 
                         metadata.totalPages shouldBe 0
                         metadata.hasNext shouldBe false
@@ -85,7 +82,7 @@ class PagedResponseTest :
                         listOf(0, -1).forEach { pageSize ->
                             withClue("page size $pageSize") {
                                 shouldThrow<IllegalArgumentException> {
-                                    PagedResponse.from<String, String>(paged(0, pageSize, 10))
+                                    PagedResponse.from(paged(0, pageSize, 10))
                                 }
                             }
                         }
@@ -94,7 +91,7 @@ class PagedResponseTest :
 
                 context("sorting") {
                     should("report unsorted data") {
-                        val metadata = PagedResponse.from<String, String>(paged(0, 10, 5)).metadata
+                        val metadata = PagedResponse.from(paged(0, 10, 5)).metadata
 
                         metadata.isSorted shouldBe false
                         metadata.sortCriteria shouldBe emptyList()
@@ -103,7 +100,7 @@ class PagedResponseTest :
                     should("carry the sort criteria through") {
                         val sortBy = listOf(Sort("name", Sort.Direction.ASC), Sort("createdAt", Sort.Direction.DESC))
 
-                        val metadata = PagedResponse.from<String, String>(paged(0, 10, 5, sortBy = sortBy)).metadata
+                        val metadata = PagedResponse.from(paged(0, 10, 5, sortBy = sortBy)).metadata
 
                         metadata.isSorted shouldBe true
                         metadata.sortCriteria shouldBe sortBy
@@ -114,7 +111,7 @@ class PagedResponseTest :
                     should("pass the content through untouched without a transformer") {
                         val content = listOf("a", "b")
 
-                        PagedResponse.from<String, String>(paged(0, 10, 2, content)).content shouldBe content
+                        PagedResponse.from(paged(0, 10, 2, content)).content shouldBe content
                     }
 
                     should("apply the transformer to every element") {
@@ -126,14 +123,14 @@ class PagedResponseTest :
             }
 
             context("comparing two responses") {
-                val response = PagedResponse.from<String, String>(paged(0, 10, 2, listOf("a", "b")))
+                val response = PagedResponse.from(paged(0, 10, 2, listOf("a", "b")))
 
                 should("consider a response equal to itself") {
                     response.equals(response) shouldBe true
                 }
 
                 should("consider a response equal to one built from the same page") {
-                    val same = PagedResponse.from<String, String>(paged(0, 10, 2, listOf("a", "b")))
+                    val same = PagedResponse.from(paged(0, 10, 2, listOf("a", "b")))
 
                     response shouldBe same
                     response.hashCode() shouldBe same.hashCode()
@@ -144,11 +141,11 @@ class PagedResponseTest :
                 }
 
                 should("consider responses different when the metadata differs") {
-                    response shouldNotBe PagedResponse.from<String, String>(paged(0, 10, 20, listOf("a", "b")))
+                    response shouldNotBe PagedResponse.from(paged(0, 10, 20, listOf("a", "b")))
                 }
 
                 should("consider responses different when the content differs") {
-                    response shouldNotBe PagedResponse.from<String, String>(paged(0, 10, 2, listOf("a", "c")))
+                    response shouldNotBe PagedResponse.from(paged(0, 10, 2, listOf("a", "c")))
                 }
 
                 should("hand its parts back in declaration order") {
@@ -167,7 +164,7 @@ class PagedResponseTest :
             context("comparing two sets of metadata") {
                 val metadata =
                     PagedResponse
-                        .from<String, String>(paged(1, 10, 25, sortBy = listOf(Sort("name", Sort.Direction.ASC))))
+                        .from(paged(1, 10, 25, sortBy = listOf(Sort("name", Sort.Direction.ASC))))
                         .metadata
 
                 should("consider metadata equal to itself") {
@@ -233,7 +230,7 @@ class PagedResponseTest :
             context("serializing a response") {
                 should("survive a round trip") {
                     val response =
-                        PagedResponse.from<String, String>(
+                        PagedResponse.from(
                             paged(1, 10, 25, listOf("a"), listOf(Sort("name", Sort.Direction.DESC))),
                         )
 
@@ -254,7 +251,7 @@ class PagedResponseTest :
                 }
 
                 should("omit the fields that still hold their default") {
-                    val response = PagedResponse.from<String, String>(paged(0, 10, 0))
+                    val response = PagedResponse.from(paged(0, 10, 0))
 
                     Json.encodeToString(response) shouldBe
                         """{"metadata":{"page":0,"pageSize":10,"totalPages":0,"totalElements":0,""" +
@@ -263,7 +260,7 @@ class PagedResponseTest :
 
                 should("spell the defaults out when the format asks it to") {
                     val verbose = Json { encodeDefaults = true }
-                    val response = PagedResponse.from<String, String>(paged(0, 10, 0))
+                    val response = PagedResponse.from(paged(0, 10, 0))
 
                     verbose.encodeToString(response) shouldBe
                         """{"metadata":{"page":0,"pageSize":10,"totalPages":0,"totalElements":0,""" +

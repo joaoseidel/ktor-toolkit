@@ -30,10 +30,6 @@ import kotlin.time.Duration.Companion.nanoseconds
 
 private typealias Commands = RedisClusterAsyncCommands<String, ByteArray>
 
-/**
- * A real [RedisFuture] rather than a mock: `RedisFuture` only adds two methods to
- * `CompletableFuture`, so the coroutine bridge under test runs against the genuine implementation.
- */
 private class TestRedisFuture<T> :
     CompletableFuture<T>(),
     RedisFuture<T> {
@@ -49,7 +45,6 @@ private fun <T> completed(value: T): RedisFuture<T> = TestRedisFuture<T>().apply
 
 private fun <T> failed(cause: Throwable): RedisFuture<T> = TestRedisFuture<T>().apply { completeExceptionally(cause) }
 
-/** A SCAN reply carrying [keys], finished when no [next] cursor is given. */
 private fun cursor(
     vararg keys: String,
     next: String? = null,
@@ -62,10 +57,8 @@ private fun cursor(
         },
     )
 
-/** Renders an argument object the way Lettuce would send it. */
 private fun render(argument: CompositeArgument): String = CommandArgs(StringCodec.UTF8).also(argument::build).toCommandString()
 
-/** How [render] shows a byte argument — a `SCAN` pattern is one, a `PX` deadline is not. */
 private fun asByteArgument(value: String): String = Base64.getEncoder().encodeToString(value.toByteArray())
 
 private fun bytes(value: String) = value.toByteArray()

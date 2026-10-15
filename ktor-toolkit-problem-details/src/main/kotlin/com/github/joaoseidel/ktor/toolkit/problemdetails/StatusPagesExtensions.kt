@@ -52,12 +52,6 @@ class ProblemDetailsConfig internal constructor() {
     }
 }
 
-/**
- * One `on<E>` declaration, held until [problemDetails] registers it with the plugin.
- *
- * @property type The exception class to catch.
- * @property toProblem Builds the problem to respond with.
- */
 @PublishedApi
 internal class ExceptionMapping<E : Throwable>(
     val type: KClass<E>,
@@ -103,7 +97,6 @@ fun StatusPagesConfig.problemDetails(configure: ProblemDetailsConfig.() -> Unit 
     }
 }
 
-/** Wires one mapping into the plugin, recovering the exception type the reified `on` captured. */
 private fun <E : Throwable> StatusPagesConfig.register(
     mapping: ExceptionMapping<E>,
     json: Json,

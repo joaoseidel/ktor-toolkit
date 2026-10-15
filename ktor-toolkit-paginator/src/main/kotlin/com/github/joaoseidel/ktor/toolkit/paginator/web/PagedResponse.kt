@@ -65,14 +65,12 @@ data class PagedResponse<T> private constructor(
          * ```
          *
          * @param paged The page to describe, as a use case returned it.
-         * @param contentTransformer Maps each element to its response type. Omit it only when the
-         * elements are already the response type — `R` is then inferred as `T` and the content is
-         * passed through unmapped.
+         * @param contentTransformer Maps each element to its response type.
          * @throws IllegalArgumentException if the page size is not positive.
          */
         fun <T, R> from(
             paged: Paged<T>,
-            contentTransformer: ((T) -> R)? = null,
+            contentTransformer: (T) -> R,
         ): PagedResponse<R> {
             val pageSpec = paged.page
             val pageNumber = pageSpec.page
@@ -84,21 +82,9 @@ data class PagedResponse<T> private constructor(
 
             val isSorted = sortCriteria.isNotEmpty()
 
-            // Ceiling division: 25 elements over a page size of 10 spans 3 pages.
-            val totalPages = ((totalElements + pageSize - 1) / pageSize).toInt()
+            val totalPages = pagesSpanning(totalElements, pageSize)
             val hasNext = pageNumber < totalPages - 1
             val hasPrevious = pageNumber > 0
-
-            val transformedContent =
-                if (contentTransformer != null) {
-                    paged.content.map(contentTransformer)
-                } else {
-                    // Sound only where `R` was inferred as `T`, which is what omitting the
-                    // transformer means. Naming both explicitly — `from<Book, BookResponse>(paged)`
-                    // — defeats it, and the heap pollution surfaces at the first read of `content`.
-                    @Suppress("UNCHECKED_CAST")
-                    paged.content as List<R>
-                }
 
             return PagedResponse(
                 metadata =
@@ -112,8 +98,20 @@ data class PagedResponse<T> private constructor(
                         isSorted = isSorted,
                         sortCriteria = sortCriteria,
                     ),
-                content = transformedContent,
+                content = paged.content.map(contentTransformer),
             )
         }
+
+        /**
+         * Derives the wire shape from a [Paged] whose elements are already the response type.
+         *
+         * @throws IllegalArgumentException if the page size is not positive.
+         */
+        fun <T> from(paged: Paged<T>): PagedResponse<T> = from(paged) { it }
     }
 }
+
+private fun pagesSpanning(
+    totalElements: Long,
+    pageSize: Int,
+): Int = ((totalElements + pageSize - 1) / pageSize).toInt()

@@ -6,6 +6,7 @@ import com.github.joaoseidel.ktor.toolkit.validator.validationRule
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Duration
@@ -27,7 +28,10 @@ fun PropertyValidator<*, LocalDate?>.within(
     duration: Duration,
     now: Instant = Clock.System.now(),
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): ValidationRule<LocalDate?> = withinRule(duration, now, timeZone)
+): ValidationRule<LocalDate?> =
+    withinRule(duration) { value ->
+        value in now.minus(duration).toLocalDateTime(timeZone).date..now.plus(duration).toLocalDateTime(timeZone).date
+    }
 
 /** Asserts that a date and time falls within [duration] of [now]. See the [LocalDate] overload. */
 @JvmName("withinLocalDateTime")
@@ -35,7 +39,7 @@ fun PropertyValidator<*, LocalDateTime?>.within(
     duration: Duration,
     now: Instant = Clock.System.now(),
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): ValidationRule<LocalDateTime?> = withinRule(duration, now, timeZone)
+): ValidationRule<LocalDateTime?> = withinRule(duration) { it.toInstant(timeZone) in now.minus(duration)..now.plus(duration) }
 
 /** Asserts that an instant falls within [duration] of [now]. See the [LocalDate] overload. */
 @JvmName("withinInstant")
@@ -43,23 +47,14 @@ fun PropertyValidator<*, Instant?>.within(
     duration: Duration,
     now: Instant = Clock.System.now(),
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): ValidationRule<Instant?> = withinRule(duration, now, timeZone)
+): ValidationRule<Instant?> = withinRule(duration) { it in now.minus(duration)..now.plus(duration) }
 
-private fun withinRule(
+private fun <V : Any> withinRule(
     duration: Duration,
-    now: Instant,
-    timeZone: TimeZone,
-): ValidationRule<Any?> =
+    holds: (V) -> Boolean,
+): ValidationRule<V?> =
     validationRule(
         positiveMessage = "should be within $duration from now",
         negativeMessage = "should not be within $duration from now",
-    ) { value ->
-        val lower = now.minus(duration)
-        val upper = now.plus(duration)
-
-        if (value is LocalDate) {
-            value in lower.toLocalDateTime(timeZone).date..upper.toLocalDateTime(timeZone).date
-        } else {
-            temporalToInstant(value, timeZone)?.let { it in lower..upper } ?: false
-        }
-    }
+        test = holds,
+    )

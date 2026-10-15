@@ -5,6 +5,8 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -52,6 +54,12 @@ class ExpandableSerializerTest :
 
                     val author = json.parseToJsonElement(encoded).jsonObject["author"]?.jsonObject
                     author?.keys shouldBe setOf("name")
+                }
+
+                should("refuse to project a value that does not encode as an object") {
+                    shouldThrow<SerializationException> {
+                        json.encodeToString(ExpandableSerializer(String.serializer()), Expandable.Partial("Herbert", setOf("name")))
+                    }
                 }
 
                 should("write an empty object when the projection matches nothing") {

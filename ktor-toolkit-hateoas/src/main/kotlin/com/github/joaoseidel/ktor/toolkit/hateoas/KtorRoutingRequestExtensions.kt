@@ -8,22 +8,8 @@ import io.ktor.server.request.path
 import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingRequest
 
-/** Query parameters owned by the pagination links; any other parameter is carried over verbatim. */
 private val PAGINATION_PARAMETERS = setOf("page", "pageSize")
 
-/**
- * Creates the pagination links for a [PagedResponse], preserving every other query parameter of
- * the current [RoutingRequest].
- *
- * `self` is always present. `next`, `prev`, `first` and `last` are emitted only when they point
- * at a page that actually exists.
- *
- * @param request The current routing request.
- * @param pageNumber The current page index, starting from 0.
- * @param pageSize The current page size.
- * @param totalPages The number of pages available, as reported by [PagedResponse.Metadata.totalPages].
- * @return A list of pagination-related [Link] objects.
- */
 @PublishedApi
 internal fun createPaginationLinks(
     request: RoutingRequest,
@@ -41,7 +27,6 @@ internal fun createPaginationLinks(
                     .forEach { (key, values) -> appendAll(key, values) }
             }.build()
 
-    // Percent-encodes keys and values, so a filter such as `?q=a&b` survives the round trip.
     fun href(page: Int): String {
         val parameters =
             ParametersBuilder().apply {

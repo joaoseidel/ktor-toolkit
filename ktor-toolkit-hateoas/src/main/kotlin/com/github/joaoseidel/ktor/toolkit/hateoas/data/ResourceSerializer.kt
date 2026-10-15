@@ -56,26 +56,6 @@ internal class ResourceSerializer<T>(
     }
 }
 
-/**
- * Describes the shape [ResourceSerializer] actually writes: the content's own fields, then `_links`.
- *
- * The flattening happens while encoding, so a descriptor that named `_links` alone would be accurate
- * about the wrapper and silent about everything else in the body. Nothing reads this to serialize —
- * `serialize` and `deserialize` both work in `JsonObject` directly — but anything that inspects the
- * type rather than an instance reads it and nothing else, and OpenAPI schema inference is exactly
- * that. Left naming only `_links`, it documents every wrapped response as a body carrying links and
- * no content.
- *
- * The serial name carries [content]'s, because a schema generator keys components by it and every
- * `Resource<T>` sharing one name collides into whichever was registered first.
- *
- * Only a class contributes elements. [ResourceSerializer] casts the encoded content to a
- * `JsonObject`, so a resource wrapping a list or a primitive fails at encode time regardless; this
- * mirrors that rather than describing a body that cannot be produced. A content field already called
- * `_links` is dropped for the same reason: the wrapper's own value overwrites it when encoding, so
- * declaring it twice would describe a field the client never receives — and duplicate element names
- * fail the descriptor builder outright.
- */
 private fun resourceDescriptor(content: SerialDescriptor): SerialDescriptor =
     buildClassSerialDescriptor("Resource<${content.serialName}>") {
         if (content.kind == StructureKind.CLASS) {

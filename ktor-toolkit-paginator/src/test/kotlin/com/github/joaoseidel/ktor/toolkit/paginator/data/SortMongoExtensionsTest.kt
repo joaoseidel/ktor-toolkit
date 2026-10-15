@@ -16,7 +16,6 @@ private data class BookDocument(
 
 private val sortableFields = listOf("id", "title", "created_at")
 
-/** `Sorts` returns opaque wrappers, so compare a sort document by what it renders to. */
 private infix fun Bson.shouldSortBy(expected: String) = toBsonDocument().toJson() shouldBe expected
 
 class SortMongoExtensionsTest :

@@ -15,6 +15,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import org.jetbrains.exposed.v1.core.ColumnType
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -25,6 +26,16 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.math.BigDecimal
 
 private enum class Status { DRAFT, PUBLISHED, ARCHIVED }
+
+private class UnreadableColumnType : ColumnType<String>() {
+    override fun sqlType(): String = "TEXT"
+
+    override fun valueFromDB(value: Any): String? = null
+}
+
+private object Opaque : Table("opaque") {
+    val value = registerColumn("opaque", UnreadableColumnType())
+}
 
 private object Books : Table("books") {
     val id = integer("id")
@@ -72,7 +83,6 @@ private fun book(
     }
 }
 
-/** The ids of the books a condition selects. */
 private fun matching(condition: Op<Boolean>): List<Int> =
     transaction(database) {
         Books
@@ -208,6 +218,12 @@ class FilterExposedExtensionsTest :
                     val failure = shouldThrow<InvalidFilterException> { matching(filter("cover", GT, "x")) }
 
                     failure.property shouldBe "cover"
+                }
+
+                should("reject an operand the column's own type reads as nothing") {
+                    val failure = shouldThrow<InvalidFilterException> { filter("opaque", EQ, "x").toExposedCondition(Opaque.value) }
+
+                    failure.property shouldBe "opaque"
                 }
             }
         },

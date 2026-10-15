@@ -38,7 +38,8 @@ data class PaginationRequest(
          * @param page The page index to fetch, starting from 0.
          * @param pageSize The number of elements to retrieve per page.
          * @param sortBy A list of sorting instructions where each string defines the property to sort by
-         *                 and optionally includes a prefix (`-`) to specify descending order.
+         *                 and optionally includes a prefix (`-`) to specify descending order. Blank entries are
+         *                 ignored.
          * @param maxPageSize The largest page size this endpoint is willing to serve.
          */
         fun from(
@@ -75,7 +76,6 @@ data class PaginationRequest(
         ): PaginationRequest {
             val page = queryParameters["page"]?.toIntOrNull() ?: DEFAULT_PAGE
             val pageSize = queryParameters["pageSize"]?.toIntOrNull() ?: defaultPageSize
-            // An absent parameter and an empty one mean the same thing: `from` drops blank tokens.
             val sortBy = queryParameters["sortBy"].orEmpty().split(",")
             return from(page, pageSize, sortBy, maxPageSize)
         }

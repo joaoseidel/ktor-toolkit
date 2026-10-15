@@ -43,5 +43,4 @@ suspend fun ApplicationCall.respondProblem(
     )
 }
 
-/** The request path, used as the problem's `instance` so a client can tell occurrences apart. */
 internal val ApplicationCall.problemInstance: String get() = request.path()

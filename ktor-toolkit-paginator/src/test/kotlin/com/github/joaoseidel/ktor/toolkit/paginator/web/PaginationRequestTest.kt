@@ -59,10 +59,8 @@ class PaginationRequestTest :
                         listOf(
                             ClampCase(page = "-1", pageSize = "10", expected = Page(0, 10)),
                             ClampCase(page = "-999", pageSize = "10", expected = Page(0, 10)),
-                            // A page size of zero would divide by zero downstream.
                             ClampCase(page = "0", pageSize = "0", expected = Page(0, 1)),
                             ClampCase(page = "0", pageSize = "-5", expected = Page(0, 1)),
-                            // Without an upper bound this is a way to ask for the whole table.
                             ClampCase(
                                 page = "0",
                                 pageSize = "10000000",

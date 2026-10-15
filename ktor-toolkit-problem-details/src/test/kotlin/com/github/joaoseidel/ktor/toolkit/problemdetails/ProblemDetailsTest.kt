@@ -42,7 +42,6 @@ private data class CreateBook(
     val authorName: String,
 )
 
-/** A field that wants a scalar; handed an object, `Json` reports the failure with no path at all. */
 @Serializable
 private data class Toggle(
     val enabled: JsonPrimitive,
@@ -60,7 +59,6 @@ private data class CreateOrder(
     val shipTo: Address,
 )
 
-/** An application's own exception, of the kind `on<E>` exists to map. */
 private class BookNotFoundException(
     val id: String,
 ) : IllegalStateException("Book $id not found")
@@ -69,7 +67,6 @@ private suspend fun HttpResponse.problemBody(): JsonObject = Json.parseToJsonEle
 
 private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.content
 
-/** Boots an app whose only error handling is the toolkit's installer. */
 private fun problemApp(
     configure: ProblemDetailsConfig.() -> Unit = {},
     routes: ApplicationTestBuilder.() -> Unit,

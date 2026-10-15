@@ -36,13 +36,11 @@ class PropertyValidator<T, out V> internal constructor(
      */
     val should: ShouldScope<T, V> = ShouldScope(this)
 
-    /** Records [message] against this property and returns the index it landed at. */
     internal fun addError(message: String): Int {
         collected += ValidationError(path, message)
         return collected.lastIndex
     }
 
-    /** Rewords an already recorded error, backing `describedAs` on a [RuleOutcome]. */
     internal fun replaceError(
         index: Int,
         message: String,

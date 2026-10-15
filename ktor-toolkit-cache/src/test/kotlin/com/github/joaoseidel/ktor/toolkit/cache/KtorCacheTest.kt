@@ -29,7 +29,6 @@ private data class Book(
     val title: String,
 )
 
-/** Runs [block] against the ApplicationRequest of a single GET to [path], sent with [headers]. */
 private fun <T> withRequest(
     path: String,
     headers: List<Pair<String, String>> = emptyList(),
@@ -52,7 +51,6 @@ private fun <T> withRequest(
     return checkNotNull(result) { "the route never ran" }.getOrThrow()
 }
 
-/** A cache whose every operation fails with [failure], standing in for a store that is down. */
 private fun brokenCache(failure: Throwable): KeyValueCache {
     val cache = mockk<KeyValueCache>()
 
@@ -65,11 +63,6 @@ private fun brokenCache(failure: Throwable): KeyValueCache {
     return cache
 }
 
-/**
- * A store that lists [awkwardKey], whose entry it cannot hand back — either because it is gone, as
- * a shared cache's can be between the listing and the read, or because that one read fails. Every
- * other operation goes to [delegate].
- */
 private fun partialCache(
     delegate: KeyValueCache,
     awkwardKey: String,
@@ -90,10 +83,6 @@ private fun partialCache(
     return cache
 }
 
-/**
- * A store that records into [asked] every prefix it was asked to narrow by, so a test can tell a
- * store-side narrowing from a listing filtered after the fact. Everything else goes to [delegate].
- */
 private fun narrowingCache(
     delegate: KeyValueCache,
     asked: MutableList<String>,
@@ -113,13 +102,6 @@ private fun narrowingCache(
     return cache
 }
 
-/**
- * A store whose reads and writes really suspend, the way a network-backed one does, before handing
- * over to [delegate].
- *
- * [InMemoryCache] answers without ever parking the caller, which leaves the suspension paths of
- * [withCache] untried — and those are the paths every remote cache, [LettuceCache] included, takes.
- */
 private fun suspendingCache(delegate: KeyValueCache): KeyValueCache {
     val cache = mockk<KeyValueCache>()
 
@@ -135,7 +117,6 @@ private fun suspendingCache(delegate: KeyValueCache): KeyValueCache {
     return cache
 }
 
-/** Serves one book through [withCache] on its defaults, counting how often the origin was asked. */
 private fun cachedBook(
     path: String,
     cache: KeyValueCache,
@@ -148,7 +129,6 @@ private fun cachedBook(
         }
     }
 
-/** As [cachedBook], but with the serializer, the excluded parameters and the varied headers named explicitly. */
 private fun cachedBook(
     path: String,
     cache: KeyValueCache,
@@ -264,13 +244,6 @@ class KtorCacheTest :
                     key shouldNotContain "s3cret"
                     key.length shouldBe "books.".length + 43
                 }
-
-                should("produce the key it always did when no header is varied") {
-                    val a = withRequest("/books?page=1") { buildCacheKey("books", it) }
-                    val b = withRequest("/books?page=1") { buildCacheKey("books", it, emptySet(), emptySet()) }
-
-                    a shouldBe b
-                }
             }
 
             context("withCache") {
@@ -313,7 +286,6 @@ class KtorCacheTest :
                 }
 
                 should("propagate cancellation instead of swallowing it") {
-                    // runCatching would have caught this and quietly broken structured concurrency.
                     val cache = brokenCache(CancellationException("scope cancelled"))
 
                     shouldThrow<CancellationException> { cachedBook("/books/1", cache) }

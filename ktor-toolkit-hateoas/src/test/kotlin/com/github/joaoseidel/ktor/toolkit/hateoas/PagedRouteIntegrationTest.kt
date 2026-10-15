@@ -29,10 +29,8 @@ private data class BookResponse(
     val title: String,
 )
 
-/** The whole catalogue the fake route pages over. */
 private val catalogue = (1..25).map { BookResponse(it, "Book $it") }
 
-/** A route wired the way the README documents: parse, page, wrap, link. */
 private fun pagedApp(block: suspend ApplicationTestBuilder.() -> Unit) =
     testApplication {
         install(ContentNegotiation) { json() }
@@ -89,7 +87,6 @@ class PagedRouteIntegrationTest :
                             href = body.links()["next"] ?: return@repeat
                         }
 
-                        // The last page must be reachable — the old totalPages made `next` stop one short.
                         visited shouldContainExactly listOf("0", "1", "2")
                     }
                 }

@@ -43,8 +43,7 @@ fun <V : Any> validationRule(
     test: (V) -> Boolean,
 ): ValidationRule<V?> =
     ValidationRule(positiveMessage, negativeMessage) { value ->
-        // Safe: `appliesToNull` is false, so ShouldScope never reaches a null value.
-        test(value!!)
+        value != null && test(value)
     }
 
 /**
@@ -59,18 +58,10 @@ infix fun <V> ValidationRule<V>.and(other: ValidationRule<V>): ValidationRule<V>
         negativeMessage = "$negativeMessage and ${other.negativeMessage}",
         appliesToNull = appliesToNull || other.appliesToNull,
     ) { value ->
-        evaluate(value) && other.evaluate(value)
+        holdsOrIgnoresNull(value) && other.holdsOrIgnoresNull(value)
     }
 
-/**
- * Applies a rule that may be sharing a composition with one that opts into `null`.
- *
- * A composition is asked about a `null` value as soon as *either* operand has an opinion about
- * absence, which would otherwise hand that value to an operand that does not expect it. A rule
- * without an opinion is vacuously satisfied instead, so `nil() and blank()` accepts an absent
- * value on the strength of `nil` alone.
- */
-private fun <V> ValidationRule<V>.evaluate(value: V): Boolean = if (value == null && !appliesToNull) true else test(value)
+private fun <V> ValidationRule<V>.holdsOrIgnoresNull(value: V): Boolean = if (value == null && !appliesToNull) true else test(value)
 
 /**
  * Requires at least one of the rules to hold.
@@ -85,7 +76,7 @@ infix fun <V> ValidationRule<V>.or(other: ValidationRule<V>): ValidationRule<V> 
         negativeMessage = "$negativeMessage or ${other.negativeMessage}",
         appliesToNull = appliesToNull || other.appliesToNull,
     ) { value ->
-        evaluate(value) || other.evaluate(value)
+        holdsOrIgnoresNull(value) || other.holdsOrIgnoresNull(value)
     }
 
 /**

@@ -187,8 +187,8 @@ public final synthetic class com/github/joaoseidel/ktor/toolkit/paginator/web/Pa
 }
 
 public final class com/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Companion {
+	public final fun from (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse;
 	public final fun from (Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged;Lkotlin/jvm/functions/Function1;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse;
-	public static synthetic fun from$default (Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse$Companion;Lcom/github/joaoseidel/ktor/toolkit/paginator/data/Paged;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/paginator/web/PagedResponse;
 	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
 }
 

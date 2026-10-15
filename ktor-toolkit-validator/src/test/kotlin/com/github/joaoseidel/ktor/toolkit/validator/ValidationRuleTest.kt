@@ -25,6 +25,10 @@ class ValidationRuleTest :
                     sawValue shouldBe false
                 }
 
+                should("answer false when its predicate is called directly with null") {
+                    validationRule<String>("should be seen", "should not be seen") { true }.test(null) shouldBe false
+                }
+
                 should("build a rule that stays silent on an absent value") {
                     messagesOf<String?>(null) { should be email() } shouldBe emptyList()
                 }
@@ -54,7 +58,6 @@ class ValidationRuleTest :
                 }
 
                 should("keep an operand's opinion about absence") {
-                    // `nil` applies to null, so the composition does too.
                     messagesOf<String?>(null) { should be (nil() or blank()) } shouldBe emptyList()
                 }
             }

@@ -8,7 +8,6 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.testing.testApplication
 
-/** Reports what the route saw in `call.expand`, so the property is exercised through real routing. */
 private fun expandOf(query: String): String {
     var seen = ""
 

@@ -83,12 +83,6 @@ class FilterableFieldsBuilder internal constructor() {
     }
 }
 
-/**
- * How the operands of one field are read.
- *
- * @property isText Whether `like` and `notLike` apply to the field.
- * @property parse Reads one operand, or throws if it does not parse.
- */
 internal class FieldType(
     val isText: Boolean,
     val parse: (String) -> Any,

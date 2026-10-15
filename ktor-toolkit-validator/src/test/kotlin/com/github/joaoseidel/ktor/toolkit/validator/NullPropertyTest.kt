@@ -21,11 +21,6 @@ import io.kotest.matchers.shouldBe
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration.Companion.days
 
-/**
- * The contract every rule shares: an absent optional field is nothing to say, and only `nil` has an
- * opinion about it. Each rule's own spec covers its logic; this one pins the shared behaviour down
- * in one place, so a new rule that gets it wrong fails here.
- */
 class NullPropertyTest :
     ShouldSpec(
         {

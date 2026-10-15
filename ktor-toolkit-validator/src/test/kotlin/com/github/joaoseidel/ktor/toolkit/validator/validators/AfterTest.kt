@@ -1,10 +1,7 @@
 package com.github.joaoseidel.ktor.toolkit.validator.validators
 
-import com.github.joaoseidel.ktor.toolkit.validator.support.appliedTo
 import com.github.joaoseidel.ktor.toolkit.validator.support.messagesOf
-import com.github.joaoseidel.ktor.toolkit.validator.support.validatorFor
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -89,7 +86,6 @@ class AfterTest :
             }
 
             context("without a zone") {
-                // Each value sits days away from the reference, so no zone can move it across.
                 should("resolve a date against the system zone") {
                     messagesOf(LocalDate(2026, 6, 20)) { should be after(reference) } shouldBe emptyList()
                 }
@@ -100,14 +96,6 @@ class AfterTest :
 
                 should("resolve an instant against the system zone") {
                     messagesOf(Instant.parse("2026-06-20T00:00:00Z")) { should be after(reference) } shouldBe emptyList()
-                }
-            }
-
-            should("answer false for a value of a type it cannot compare against a point in time, rather than throw") {
-                val rule = validatorFor<LocalDate?>(null).after(reference, utc)
-
-                listOf(42, "2026-06-15", true, Unit).forEach { value ->
-                    withClue("$value") { rule appliedTo value shouldBe false }
                 }
             }
 

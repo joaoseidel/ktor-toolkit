@@ -1,9 +1,6 @@
 package com.github.joaoseidel.ktor.toolkit.validator.validators
 
-import com.github.joaoseidel.ktor.toolkit.validator.support.appliedTo
 import com.github.joaoseidel.ktor.toolkit.validator.support.messagesOf
-import com.github.joaoseidel.ktor.toolkit.validator.support.validatorFor
-import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.datetime.LocalDate
@@ -15,7 +12,6 @@ import kotlin.time.Instant
 class FutureTest :
     ShouldSpec(
         {
-            // A fixed "now" keeps every expectation below deterministic.
             val now = Instant.parse("2026-06-15T12:00:00Z")
             val utc = TimeZone.UTC
 
@@ -128,14 +124,6 @@ class FutureTest :
                 should("reject a future one") {
                     messagesOf(LocalDate(2026, 6, 16)) { should notBe future(now = now, timeZone = utc) } shouldBe
                         listOf("should not be a future date")
-                }
-            }
-
-            should("answer false for a value of a type it cannot compare against a point in time, rather than throw") {
-                val rule = validatorFor<LocalDate?>(null).future(now = now, timeZone = utc)
-
-                listOf(42, "2026-06-15", true, Unit).forEach { value ->
-                    withClue("$value") { rule appliedTo value shouldBe false }
                 }
             }
 

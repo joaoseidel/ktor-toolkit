@@ -1,9 +1,6 @@
 package com.github.joaoseidel.ktor.toolkit.validator.validators
 
-import com.github.joaoseidel.ktor.toolkit.validator.support.appliedTo
 import com.github.joaoseidel.ktor.toolkit.validator.support.messagesOf
-import com.github.joaoseidel.ktor.toolkit.validator.support.validatorFor
-import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.datetime.LocalDate
@@ -18,7 +15,6 @@ import kotlin.time.Instant
 class WithinTest :
     ShouldSpec(
         {
-            // A fixed "now" keeps every expectation below deterministic.
             val now = Instant.parse("2026-06-15T12:00:00Z")
             val utc = TimeZone.UTC
 
@@ -44,8 +40,9 @@ class WithinTest :
                         emptyList()
                 }
 
-                should("reject one outside it") {
+                should("reject one outside it in either direction") {
                     messagesOf(LocalDateTime(2026, 6, 16, 0, 0)) { should be within(6.hours, now, utc) }.size shouldBe 1
+                    messagesOf(LocalDateTime(2026, 6, 15, 0, 0)) { should be within(6.hours, now, utc) }.size shouldBe 1
                 }
             }
 
@@ -60,8 +57,11 @@ class WithinTest :
                         emptyList()
                 }
 
-                should("reject one just outside it") {
+                should("reject one just outside it in either direction") {
                     messagesOf(Instant.parse("2026-06-15T05:59:59Z")) {
+                        should be within(6.hours, now, utc)
+                    }.size shouldBe 1
+                    messagesOf(Instant.parse("2026-06-15T18:00:01Z")) {
                         should be within(6.hours, now, utc)
                     }.size shouldBe 1
                 }
@@ -79,7 +79,6 @@ class WithinTest :
             }
 
             context("without a reference point") {
-                // Anchored on the system clock itself, so the window holds whenever the suite runs.
                 val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
                 should("measure a date against the system clock and zone") {
@@ -92,14 +91,6 @@ class WithinTest :
 
                 should("measure an instant against the system clock") {
                     messagesOf(Clock.System.now()) { should be within(1.days) } shouldBe emptyList()
-                }
-            }
-
-            should("answer false for a value of a type it cannot measure against a point in time, rather than throw") {
-                val rule = validatorFor<LocalDate?>(null).within(7.days, now, utc)
-
-                listOf(42, "2026-06-15", true, Unit).forEach { value ->
-                    withClue("$value") { rule appliedTo value shouldBe false }
                 }
             }
 

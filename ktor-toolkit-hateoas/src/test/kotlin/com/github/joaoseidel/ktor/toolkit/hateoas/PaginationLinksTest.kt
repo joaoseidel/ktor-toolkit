@@ -16,7 +16,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 
-/** Drives the link builder through a real routing call, since it reads the request URL. */
 private suspend fun linksFor(
     query: String,
     page: Int,
@@ -29,8 +28,8 @@ private suspend fun linksFor(
         routing {
             get("/books") {
                 val response =
-                    PagedResponse.from<String, String>(
-                        Paged(Page(page, pageSize), emptyList(), emptyList(), totalElements),
+                    PagedResponse.from(
+                        Paged(Page(page, pageSize), emptyList(), emptyList<String>(), totalElements),
                     )
                 links = call.createPaginationLinks(response)
                 call.respondText("ok")
@@ -58,7 +57,6 @@ class PaginationLinksTest :
                     }
 
                     should("omit prev and first on the opening page") {
-                        // 25 elements over a page size of 10 spans 3 pages.
                         linksFor("?page=0&pageSize=10", page = 0, pageSize = 10, totalElements = 25)
                             .rels() shouldContainExactly listOf("self", "next", "last")
                     }
@@ -103,7 +101,6 @@ class PaginationLinksTest :
 
                 context("carried-over query parameters") {
                     should("percent-encode values that would otherwise break the URL") {
-                        // Every one of these produced a corrupt link when the query string was concatenated by hand.
                         val hostile =
                             mapOf(
                                 "amp" to "a&b",

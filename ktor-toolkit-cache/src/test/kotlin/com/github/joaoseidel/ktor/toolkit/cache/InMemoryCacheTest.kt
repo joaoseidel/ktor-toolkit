@@ -13,11 +13,9 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/** A clock the test moves by hand, so expiry can be exercised without sleeping. */
 private class TestClock(
     private var instant: Instant = Instant.parse("2024-01-01T00:00:00Z"),
 ) {
-    /** What the cache is handed; it answers with wherever [advance] has moved this one to. */
     val clock: Clock = mockk { every { now() } answers { instant } }
 
     fun advance(by: Duration) {

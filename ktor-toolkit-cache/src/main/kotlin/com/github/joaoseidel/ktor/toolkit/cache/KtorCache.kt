@@ -16,15 +16,6 @@ import kotlin.text.Charsets.UTF_8
 @PublishedApi
 internal val cacheLogger = KtorSimpleLogger("com.github.joaoseidel.ktor.toolkit.cache")
 
-/**
- * Runs [block], swallowing cache failures but never a coroutine cancellation.
- *
- * A cache is a best-effort optimisation: if the backing store is down, the caller should still
- * serve the request. `CancellationException`, though, is control flow — swallowing it breaks
- * structured concurrency and leaks the coroutine, so it is always rethrown.
- *
- * @return the block's value, or `null` when the cache misbehaved.
- */
 @PublishedApi
 internal inline fun <T> cacheCatching(
     operation: String,
@@ -122,61 +113,37 @@ suspend fun KeyValueCache.invalidateNamespace(namespace: String) {
     }
 }
 
-/**
- * Builds a stable cache key from [namespace], the request path and its query parameters.
- *
- * Kept for callers that inlined [withCache] before it learned to vary by header; new code goes
- * through the overload below.
- */
+private const val HEADER_BLOCK_SEPARATOR = '\n'
+
 @PublishedApi
 internal fun buildCacheKey(
     namespace: String,
     request: ApplicationRequest,
     excludeQueryKeys: Set<String> = emptySet(),
-): String = buildCacheKey(namespace, request, excludeQueryKeys, emptySet())
-
-/**
- * Builds a stable cache key from [namespace], the request path, its query parameters and the
- * values of [varyHeaders].
- *
- * Parameters are sorted by name and their values sorted within each name, so the same logical
- * request produces the same key regardless of the order the client sent them in. Header names are
- * lower-cased, since a client may spell them either way; a header's value is taken as sent, because
- * a list header folds into one comma-joined value on the wire and splitting it there is not safe
- * for every header. A header the request does not carry is left out, so its absence is one more
- * value the key can take. The result is hashed rather than encoded, because a key derived from a
- * URL would otherwise be as long as the URL — and a client controls how long that is; a header
- * value is likewise client-controlled, and hashing keeps a bearer token out of the key.
- *
- * The namespace stays in the clear so [invalidateNamespace] can match on it.
- */
-@PublishedApi
-internal fun buildCacheKey(
-    namespace: String,
-    request: ApplicationRequest,
-    excludeQueryKeys: Set<String>,
-    varyHeaders: Set<String>,
+    varyHeaders: Set<String> = emptySet(),
 ): String {
-    val params = request.queryParameters.filter { key, _ -> key !in excludeQueryKeys }
-    val query =
-        params
-            .entries()
-            .sortedBy { it.key }
-            .joinToString("&") { "${it.key}=${it.value.sorted().joinToString(",")}" }
-    val headers =
-        varyHeaders
-            .map { it.lowercase() }
-            .toSortedSet()
-            .mapNotNull { name -> request.headers.getAll(name)?.let { values -> "$name=${values.sorted().joinToString(",")}" } }
-            .joinToString("\n")
+    val query = request.canonicalQuery(excludeQueryKeys)
+    val headers = request.canonicalHeaders(varyHeaders)
     val raw =
         buildString {
             append(request.path())
             if (query.isNotEmpty()) append('?').append(query)
-            // A newline cannot appear in a request line, so the header block cannot be confused
-            // with a query that happens to look like one.
-            if (headers.isNotEmpty()) append('\n').append(headers)
+            if (headers.isNotEmpty()) append(HEADER_BLOCK_SEPARATOR).append(headers)
         }
     val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(UTF_8))
     return "$namespace.${Base64.getUrlEncoder().withoutPadding().encodeToString(digest)}"
 }
+
+private fun ApplicationRequest.canonicalQuery(excludeQueryKeys: Set<String>): String =
+    queryParameters
+        .filter { key, _ -> key !in excludeQueryKeys }
+        .entries()
+        .sortedBy { it.key }
+        .joinToString("&") { "${it.key}=${it.value.sorted().joinToString(",")}" }
+
+private fun ApplicationRequest.canonicalHeaders(varyHeaders: Set<String>): String =
+    varyHeaders
+        .map { it.lowercase() }
+        .toSortedSet()
+        .mapNotNull { name -> headers.getAll(name)?.let { values -> "$name=${values.sorted().joinToString(",")}" } }
+        .joinToString(HEADER_BLOCK_SEPARATOR.toString())

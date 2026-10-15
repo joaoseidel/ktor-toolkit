@@ -24,7 +24,6 @@ private val page = PagedResponse.from(Paged(Page(0, 10), emptyList(), (1..10).to
 
 private val custom = listOf(Link("create", "/numbers", HttpMethod.Post))
 
-/** The rel of every link in the response body, in order. */
 private suspend fun relsOf(route: suspend (io.ktor.server.routing.RoutingCall) -> Unit): List<String> {
     var rels: List<String> = emptyList()
 
@@ -62,8 +61,6 @@ class PagedResponseExtensionsTest :
                 }
 
                 should("publish a custom link exactly once") {
-                    // It used to be seeded into the resource and then appended again, so every
-                    // caller-supplied link was emitted twice.
                     val rels = relsOf { call -> call.respond(page.toResource(call, custom)) }
 
                     rels.count { it == "create" } shouldBe 1

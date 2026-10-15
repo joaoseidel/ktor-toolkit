@@ -116,7 +116,6 @@ class StateMachineBuilder<S : Any, E : Any, C> internal constructor() {
         listeners += listener
     }
 
-    /** Compiles the declaration into a machine, refusing one that does not hold together. */
     internal fun build(): StateMachine<S, E, C> {
         val initial = start ?: throw StateMachineDefinitionException("no initial state is declared; add `initial(…)`")
         val outgoing = declared.mapValues { (_, builder) -> builder.buildTransitions() }
@@ -159,15 +158,11 @@ class StateMachineBuilder<S : Any, E : Any, C> internal constructor() {
             states = known,
             finalStates = finals.toSet(),
             outgoing = outgoing,
-            // Total over every known state, including one that only `final(…)` mentions, so
-            // firing never has to ask whether a state has hooks before running them.
-            entering = known.associateWith { declared[it]?.entering.orEmpty() },
-            leaving = known.associateWith { declared[it]?.leaving.orEmpty() },
+            entering = declared.mapValues { (_, builder) -> builder.entering.toList() },
             listeners = listeners.toList(),
         )
     }
 
-    /** Every state walkable from [initial], including [initial] itself. */
     private fun reachableFrom(
         initial: S,
         outgoing: Map<S, List<Transition<S, E, C>>>,
@@ -260,7 +255,6 @@ class StateBuilder<S : Any, E : Any, C> internal constructor(
         noinline block: TransitionBuilder<S, E, C>.() -> Unit,
     ) = on(T::class, to, block)
 
-    /** Registers a move, taking the event as a class rather than a type argument. */
     @PublishedApi
     internal fun on(
         event: KClass<out E>,
@@ -270,9 +264,9 @@ class StateBuilder<S : Any, E : Any, C> internal constructor(
         transitions += TransitionBuilder<S, E, C>(state, to, event).apply(block)
     }
 
-    /** Compiles this state's moves, refusing two that the same event could both trigger. */
     internal fun buildTransitions(): List<Transition<S, E, C>> {
-        val compiled = transitions.map { it.build() }
+        val exits = leaving.toList()
+        val compiled = transitions.map { it.build(exits) }
 
         compiled.forEachIndexed { index, transition ->
             val shadowed = compiled.take(index).firstOrNull { it.event.java.isAssignableFrom(transition.event.java) } ?: return@forEachIndexed
@@ -286,13 +280,7 @@ class StateBuilder<S : Any, E : Any, C> internal constructor(
     }
 }
 
-/**
- * `Pay` becomes `pay`.
- *
- * Spelled out rather than with `replaceFirstChar`, whose empty-name arm a reified type argument can
- * never reach — an anonymous object has no name, and no anonymous type can be named as one.
- */
-private fun KClass<*>.defaultRel(): String = java.simpleName.let { it.take(1).lowercase() + it.drop(1) }
+private fun KClass<*>.decapitalizedSimpleName(): String = java.simpleName.let { it.take(1).lowercase() + it.drop(1) }
 
 /**
  * Collects one move's link relation, guards and effects.
@@ -317,7 +305,7 @@ class TransitionBuilder<S : Any, E : Any, C> internal constructor(
      * the word the API already uses. Set it when the event is named for the domain and the relation
      * should be named for the client.
      */
-    var rel: String = event.defaultRel()
+    var rel: String = event.decapitalizedSimpleName()
 
     /**
      * Refuses the move unless [test] holds for the subject.
@@ -353,6 +341,6 @@ class TransitionBuilder<S : Any, E : Any, C> internal constructor(
         effects += action
     }
 
-    /** Compiles this move. */
-    internal fun build(): Transition<S, E, C> = Transition(from, to, event, rel, guards.toList(), effects.toList())
+    internal fun build(exits: List<suspend (C, E) -> Unit>): Transition<S, E, C> =
+        Transition(from, to, event, rel, guards.toList(), effects.toList(), exits)
 }

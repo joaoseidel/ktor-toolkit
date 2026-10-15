@@ -48,7 +48,6 @@ class StateMachine<S : Any, E : Any, C> internal constructor(
     private val finalStates: Set<S>,
     private val outgoing: Map<S, List<Transition<S, E, C>>>,
     private val entering: Map<S, List<suspend (C, E) -> Unit>>,
-    private val leaving: Map<S, List<suspend (C, E) -> Unit>>,
     private val listeners: List<suspend (TransitionResult.Accepted<S, E>) -> Unit>,
 ) {
     /**
@@ -83,11 +82,9 @@ class StateMachine<S : Any, E : Any, C> internal constructor(
         val failed = transition.guards.firstOrNull { !it.test(subject) }
         if (failed != null) return TransitionResult.Rejected(from, event, RejectionReason.GuardFailed(failed.reason))
 
-        // Both maps are total over `states`, and `select` has already established that `from` is
-        // one of them — so neither lookup can come back empty-handed.
-        leaving.getValue(from).forEach { it(subject, event) }
+        transition.exits.forEach { it(subject, event) }
         transition.effects.forEach { it(subject, event) }
-        entering.getValue(transition.to).forEach { it(subject, event) }
+        entering[transition.to].orEmpty().forEach { it(subject, event) }
 
         val accepted = TransitionResult.Accepted(from, event, transition.to)
         listeners.forEach { it(accepted) }
@@ -186,7 +183,6 @@ class StateMachine<S : Any, E : Any, C> internal constructor(
         return found
     }
 
-    /** The transition [event] triggers out of [from], or `null` when there is none. */
     private fun select(
         from: S,
         event: E,

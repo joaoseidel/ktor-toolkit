@@ -4,13 +4,6 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import kotlinx.coroutines.delay
 
-/**
- * A store that implements [keys] but not the prefix overload, so `keys(prefix)` runs the interface
- * default — the path a [KeyValueCache] written outside the toolkit takes.
- *
- * Its listing really suspends, the way a network-backed one does. [InMemoryCache] answers without
- * ever parking the caller, which would leave the default's suspension path untried.
- */
 private class SuspendingKeyStore(
     private val listing: List<String>,
 ) : KeyValueCache {
