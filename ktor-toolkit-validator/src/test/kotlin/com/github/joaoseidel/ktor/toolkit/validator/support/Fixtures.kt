@@ -1,8 +1,8 @@
 package com.github.joaoseidel.ktor.toolkit.validator.support
 
-import com.github.joaoseidel.ktor.toolkit.validator.PropertyValidator
-import com.github.joaoseidel.ktor.toolkit.validator.ValidationContext
-import com.github.joaoseidel.ktor.toolkit.validator.data.ValidationError
+import com.github.joaoseidel.ktor.toolkit.validator.api.PropertyValidator
+import com.github.joaoseidel.ktor.toolkit.validator.api.ValidationContext
+import com.github.joaoseidel.ktor.toolkit.validator.api.data.ValidationError
 
 data class Holder<V>(
     val value: V,

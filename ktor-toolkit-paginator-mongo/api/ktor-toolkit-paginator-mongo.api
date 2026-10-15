@@ -1,0 +1,9 @@
+public final class com/github/joaoseidel/ktor/toolkit/paginator/mongo/api/SortMongoExtensionsKt {
+	public static final fun toMongoSortExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/api/data/Sort;Ljava/util/List;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/api/data/Sort;[Ljava/lang/String;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/api/data/Sort;[Lkotlin/reflect/KProperty1;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Ljava/util/List;Ljava/util/List;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Ljava/util/List;[Ljava/lang/String;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoSortExpression (Ljava/util/List;[Lkotlin/reflect/KProperty1;)Lorg/bson/conversions/Bson;
+}
+

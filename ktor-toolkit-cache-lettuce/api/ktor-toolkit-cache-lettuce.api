@@ -1,0 +1,17 @@
+public final class com/github/joaoseidel/ktor/toolkit/cache/lettuce/api/LettuceCache : com/github/joaoseidel/ktor/toolkit/cache/api/KeyValueCache {
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/cache/lettuce/api/LettuceCache$Companion;
+	public static final field DEFAULT_KEY_PREFIX Ljava/lang/String;
+	public static final field DEFAULT_SCAN_BATCH_SIZE I
+	public synthetic fun <init> (Lio/lettuce/core/cluster/api/async/RedisClusterAsyncCommands;JLjava/lang/String;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lio/lettuce/core/cluster/api/async/RedisClusterAsyncCommands;JLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun delete (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun get (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun keys (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun keys (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun put (Ljava/lang/String;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/cache/lettuce/api/LettuceCache$Companion {
+	public final fun getCodec ()Lio/lettuce/core/codec/RedisCodec;
+}
+

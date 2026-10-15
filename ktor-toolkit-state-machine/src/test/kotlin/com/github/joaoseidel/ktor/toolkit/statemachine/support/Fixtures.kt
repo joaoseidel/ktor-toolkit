@@ -1,7 +1,7 @@
 package com.github.joaoseidel.ktor.toolkit.statemachine.support
 
-import com.github.joaoseidel.ktor.toolkit.statemachine.StateMachine
-import com.github.joaoseidel.ktor.toolkit.statemachine.stateMachine
+import com.github.joaoseidel.ktor.toolkit.statemachine.api.StateMachine
+import com.github.joaoseidel.ktor.toolkit.statemachine.api.stateMachine
 
 enum class OrderState { DRAFT, PLACED, PAID, SHIPPED, CANCELLED }
 

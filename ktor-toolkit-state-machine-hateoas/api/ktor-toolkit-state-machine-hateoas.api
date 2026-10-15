@@ -1,0 +1,7 @@
+public final class com/github/joaoseidel/ktor/toolkit/statemachine/hateoas/api/TransitionLinksKt {
+	public static final fun transitionLinks (Lcom/github/joaoseidel/ktor/toolkit/statemachine/api/StateMachine;Ljava/lang/Object;Ljava/lang/Object;Lio/ktor/http/HttpMethod;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun transitionLinks$default (Lcom/github/joaoseidel/ktor/toolkit/statemachine/api/StateMachine;Ljava/lang/Object;Ljava/lang/Object;Lio/ktor/http/HttpMethod;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun withTransitions (Lcom/github/joaoseidel/ktor/toolkit/hateoas/api/data/Resource;Lcom/github/joaoseidel/ktor/toolkit/statemachine/api/StateMachine;Ljava/lang/Object;Ljava/lang/Object;Lio/ktor/http/HttpMethod;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun withTransitions$default (Lcom/github/joaoseidel/ktor/toolkit/hateoas/api/data/Resource;Lcom/github/joaoseidel/ktor/toolkit/statemachine/api/StateMachine;Ljava/lang/Object;Ljava/lang/Object;Lio/ktor/http/HttpMethod;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+

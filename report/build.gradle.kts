@@ -20,6 +20,12 @@ val coveredProjects =
         ":ktor-toolkit-paginator",
         ":ktor-toolkit-validator",
         ":ktor-toolkit-state-machine",
+        ":ktor-toolkit-filter-exposed",
+        ":ktor-toolkit-filter-mongo",
+        ":ktor-toolkit-paginator-exposed",
+        ":ktor-toolkit-paginator-mongo",
+        ":ktor-toolkit-cache-lettuce",
+        ":ktor-toolkit-state-machine-hateoas",
     )
 
 dependencies {
@@ -43,14 +49,14 @@ kover {
                 // The compiler emits a non-inlined copy of a public inline function for the
                 // declaration itself; callers inline the body instead, so that copy never runs.
                 annotatedBy(
-                    "com.github.joaoseidel.ktor.toolkit.cache.UnreachableBytecode",
-                    "com.github.joaoseidel.ktor.toolkit.filter.UnreachableBytecode",
+                    "com.github.joaoseidel.ktor.toolkit.cache.runtime.UnreachableBytecode",
+                    "com.github.joaoseidel.ktor.toolkit.filter.mongo.runtime.UnreachableBytecode",
                 )
 
                 // Every property of PaginationRequest is optional, so kotlinx.serialization guards
                 // its generated `throwMissingFieldException` with `(0 and seen) != 0` — always
                 // false.
-                classes("com.github.joaoseidel.ktor.toolkit.paginator.web.PaginationRequest")
+                classes("com.github.joaoseidel.ktor.toolkit.paginator.api.web.PaginationRequest")
             }
         }
 

@@ -144,7 +144,21 @@ configure(subprojects.filter { it.name.startsWith("ktor-toolkit-") }) {
                 }
             }
         }
-    tasks.named("check") { dependsOn(checkDependencyFloor) }
+    // `runtime` holds what consumer bytecode never touches; anything inlined into callers is ABI and belongs in `api`.
+    val checkRuntimeNotInAbi =
+        tasks.register("checkRuntimeNotInAbi") {
+            val dump = layout.projectDirectory.file("api/$moduleName.api")
+            inputs.file(dump)
+            mustRunAfter("apiDump")
+            doLast {
+                val leaks = dump.asFile.readLines().filter { "/runtime/" in it }
+                check(leaks.isEmpty()) {
+                    "$moduleName exposes runtime declarations in its ABI; move them to api or make them non-public:\n" +
+                        leaks.joinToString("\n") { "  ${it.trim()}" }
+                }
+            }
+        }
+    tasks.named("check") { dependsOn(checkDependencyFloor, checkRuntimeNotInAbi) }
 
     extensions.configure<MavenPublishBaseExtension> {
         // Sources and Dokka-rendered javadoc are both required for a Central release to validate.

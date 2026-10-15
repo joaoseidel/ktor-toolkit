@@ -1,0 +1,13 @@
+public final class com/github/joaoseidel/ktor/toolkit/filter/mongo/api/FilterMongoExtensionsKt {
+	public static final fun filterableFields (Lkotlin/jvm/functions/Function1;)Lcom/github/joaoseidel/ktor/toolkit/filter/mongo/api/FilterableFields;
+	public static final fun toMongoFilter (Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter;Lcom/github/joaoseidel/ktor/toolkit/filter/mongo/api/FilterableFields;)Lorg/bson/conversions/Bson;
+	public static final fun toMongoFilter (Ljava/util/List;Lcom/github/joaoseidel/ktor/toolkit/filter/mongo/api/FilterableFields;)Lorg/bson/conversions/Bson;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/filter/mongo/api/FilterableFields {
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/filter/mongo/api/FilterableFieldsBuilder {
+	public final fun field (Ljava/lang/String;Lkotlin/reflect/KClass;)V
+}
+

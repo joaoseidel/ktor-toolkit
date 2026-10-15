@@ -1,0 +1,9 @@
+public final class com/github/joaoseidel/ktor/toolkit/paginator/exposed/api/SortExposedExtensionsKt {
+	public static final fun toExposedQueryExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/api/data/Sort;Ljava/util/List;)Lkotlin/Pair;
+	public static final fun toExposedQueryExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/api/data/Sort;Lorg/jetbrains/exposed/v1/core/Table;)Lkotlin/Pair;
+	public static final fun toExposedQueryExpression (Lcom/github/joaoseidel/ktor/toolkit/paginator/api/data/Sort;[Lorg/jetbrains/exposed/v1/core/Column;)Lkotlin/Pair;
+	public static final fun toExposedQueryExpression (Ljava/util/List;Ljava/util/List;)Ljava/util/List;
+	public static final fun toExposedQueryExpression (Ljava/util/List;Lorg/jetbrains/exposed/v1/core/Table;)Ljava/util/List;
+	public static final fun toExposedQueryExpression (Ljava/util/List;[Lorg/jetbrains/exposed/v1/core/Column;)Ljava/util/List;
+}
+

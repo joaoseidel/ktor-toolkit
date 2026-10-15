@@ -1,100 +1,78 @@
-public final class com/github/joaoseidel/ktor/toolkit/filter/FilterExtensionsKt {
+public final class com/github/joaoseidel/ktor/toolkit/filter/api/FilterExtensionsKt {
 	public static final fun filters (Lio/ktor/server/application/ApplicationCall;I)Ljava/util/List;
 	public static synthetic fun filters$default (Lio/ktor/server/application/ApplicationCall;IILjava/lang/Object;)Ljava/util/List;
 	public static final fun getFilters (Lio/ktor/server/application/ApplicationCall;)Ljava/util/List;
 }
 
-public final class com/github/joaoseidel/ktor/toolkit/filter/data/Filter {
-	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Companion;
-	public fun <init> (Ljava/lang/String;Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;Ljava/util/List;)V
-	public fun <init> (Lkotlin/reflect/KProperty1;Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;[Ljava/lang/String;)V
+public final class com/github/joaoseidel/ktor/toolkit/filter/api/data/Filter {
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Companion;
+	public fun <init> (Ljava/lang/String;Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;Ljava/util/List;)V
+	public fun <init> (Lkotlin/reflect/KProperty1;Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;[Ljava/lang/String;)V
 	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
+	public final fun component2 ()Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
 	public final fun component3 ()Ljava/util/List;
-	public final fun copy (Ljava/lang/String;Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;Ljava/util/List;)Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter;
-	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter;Ljava/lang/String;Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;Ljava/util/List;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter;
+	public final fun copy (Ljava/lang/String;Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;Ljava/util/List;)Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter;Ljava/lang/String;Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;Ljava/util/List;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getOperator ()Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
+	public final fun getOperator ()Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
 	public final fun getProperty ()Ljava/lang/String;
 	public final fun getValues ()Ljava/util/List;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
-public final synthetic class com/github/joaoseidel/ktor/toolkit/filter/data/Filter$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$$serializer;
+public final synthetic class com/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$$serializer;
 	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter;
 	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter;)V
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
 }
 
-public final class com/github/joaoseidel/ktor/toolkit/filter/data/Filter$Companion {
+public final class com/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator : java/lang/Enum {
-	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator$Companion;
-	public static final field EQ Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static final field EXISTS Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static final field GT Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static final field GTE Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static final field IN Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static final field LIKE Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static final field LT Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static final field LTE Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static final field NOT_EQ Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static final field NOT_IN Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static final field NOT_LIKE Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
+public final class com/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator : java/lang/Enum {
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator$Companion;
+	public static final field EQ Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static final field EXISTS Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static final field GT Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static final field GTE Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static final field IN Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static final field LIKE Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static final field LT Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static final field LTE Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static final field NOT_EQ Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static final field NOT_IN Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static final field NOT_LIKE Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public final fun getToken ()Ljava/lang/String;
-	public static fun valueOf (Ljava/lang/String;)Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
-	public static fun values ()[Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
+	public static fun valueOf (Ljava/lang/String;)Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
+	public static fun values ()[Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
 }
 
-public final class com/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator$Companion {
-	public final fun fromToken (Ljava/lang/String;)Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter$Operator;
+public final class com/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator$Companion {
+	public final fun fromToken (Ljava/lang/String;)Lcom/github/joaoseidel/ktor/toolkit/filter/api/data/Filter$Operator;
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public abstract interface annotation class com/github/joaoseidel/ktor/toolkit/filter/data/FilterDsl : java/lang/annotation/Annotation {
+public abstract interface annotation class com/github/joaoseidel/ktor/toolkit/filter/api/data/FilterDsl : java/lang/annotation/Annotation {
 }
 
-public final class com/github/joaoseidel/ktor/toolkit/filter/data/FilterExposedExtensionsKt {
-	public static final fun toExposedCondition (Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter;Ljava/util/List;)Lorg/jetbrains/exposed/v1/core/Op;
-	public static final fun toExposedCondition (Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter;Lorg/jetbrains/exposed/v1/core/Table;)Lorg/jetbrains/exposed/v1/core/Op;
-	public static final fun toExposedCondition (Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter;[Lorg/jetbrains/exposed/v1/core/Column;)Lorg/jetbrains/exposed/v1/core/Op;
-	public static final fun toExposedCondition (Ljava/util/List;Ljava/util/List;)Lorg/jetbrains/exposed/v1/core/Op;
-	public static final fun toExposedCondition (Ljava/util/List;Lorg/jetbrains/exposed/v1/core/Table;)Lorg/jetbrains/exposed/v1/core/Op;
-	public static final fun toExposedCondition (Ljava/util/List;[Lorg/jetbrains/exposed/v1/core/Column;)Lorg/jetbrains/exposed/v1/core/Op;
-}
-
-public final class com/github/joaoseidel/ktor/toolkit/filter/data/FilterMongoExtensionsKt {
-	public static final fun filterableFields (Lkotlin/jvm/functions/Function1;)Lcom/github/joaoseidel/ktor/toolkit/filter/data/FilterableFields;
-	public static final fun toMongoFilter (Lcom/github/joaoseidel/ktor/toolkit/filter/data/Filter;Lcom/github/joaoseidel/ktor/toolkit/filter/data/FilterableFields;)Lorg/bson/conversions/Bson;
-	public static final fun toMongoFilter (Ljava/util/List;Lcom/github/joaoseidel/ktor/toolkit/filter/data/FilterableFields;)Lorg/bson/conversions/Bson;
-}
-
-public final class com/github/joaoseidel/ktor/toolkit/filter/data/FilterableFields {
-}
-
-public final class com/github/joaoseidel/ktor/toolkit/filter/data/FilterableFieldsBuilder {
-	public final fun field (Ljava/lang/String;Lkotlin/reflect/KClass;)V
-}
-
-public final class com/github/joaoseidel/ktor/toolkit/filter/data/InvalidFilterException : java/lang/IllegalArgumentException {
+public final class com/github/joaoseidel/ktor/toolkit/filter/api/error/InvalidFilterException : java/lang/IllegalArgumentException {
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getProperty ()Ljava/lang/String;
 }
 
-public final class com/github/joaoseidel/ktor/toolkit/filter/web/FilterQuery {
+public final class com/github/joaoseidel/ktor/toolkit/filter/api/web/FilterQuery {
 	public static final field DEFAULT_MAX_FILTERS I
-	public static final field INSTANCE Lcom/github/joaoseidel/ktor/toolkit/filter/web/FilterQuery;
+	public static final field INSTANCE Lcom/github/joaoseidel/ktor/toolkit/filter/api/web/FilterQuery;
 	public static final field PARAMETER Ljava/lang/String;
 	public final fun parse (Lio/ktor/http/Parameters;I)Ljava/util/List;
-	public static synthetic fun parse$default (Lcom/github/joaoseidel/ktor/toolkit/filter/web/FilterQuery;Lio/ktor/http/Parameters;IILjava/lang/Object;)Ljava/util/List;
+	public static synthetic fun parse$default (Lcom/github/joaoseidel/ktor/toolkit/filter/api/web/FilterQuery;Lio/ktor/http/Parameters;IILjava/lang/Object;)Ljava/util/List;
 }
 
