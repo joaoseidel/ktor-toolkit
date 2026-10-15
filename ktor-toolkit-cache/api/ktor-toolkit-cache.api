@@ -1,6 +1,7 @@
 public final class com/github/joaoseidel/ktor/toolkit/cache/InMemoryCache : com/github/joaoseidel/ktor/toolkit/cache/KeyValueCache {
 	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/cache/InMemoryCache$Companion;
 	public static final field DEFAULT_MAX_SIZE I
+	public fun <init> ()V
 	public synthetic fun <init> (IJLkotlin/time/Clock;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public synthetic fun <init> (IJLkotlin/time/Clock;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun delete (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
