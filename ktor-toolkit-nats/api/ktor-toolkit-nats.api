@@ -1,0 +1,167 @@
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/BucketSpec {
+	public synthetic fun <init> (Ljava/lang/String;JIILkotlin/time/Duration;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;JIILkotlin/time/Duration;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()J
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5-FghU774 ()Lkotlin/time/Duration;
+	public final fun copy-jSaE0eg (Ljava/lang/String;JIILkotlin/time/Duration;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/BucketSpec;
+	public static synthetic fun copy-jSaE0eg$default (Lcom/github/joaoseidel/ktor/toolkit/nats/api/BucketSpec;Ljava/lang/String;JIILkotlin/time/Duration;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/BucketSpec;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHistory ()I
+	public final fun getMaxBytes ()J
+	public final fun getName ()Ljava/lang/String;
+	public final fun getReplicas ()I
+	public final fun getTtl-FghU774 ()Lkotlin/time/Duration;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/Delivery {
+	public fun <init> (Ljava/lang/String;[BJJ)V
+	public final fun getAttempt ()J
+	public final fun getPayload ()[B
+	public final fun getSequence ()J
+	public final fun getSubject ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/LiveConfigKt {
+	public static final fun declare (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsClient;Lcom/github/joaoseidel/ktor/toolkit/nats/api/BucketSpec;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun liveConfig (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsClient;Lcom/github/joaoseidel/ktor/toolkit/nats/api/BucketSpec;Lkotlinx/coroutines/CoroutineScope;Ljava/lang/Object;Lkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/flow/StateFlow;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/NatsClient : java/lang/AutoCloseable {
+	public static final field Companion Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsClient$Companion;
+	public synthetic fun <init> (Lkotlinx/coroutines/CompletableDeferred;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun close ()V
+	public final fun connection (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/NatsClient$Companion {
+	public final fun connect (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsSettings;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsClient;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/NatsLease {
+	public fun <init> (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsClient;Lcom/github/joaoseidel/ktor/toolkit/nats/api/BucketSpec;Ljava/lang/String;)V
+	public final fun tryAcquire (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/NatsPublishTimeoutException : java/lang/RuntimeException {
+	public synthetic fun <init> (Ljava/lang/String;JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/NatsPublisher {
+	public synthetic fun <init> (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsClient;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsClient;JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun publish (Ljava/lang/String;[BLjava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun publish$default (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsPublisher;Ljava/lang/String;[BLjava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/NatsSettings {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsSettings;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsSettings;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsSettings;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getConnectionName ()Ljava/lang/String;
+	public final fun getPassword ()Ljava/lang/String;
+	public final fun getUrl ()Ljava/lang/String;
+	public final fun getUsername ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/NatsWorker {
+	public synthetic fun <init> (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsClient;Lcom/github/joaoseidel/ktor/toolkit/nats/api/StreamSpec;Ljava/lang/String;Ljava/lang/String;Lkotlinx/coroutines/flow/StateFlow;Lkotlinx/coroutines/flow/StateFlow;JLkotlin/jvm/functions/Function2;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsClient;Lcom/github/joaoseidel/ktor/toolkit/nats/api/StreamSpec;Ljava/lang/String;Ljava/lang/String;Lkotlinx/coroutines/flow/StateFlow;Lkotlinx/coroutines/flow/StateFlow;JLkotlin/jvm/functions/Function2;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/PoisonMessageException : java/lang/RuntimeException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getMessage ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/PublishedMessage {
+	public fun <init> (JZ)V
+	public final fun component1 ()J
+	public final fun component2 ()Z
+	public final fun copy (JZ)Lcom/github/joaoseidel/ktor/toolkit/nats/api/PublishedMessage;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/nats/api/PublishedMessage;JZILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/PublishedMessage;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDuplicate ()Z
+	public final fun getSequence ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/RetryPolicy {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/RetryPolicy;
+	public static synthetic fun copy$default (Lcom/github/joaoseidel/ktor/toolkit/nats/api/RetryPolicy;Ljava/util/List;ILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/RetryPolicy;
+	public final fun delayAfter-LV8wdWc (J)Lkotlin/time/Duration;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDelays ()Ljava/util/List;
+	public final fun getMaxDeliveries ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/StreamSpec {
+	public static final field DEAD_LETTER_BYTES J
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;JJILjava/lang/Long;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;JJILjava/lang/Long;JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3-UwyO8pc ()J
+	public final fun component4 ()J
+	public final fun component5 ()I
+	public final fun component6 ()Ljava/lang/Long;
+	public final fun component7-UwyO8pc ()J
+	public final fun copy-v5oZ3Hw (Ljava/lang/String;Ljava/util/List;JJILjava/lang/Long;J)Lcom/github/joaoseidel/ktor/toolkit/nats/api/StreamSpec;
+	public static synthetic fun copy-v5oZ3Hw$default (Lcom/github/joaoseidel/ktor/toolkit/nats/api/StreamSpec;Ljava/lang/String;Ljava/util/List;JJILjava/lang/Long;JILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/StreamSpec;
+	public final fun deadLetters-VtjQ1oo (JJ)Lcom/github/joaoseidel/ktor/toolkit/nats/api/StreamSpec;
+	public static synthetic fun deadLetters-VtjQ1oo$default (Lcom/github/joaoseidel/ktor/toolkit/nats/api/StreamSpec;JJILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/StreamSpec;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDuplicateWindow-UwyO8pc ()J
+	public final fun getMaxAge-UwyO8pc ()J
+	public final fun getMaxBytes ()J
+	public final fun getMaxMessagesPerSubject ()Ljava/lang/Long;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getReplicas ()I
+	public final fun getSubjects ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/StreamSpecKt {
+	public static final fun declare (Lcom/github/joaoseidel/ktor/toolkit/nats/api/NatsClient;Lcom/github/joaoseidel/ktor/toolkit/nats/api/StreamSpec;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/github/joaoseidel/ktor/toolkit/nats/api/WorkerTuning {
+	public fun <init> ()V
+	public synthetic fun <init> (Lcom/github/joaoseidel/ktor/toolkit/nats/api/RetryPolicy;JIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lcom/github/joaoseidel/ktor/toolkit/nats/api/RetryPolicy;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/github/joaoseidel/ktor/toolkit/nats/api/RetryPolicy;
+	public final fun component2-UwyO8pc ()J
+	public final fun component3 ()I
+	public final fun copy-8Mi8wO0 (Lcom/github/joaoseidel/ktor/toolkit/nats/api/RetryPolicy;JI)Lcom/github/joaoseidel/ktor/toolkit/nats/api/WorkerTuning;
+	public static synthetic fun copy-8Mi8wO0$default (Lcom/github/joaoseidel/ktor/toolkit/nats/api/WorkerTuning;Lcom/github/joaoseidel/ktor/toolkit/nats/api/RetryPolicy;JIILjava/lang/Object;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/WorkerTuning;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAckWait-UwyO8pc ()J
+	public final fun getBatchSize ()I
+	public final fun getRetry ()Lcom/github/joaoseidel/ktor/toolkit/nats/api/RetryPolicy;
+	public fun hashCode ()I
+	public final fun overriddenBy (Ljava/util/Map;Ljava/lang/String;)Lcom/github/joaoseidel/ktor/toolkit/nats/api/WorkerTuning;
+	public fun toString ()Ljava/lang/String;
+}
+

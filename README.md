@@ -30,6 +30,7 @@ integrations ship as their own artifacts, so a module never carries a driver you
 | `ktor-toolkit-filter-exposed`                      | Applies `filterBy` to an Exposed query                                       |
 | `ktor-toolkit-filter-mongo`                        | Applies `filterBy` to a MongoDB `find`                                       |
 | `ktor-toolkit-cache-lettuce`                       | A Redis-backed cache store, over Lettuce                                     |
+| `ktor-toolkit-nats`                                | JetStream workers with retries and dead letters, live config, leases, over jnats |
 | `ktor-toolkit-state-machine-hateoas`               | Publishes an aggregate's open moves as `_links`                              |
 
 The repository also ships [26 agent skills](#skills) that record how these APIs are meant to be used, so an agent working in your service follows the

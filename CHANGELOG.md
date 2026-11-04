@@ -8,6 +8,13 @@ All notable changes to this project are documented here. The format follows
 
 First public release. Nothing was published before this, so the breaking changes below are recorded for anyone who consumed the library from source.
 
+### Added
+
+- **`ktor-toolkit-nats`, over [jnats](https://github.com/nats-io/nats.java).** `NatsClient` connects in the background, so an outage cannot stop a
+  boot. `NatsPublisher` waits for the stream's acknowledgement. `NatsWorker` is a durable pull consumer with `nakWithDelay` retries and dead letters
+  recorded from the server's advisories, and it reports its lag through OpenTelemetry. `liveConfig` follows a key-value bucket and keeps the last good
+  value, and `NatsLease` is a TTL slot for periodic work. It runs on your own jnats and OpenTelemetry API, at your versions.
+
 ### Breaking
 
 - **Every public package moved under `api`.** `…toolkit.paginator.data.Pagination` is now `…toolkit.paginator.api.data.Pagination`, and the

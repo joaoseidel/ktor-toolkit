@@ -26,6 +26,7 @@ include("ktor-toolkit-paginator-mongo")
 include("ktor-toolkit-validator")
 include("ktor-toolkit-cache")
 include("ktor-toolkit-cache-lettuce")
+include("ktor-toolkit-nats")
 include("ktor-toolkit-state-machine")
 include("ktor-toolkit-state-machine-hateoas")
 

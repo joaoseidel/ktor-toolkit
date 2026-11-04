@@ -9,6 +9,10 @@ mongodb = "5.13.0"
 h2 = "2.5.252"
 ktor = "3.6.0"
 lettuce = "7.8.0.RELEASE"
+jnats = "2.26.4"
+opentelemetry = "1.65.0"
+slf4j = "2.0.19"
+testcontainers = "2.0.5"
 kotest = "6.2.5"
 mockk = "1.14.11"
 ktlint-plugin = "14.2.0"
@@ -36,7 +40,15 @@ ktor-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation",
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 # Lettuce
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
+# NATS
+jnats = { module = "io.nats:jnats", version.ref = "jnats" }
+# Telemetry and logging
+opentelemetry-api = { module = "io.opentelemetry:opentelemetry-api", version.ref = "opentelemetry" }
+opentelemetry-extension-kotlin = { module = "io.opentelemetry:opentelemetry-extension-kotlin", version.ref = "opentelemetry" }
+opentelemetry-sdk-testing = { module = "io.opentelemetry:opentelemetry-sdk-testing", version.ref = "opentelemetry" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 # Testing
+testcontainers-core = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 ktor-server-testhost = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }

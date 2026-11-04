@@ -25,6 +25,7 @@ val coveredProjects =
         ":ktor-toolkit-paginator-exposed",
         ":ktor-toolkit-paginator-mongo",
         ":ktor-toolkit-cache-lettuce",
+        ":ktor-toolkit-nats",
         ":ktor-toolkit-state-machine-hateoas",
     )
 
