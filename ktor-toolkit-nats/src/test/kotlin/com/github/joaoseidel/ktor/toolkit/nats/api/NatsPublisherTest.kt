@@ -3,6 +3,7 @@ package com.github.joaoseidel.ktor.toolkit.nats.api
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
+import io.nats.client.Connection
 import io.nats.client.impl.Headers
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.trace.Span
@@ -17,9 +18,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import java.net.ServerSocket
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class NatsPublisherTest :
     ShouldSpec({
@@ -73,6 +78,24 @@ class NatsPublisherTest :
 
                 named.connection().options.connectionName shouldBe "worker-1"
                 named.close()
+            }
+        }
+
+        context("a server that comes up after the client") {
+            should("open the connection once it does, as when a service boots before NATS") {
+                val port = ServerSocket(0).use { it.localPort }
+                val client = NatsClient.connect(NatsSettings("nats://127.0.0.1:$port"))
+                val late = NatsTestServer.lateServer(port)
+
+                try {
+                    delay(500.milliseconds)
+                    late.start()
+
+                    withTimeout(15.seconds) { client.connection() }.status shouldBe Connection.Status.CONNECTED
+                } finally {
+                    client.close()
+                    late.stop()
+                }
             }
         }
 

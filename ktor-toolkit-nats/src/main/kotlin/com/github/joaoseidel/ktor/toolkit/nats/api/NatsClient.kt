@@ -35,6 +35,8 @@ class NatsClient private constructor(
     }
 
     companion object {
+        private val OPEN = setOf(ConnectionListener.Events.CONNECTED, ConnectionListener.Events.RECONNECTED)
+
         /** Starts connecting and returns at once. Never throws for an unreachable server. */
         fun connect(settings: NatsSettings): NatsClient {
             val connecting = CompletableDeferred<Connection>()
@@ -44,7 +46,8 @@ class NatsClient private constructor(
                     .server(settings.url)
                     .maxReconnects(-1)
                     .connectionListener { connection, event ->
-                        if (event == ConnectionListener.Events.CONNECTED) connecting.complete(connection)
+                        // A first connection that only succeeds on a later attempt is reported as RECONNECTED, never as CONNECTED.
+                        if (event in OPEN) connecting.complete(connection)
                     }.apply {
                         settings.connectionName?.let(::connectionName)
                         settings.username?.let { userInfo(it, settings.password) }

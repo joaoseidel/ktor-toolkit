@@ -18,6 +18,14 @@ object NatsTestServer {
 
     val url: String by lazy { "nats://${container.host}:${container.getMappedPort(4222)}" }
 
+    /** A server on a port the caller chose, not started, so a client can be connecting to it before it exists. */
+    fun lateServer(port: Int): GenericContainer<*> =
+        GenericContainer(DockerImageName.parse("nats:2.15.2-alpine"))
+            .withCommand("nats-server", "-js")
+            .withExposedPorts(4222)
+            .apply { portBindings = listOf("$port:4222") }
+            .waitingFor(Wait.forLogMessage(".*Server is ready.*", 1))
+
     fun client(): NatsClient = NatsClient.connect(NatsSettings(url))
 }
 
