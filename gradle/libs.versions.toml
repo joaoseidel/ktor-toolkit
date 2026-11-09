@@ -13,7 +13,7 @@ kotest = "6.2.5"
 mockk = "1.14.11"
 ktlint-plugin = "14.2.0"
 binary-compatibility-validator = "0.18.2"
-dokka = "2.2.0"
+dokka = "2.3.0"
 maven-publish = "0.37.0"
 
 [libraries]
